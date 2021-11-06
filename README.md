@@ -1,33 +1,55 @@
 # today
 
-## Goal 1
+## `DATE` annotations
 
-- Support simple dates and optional times
-- Support tasks, notes and birthdays
+Most commands allow or require `DATE` annotations. They are roughly structured
+like `DATE start [-- end]`. The `end` part can only contain time-related
+information if the `start` specifies a time.
 
+More specifically, there are three variants of the `DATE` annotation:
 ```
-TASK Task without date
-DONE (2021-10-27 00:50)
+DATE date [delta] [time] [-- [date] [delta] [time]] [; delta]
+DATE weekday [time] [-- [weekday] [delta] [time]]
+DATE formula [delta] [time] [-- [delta] [time]]
+```
 
-TASK Another simple task
-DONE
+In all three cases, the `end` must contain at least one of the optional elements
+if it is present. Deltas in the `end` may represent fractional days (e. g.
+`+3h`) as long as they are not immediately followed by a time and the `start`
+includes a time. Other deltas may only represent whole-day intervals (they may
+contain sub-day specifiers like `+24h` or `+25h-60m` as long as they sum to a
+whole-day interval).
 
-TASK Another task, this time with date
-DATE 2021-10-26
-DONE 2021-10-26 (2021-10-27 00:52)
+In the case of the `date` variant, a repetition delta can be specified following
+a semicolon.
 
-NOTE Maybe an appointment
-DATE 2021-12-07 16:00
-    Here are some notes regarding the appointment
-    Notes can be multiple lines long
+If multiple `DATE` annotations from a single command start on the same date, all
+except the first are ignored.
 
-    Including empty lines (not even whitespace) in-between
-    As long as the text stays indented, it's still part of it
+## Examples
+```
+NOTE Spielerunde
+DATE sun 22:00 -- 24:00
+DATE sun 22:00 -- 00:00
+DATE sun 22:00 -- +2h
+DATE (wd = sun) 22:00 -- 24:00
+DATE 2021-11-07 22:00 -- 24:00; +w
+DATE 2021-11-07 22:00 -- +2h; +w
 
-BIRTHDAY John Doe
-DATE 1987-05-12
+NOTE daily
+DATE *
+DATE (true)
+DATE 2021-11-07; +d
 
-BIRTHDAY Jane Doe
-DATE ?-08-22
-DONE 2021-08-22 (2021-08-22 10:23)
+NOTE on weekends
+DATE (wd = sat | wd = sun)
+
+NOTE weekends
+DATE sat -- sun
+DATE 2021-11-06 -- 2021-11-07; +w
+DATE 2021-11-06 -- +d; +w
+DATE (wd = sat) -- +d
+
+NOTE last of each month
+DATE (m = 1) -d
 ```
