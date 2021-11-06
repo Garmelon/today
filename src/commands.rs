@@ -1,6 +1,16 @@
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 
 #[derive(Debug)]
+pub struct Delta {
+    pub years: i32,
+    pub months: i32,
+    pub weeks: i32,
+    pub days: i32,
+    pub hours: i32,
+    pub minutes: i32,
+}
+
+#[derive(Debug)]
 struct DateDelta {
     years: i32,
     months: i32,

@@ -1,12 +1,14 @@
 use std::str::FromStr;
 
-use chrono::{NaiveDate, NaiveTime};
+use chrono::{Duration, NaiveDate, NaiveTime};
 use nom::branch::Alt;
 use nom::bytes::complete::{take_while1, take_while_m_n};
 use nom::character::complete::{char, digit1, newline};
-use nom::combinator::{eof, fail, map_opt, map_res};
+use nom::combinator::{eof, fail, map_opt, map_res, opt, value};
 use nom::sequence::terminated;
 use nom::{IResult, Parser};
+
+use crate::commands::Delta;
 
 fn line_ending(i: &str) -> IResult<&str, ()> {
     (newline.map(|_| ()), eof.map(|_| ())).choice(i)
@@ -48,6 +50,40 @@ fn time(i: &str) -> IResult<&str, NaiveTime> {
     } else {
         fail(i)
     }
+}
+
+fn single_delta<const C: char>(i: &str) -> IResult<&str, i32> {
+    let (i, sign) = (value(1, char('+')), value(-1, char('-'))).choice(i)?;
+    let (i, amount) = opt(number::<i32>)(i)?;
+    let amount = amount.unwrap_or(1);
+    Ok((i, sign * amount))
+}
+
+fn opt_single_delta<const C: char>(i: &str) -> IResult<&str, i32> {
+    let (i, delta) = opt(single_delta::<C>)(i)?;
+    let delta = delta.unwrap_or(0);
+    Ok((i, delta))
+}
+
+fn delta(i: &str) -> IResult<&str, Delta> {
+    // TODO Require at least one field?
+    let (i, years) = opt_single_delta::<'y'>(i)?;
+    let (i, months) = opt_single_delta::<'m'>(i)?;
+    let (i, weeks) = opt_single_delta::<'w'>(i)?;
+    let (i, days) = opt_single_delta::<'d'>(i)?;
+    let (i, hours) = opt_single_delta::<'h'>(i)?;
+    let (i, minutes) = opt_single_delta::<'m'>(i)?;
+    Ok((
+        i,
+        Delta {
+            years,
+            months,
+            weeks,
+            days,
+            hours,
+            minutes,
+        },
+    ))
 }
 
 #[cfg(test)]
