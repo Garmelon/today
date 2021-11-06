@@ -24,7 +24,7 @@ DATE 2021-12-07 16:00
     Including empty lines (not even whitespace) in-between
     As long as the text stays indented, it's still part of it
 
-BIRTHDAY John Doe (<age>)
+BIRTHDAY John Doe
 DATE 1987-05-12
 
 BIRTHDAY Jane Doe
