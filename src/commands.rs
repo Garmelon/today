@@ -25,34 +25,32 @@ struct TimeDelta {
 }
 
 #[derive(Debug)]
-enum EndDate {
-    Fixed(NaiveDate),
-    Delta(DateDelta),
-}
-
-#[derive(Debug)]
-enum EndTime {
-    Fixed(NaiveTime),
-    Delta(TimeDelta),
+struct EndDateSpec {
+    end: Option<NaiveDate>,
+    delta: Option<Delta>,
 }
 
 #[derive(Debug)]
 struct DateSpec {
     start: NaiveDate,
-    end: Option<EndDate>,
-    repeat: Option<DateDelta>,
+    start_time: Option<NaiveTime>,
+    offset: Option<Delta>,
+    end: Option<EndDateSpec>,
+    repeat: Option<Delta>,
 }
 
-#[derive(Debug)]
-struct TimeSpec {
-    start: NaiveTime,
-    end: Option<EndTime>,
-}
+// #[derive(Debug)]
+// struct FormulaSpec {
+//     start: (), // TODO Formula
+//     start_time: Option<NaiveTime>,
+//     offset: Option<Delta>,
+//     end: Option<Delta>,
+// }
 
 #[derive(Debug)]
-struct WhenSpec {
-    date: DateSpec,
-    time: Option<TimeSpec>,
+enum Spec {
+    Date(DateSpec),
+    // Formula(FormulaSpec),
 }
 
 #[derive(Debug)]
@@ -64,7 +62,7 @@ struct Done {
 #[derive(Debug)]
 struct Task {
     title: String,
-    when: Option<WhenSpec>,
+    when: Option<Spec>,
     desc: Option<String>,
     dones: Vec<Done>,
 }
@@ -72,14 +70,14 @@ struct Task {
 #[derive(Debug)]
 struct Note {
     title: String,
-    when: WhenSpec,
+    when: Spec,
     desc: Option<String>,
 }
 
 #[derive(Debug)]
-enum BirthdaySpec {
-    Date(NaiveDate),
-    DateWithoutYear { month: u8, day: u8 },
+struct BirthdaySpec {
+    date: NaiveDate,
+    year_known: bool, // If year is unknown, use NaiveDate of year 0
 }
 
 #[derive(Debug)]
