@@ -13,12 +13,23 @@ enum Weekday {
 
 #[derive(Debug)]
 enum DeltaStep {
+    /// `y`, move by a year, keeping the same month and day
     Year(i32),
+    /// `m`, move by a month, keeping the same day `d`
     Month(i32),
+    /// `M`, move by a month, keeping the same day `D`
+    MonthReverse(i32),
+    /// `d`
     Day(i32),
+    /// `w`, move by 7 days
     Week(i32),
+    /// `h`
     Hour(i32),
+    /// `m`
     Minute(i32),
+    /// `mon`, `tue`, `wed`, `thu`, `fri`, `sat`, `sun`
+    ///
+    /// Move to the next occurrence of the specified weekday
     Weekday(i32, Weekday),
 }
 
@@ -69,15 +80,41 @@ enum IntVar {
     /// `y`
     Year,
     /// `yl`, length of the current year in days
+    ///
+    /// Equal to `isLeapYear ? 366 : 365`
     YearLength,
     /// `yd`, day of the year
     YearDay,
+    /// `yD`, day of the year starting from the end
+    ///
+    /// Equal to `yl - yd + 1`
+    YearDayReverse,
+    /// `yw`, 1 during the first 7 days of the year, 2 during the next etc.
+    ///
+    /// Equal to `((yd - 1) / 7) + 1`
+    YearWeek,
+    /// `yw`, 1 during the last 7 days of the year, 2 during the previous etc.
+    ///
+    /// Equal to `((yD - 1) / 7) + 1`
+    YearWeekReverse,
     /// `m`
     Month,
     /// `ml`, length of the current month in days
     MonthLength,
-    /// `d`, day of the month
+    /// `d` or `md`, day of the month
     MonthDay,
+    /// `D` or `mD`, day of the month starting from the end
+    ///
+    /// Equal to `ml - md + 1`
+    MonthDayReverse,
+    /// `mw`, 1 during the first 7 days of the month, 2 during the next etc.
+    ///
+    /// Equal to `((md - 1) / 7) + 1`
+    MonthWeek,
+    /// `mW`, 1 during the last 7 days of the month, 2 during the previous etc.
+    ///
+    /// Equal to `((mD - 1) / 7) + 1`
+    MonthWeekReverse,
     /// `iy`, ISO 8601 year
     IsoYear,
     /// `iyl`, length of current ISO 8601 year **in weeks**
@@ -120,8 +157,11 @@ enum IntExpr {
 
 #[derive(Debug)]
 enum BoolVar {
+    /// `isWeekday`, whether the current day is one of mon-fri
     IsWeekday,
+    /// `isWeekend`, whether the current day is one of sat-sun
     IsWeekend,
+    /// `isLeapYear`, whether the current year is a leap year
     IsLeapYear,
 }
 
