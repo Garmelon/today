@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use structopt::StructOpt;
 
 mod commands;
+mod source;
 
 #[derive(Debug, StructOpt)]
 pub struct Opt {
