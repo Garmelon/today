@@ -1,5 +1,16 @@
+use std::path::PathBuf;
+
+use structopt::StructOpt;
+
 mod commands;
 
+#[derive(Debug, StructOpt)]
+pub struct Opt {
+    #[structopt(parse(from_os_str))]
+    file: PathBuf,
+}
+
 fn main() {
-    println!("Hello, world!");
+    let opt = Opt::from_args();
+    println!("{:#?}", opt);
 }
