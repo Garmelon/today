@@ -112,4 +112,16 @@ BDATE 1987-05-14
 
 BIRTHDAY Martha
 BDATE ?-09-21
+
+NOTE Physics lecture
+DATE wed 14:00 -- 15:30
+DATE 2021-05-07 14:00 -- 15:30
+FROM 2021-04-14
+UNTIL 2021-07-28
+EXCEPT 2021-05-06
+	This is a description of the event. It might mention further information
+	that doesn't fit into the title.
+
+	It may even contain multiple paragraphs, separated by an arbitrary amount
+	of empty lines, as long as every non-empty line is indented.
 ```

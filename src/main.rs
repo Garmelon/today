@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use structopt::StructOpt;
 
 mod commands;
+mod parser;
 mod source;
 
 #[derive(Debug, StructOpt)]
