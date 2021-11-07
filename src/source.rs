@@ -3,16 +3,12 @@ use std::ops::Range;
 use std::path::{Path, PathBuf};
 use std::{fs, io};
 
+use codespan_reporting::diagnostic::Diagnostic;
 use codespan_reporting::files::SimpleFiles;
+use codespan_reporting::term;
+use codespan_reporting::term::termcolor::{ColorChoice, StandardStream};
 
-#[derive(Debug, thiserror::Error)]
-pub enum LoadFileError {
-    #[error("file already loaded")]
-    FileAlreadyLoaded,
-    #[error("error loading file: {0}")]
-    IoError(#[from] io::Error),
-}
-
+#[derive(Debug)]
 pub struct SourceFiles {
     files: SimpleFiles<String, String>,
     files_by_path: HashMap<PathBuf, usize>,
@@ -26,20 +22,31 @@ impl SourceFiles {
         }
     }
 
-    pub fn load(&mut self, path: &Path) -> Result<SourceFile, LoadFileError> {
+    pub fn load(&mut self, path: &Path) -> io::Result<(SourceFile, &str)> {
         let canonical_path = path.canonicalize()?;
-        if self.files_by_path.contains_key(&canonical_path) {
-            return Err(LoadFileError::FileAlreadyLoaded);
-        }
+        let file_id = if let Some(&file_id) = self.files_by_path.get(&canonical_path) {
+            file_id
+        } else {
+            let name = path.as_os_str().to_string_lossy().into_owned();
+            let content = fs::read_to_string(path)?;
+            self.files.add(name, content)
+        };
 
-        let name = path.as_os_str().to_string_lossy().into_owned();
-        let content = fs::read_to_string(path)?;
-        let file_id = self.files.add(name, content);
-        Ok(SourceFile(file_id))
+        let content = self.files.get(file_id).unwrap().source() as &str;
+        Ok((SourceFile(file_id), content))
     }
 
-    pub fn content_of(&self, file: SourceFile) -> Option<&str> {
-        self.files.get(file.0).ok().map(|sf| sf.source() as &str)
+    pub fn emit_all<'a, T>(&self, diagnostics: &'a [T])
+    where
+        &'a T: Into<Diagnostic<usize>>,
+    {
+        let stderr = StandardStream::stderr(ColorChoice::Auto);
+        let config = term::Config::default();
+
+        for diagnostic in diagnostics {
+            let diagnostic: Diagnostic<usize> = diagnostic.into();
+            term::emit(&mut stderr.lock(), &config, &self.files, &diagnostic);
+        }
     }
 }
 
@@ -49,7 +56,7 @@ pub struct SourceFile(usize);
 impl SourceFile {
     pub fn span(&self, range: Range<usize>) -> SourceSpan {
         SourceSpan {
-            file: self.0,
+            file_id: self.0,
             start: range.start,
             end: range.end,
         }
@@ -58,7 +65,17 @@ impl SourceFile {
 
 #[derive(Clone, Copy, Debug)]
 pub struct SourceSpan {
-    file: usize,
+    file_id: usize,
     start: usize,
     end: usize,
+}
+
+impl SourceSpan {
+    pub fn file_id(&self) -> usize {
+        self.file_id
+    }
+
+    pub fn range(&self) -> Range<usize> {
+        self.start..self.end
+    }
 }

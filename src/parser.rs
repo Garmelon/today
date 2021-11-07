@@ -1,10 +1,22 @@
 use std::cmp::min;
 use std::process::Command;
 
+use codespan_reporting::diagnostic::{Diagnostic, Label};
+
 use crate::source::{SourceFile, SourceSpan};
+
+// TODO Add warnings for things like trailing whitespace
 
 #[derive(Debug)]
 pub struct ParseError(SourceSpan, String);
+
+impl From<&ParseError> for Diagnostic<usize> {
+    fn from(e: &ParseError) -> Self {
+        Self::error()
+            .with_message(&e.1)
+            .with_labels(vec![Label::primary(e.0.file_id(), e.0.range())])
+    }
+}
 
 type ParseResult<T> = Result<T, ParseError>;
 
@@ -102,6 +114,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_command(&mut self) -> ParseResult<Command> {
+        self.critical(self.offset, "idk, ded")?;
         todo!()
     }
 }

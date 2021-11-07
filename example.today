@@ -1,0 +1,44 @@
+TASK foo
+
+NOTE Spielerunde
+DATE sun 22:00 -- 24:00
+DATE sun 22:00 -- 00:00
+DATE sun 22:00 -- +2h
+DATE (wd = sun) 22:00 -- 24:00
+DATE 2021-11-07 22:00 -- 24:00; +w
+DATE 2021-11-07 22:00 -- +2h; +w
+
+NOTE daily
+DATE *
+DATE (true)
+DATE 2021-11-07; +d
+
+NOTE on weekends
+DATE (wd = sat | wd = sun)
+
+NOTE weekends
+DATE sat -- sun
+DATE 2021-11-06 -- 2021-11-07; +w
+DATE 2021-11-06 -- +d; +w
+DATE (wd = sat) -- +d
+
+NOTE last of each month
+DATE (m = 1) -d
+
+BIRTHDAY Max
+BDATE 1987-05-14
+
+BIRTHDAY Martha
+BDATE ?-09-21
+
+NOTE Physics lecture
+DATE wed 14:00 -- 15:30
+DATE 2021-05-07 14:00 -- 15:30
+FROM 2021-04-14
+UNTIL 2021-07-28
+EXCEPT 2021-05-06
+	This is a description of the event. It might mention further information
+	that doesn't fit into the title.
+
+	It may even contain multiple paragraphs, separated by an arbitrary amount
+	of empty lines, as long as every non-empty line is indented.
