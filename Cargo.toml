@@ -5,4 +5,3 @@ edition = "2018"
 
 [dependencies]
 chrono = "0.4.19"
-nom = "7.1.0"
