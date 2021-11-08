@@ -31,7 +31,7 @@ fn main() {
 
     let mut parser = Parser::new(file, content);
 
-    let commands = match parser.parse() {
+    let commands = match parser.parse(parser::commands::parse) {
         Ok(result) => result,
         Err(es) => {
             files.emit_all(&es);

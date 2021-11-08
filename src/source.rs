@@ -45,7 +45,8 @@ impl SourceFiles {
 
         for diagnostic in diagnostics {
             let diagnostic: Diagnostic<usize> = diagnostic.into();
-            term::emit(&mut stderr.lock(), &config, &self.files, &diagnostic);
+            term::emit(&mut stderr.lock(), &config, &self.files, &diagnostic)
+                .expect("failed to print errors");
         }
     }
 }
