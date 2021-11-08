@@ -3,11 +3,11 @@ use std::process;
 
 use structopt::StructOpt;
 
-use crate::parser::Parser;
+use crate::parse::Parser;
 use crate::source::SourceFiles;
 
 mod commands;
-mod parser;
+mod parse;
 mod source;
 
 #[derive(Debug, StructOpt)]
@@ -31,7 +31,7 @@ fn main() {
 
     let mut parser = Parser::new(file, content);
 
-    let commands = match parser.parse(parser::commands::parse) {
+    let commands = match parser.parse(parse::parse_commands) {
         Ok(result) => result,
         Err(es) => {
             files.emit_all(&es);

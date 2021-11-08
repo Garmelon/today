@@ -4,9 +4,6 @@ use codespan_reporting::diagnostic::{Diagnostic, Label};
 
 use crate::source::{SourceFile, SourceSpan};
 
-pub mod commands;
-mod task;
-
 // TODO Add warnings for things like trailing whitespace
 
 #[derive(Debug)]
@@ -20,7 +17,7 @@ impl From<&ParseError> for Diagnostic<usize> {
     }
 }
 
-type ParseResult<T> = Result<T, ParseError>;
+pub type ParseResult<T> = Result<T, ParseError>;
 
 #[derive(Debug)]
 pub struct Parser<'a> {
@@ -107,39 +104,4 @@ impl<'a> Parser<'a> {
 
         Err(self.errors.split_off(0))
     }
-
-    // fn parse_commands(&mut self) -> ParseResult<Vec<Command>> {
-    //     let mut commands = vec![];
-
-    //     self.skip_empty_lines();
-    //     while !self.at_eof() {
-    //         commands.push(self.parse_command()?);
-    //     }
-
-    //     if !self.at_eof() {
-    //         self.uncritical(self.offset, "Expected EOF");
-    //     }
-
-    //     Ok(commands)
-    // }
-
-    // fn skip_empty_lines(&mut self) {
-    //     while self.peek_line().chars().all(|c| c.is_whitespace()) {
-    //         self.take_line();
-    //     }
-    // }
-
-    // fn parse_command(&mut self) -> ParseResult<Command> {
-    //     let rest = self.peek_rest();
-    //     if rest.starts_with("TASK") {
-    //         let task = self.parse_task()?;
-    //         Ok(Command::Task(task))
-    //     } else if rest.starts_with("NOTE") {
-    //         todo!() // TODO Implement parsing NOTE command
-    //     } else if rest.starts_with("BIRTHDAY") {
-    //         todo!() // TODO Implement parsing BIRTHDAY command
-    //     } else {
-    //         self.critical(self.offset, "Expected command")
-    //     }
-    // }
 }
