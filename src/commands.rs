@@ -1,7 +1,7 @@
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 
 #[derive(Debug)]
-enum Weekday {
+pub enum Weekday {
     Monday,
     Tuesday,
     Wednesday,
@@ -12,7 +12,7 @@ enum Weekday {
 }
 
 #[derive(Debug)]
-enum DeltaStep {
+pub enum DeltaStep {
     /// `y`, move by a year, keeping the same month and day
     Year(i32),
     /// `m`, move by a month, keeping the same day `d`
@@ -44,37 +44,37 @@ pub struct Delta {
 }
 
 #[derive(Debug)]
-struct DateEndSpec {
-    end: Option<NaiveDate>,
-    delta: Option<Delta>,
-    end_time: Option<NaiveTime>,
+pub struct DateEndSpec {
+    pub end: Option<NaiveDate>,
+    pub delta: Option<Delta>,
+    pub end_time: Option<NaiveTime>,
 }
 
 #[derive(Debug)]
-struct DateSpec {
-    start: NaiveDate,
-    delta: Option<Delta>,
-    start_time: Option<NaiveTime>,
-    end: Option<DateEndSpec>,
-    repeat: Option<Delta>,
+pub struct DateSpec {
+    pub start: NaiveDate,
+    pub delta: Option<Delta>,
+    pub start_time: Option<NaiveTime>,
+    pub end: Option<DateEndSpec>,
+    pub repeat: Option<Delta>,
 }
 
 #[derive(Debug)]
-struct WeekdayEndSpec {
-    end: Option<Weekday>,
-    delta: Option<Delta>,
-    end_time: Option<NaiveTime>,
+pub struct WeekdayEndSpec {
+    pub end: Option<Weekday>,
+    pub delta: Option<Delta>,
+    pub end_time: Option<NaiveTime>,
 }
 
 #[derive(Debug)]
-struct WeekdaySpec {
-    start: Weekday,
-    start_time: Option<NaiveTime>,
-    end: Option<WeekdayEndSpec>,
+pub struct WeekdaySpec {
+    pub start: Weekday,
+    pub start_time: Option<NaiveTime>,
+    pub end: Option<WeekdayEndSpec>,
 }
 
 #[derive(Debug)]
-enum IntVar {
+pub enum IntVar {
     /// `j`, see https://en.wikipedia.org/wiki/Julian_day
     JulianDay,
     /// `y`
@@ -142,7 +142,7 @@ enum IntVar {
 }
 
 #[derive(Debug)]
-enum IntExpr {
+pub enum IntExpr {
     Lit(i64),
     Var(IntVar),
     Paren(Box<IntVar>),
@@ -156,7 +156,7 @@ enum IntExpr {
 }
 
 #[derive(Debug)]
-enum BoolVar {
+pub enum BoolVar {
     /// `isWeekday`, whether the current day is one of mon-fri
     IsWeekday,
     /// `isWeekend`, whether the current day is one of sat-sun
@@ -166,7 +166,7 @@ enum BoolVar {
 }
 
 #[derive(Debug)]
-enum BoolExpr {
+pub enum BoolExpr {
     Lit(bool),
     Var(BoolVar),
     Paren(Box<BoolVar>),
@@ -185,56 +185,56 @@ enum BoolExpr {
 }
 
 #[derive(Debug)]
-struct FormulaSpec {
-    start: Option<BoolExpr>, // None: *
-    start_time: Option<NaiveTime>,
-    offset: Option<Delta>,
-    end: Option<Delta>,
+pub struct FormulaSpec {
+    pub start: Option<BoolExpr>, // None: *
+    pub start_time: Option<NaiveTime>,
+    pub offset: Option<Delta>,
+    pub end: Option<Delta>,
 }
 
 #[derive(Debug)]
-enum Spec {
+pub enum Spec {
     Date(DateSpec),
     Weekday(WeekdaySpec),
     Formula(FormulaSpec),
 }
 
 #[derive(Debug)]
-struct Done {
-    refering_to: Option<NaiveDate>,
-    created_at: Option<NaiveDateTime>,
+pub struct Done {
+    pub refering_to: Option<NaiveDate>,
+    pub created_at: Option<NaiveDateTime>,
 }
 
 #[derive(Debug)]
-struct Task {
-    title: String,
-    when: Vec<Spec>,
-    done: Vec<Done>,
-    desc: Option<String>,
+pub struct Task {
+    pub title: String,
+    pub when: Vec<Spec>,
+    pub done: Vec<Done>,
+    pub desc: Option<String>,
 }
 
 #[derive(Debug)]
-struct Note {
-    title: String,
-    when: Vec<Spec>, // Not empty
-    desc: Option<String>,
+pub struct Note {
+    pub title: String,
+    pub when: Vec<Spec>, // Should not be empty?
+    pub desc: Option<String>,
 }
 
 #[derive(Debug)]
-struct BirthdaySpec {
-    date: NaiveDate,
-    year_known: bool, // If year is unknown, use NaiveDate of year 0
+pub struct BirthdaySpec {
+    pub date: NaiveDate,
+    pub year_known: bool, // If year is unknown, use NaiveDate of year 0
 }
 
 #[derive(Debug)]
-struct Birthday {
-    title: String,
-    when: BirthdaySpec,
-    desc: Option<String>,
+pub struct Birthday {
+    pub title: String,
+    pub when: BirthdaySpec,
+    pub desc: Option<String>,
 }
 
 #[derive(Debug)]
-enum Command {
+pub enum Command {
     Task(Task),
     Note(Note),
     Birthday(Birthday),
