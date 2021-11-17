@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use structopt::StructOpt;
 
 mod commands;
+mod parse;
 
 #[derive(Debug, StructOpt)]
 pub struct Opt {
@@ -13,4 +14,7 @@ pub struct Opt {
 fn main() {
     let opt = Opt::from_args();
     println!("{:#?}", opt);
+
+    let commands = parse::parse(&opt.file);
+    println!("{:#?}", commands);
 }
