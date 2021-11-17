@@ -4,6 +4,8 @@ use chrono::NaiveDate;
 
 use crate::commands::{BirthdaySpec, Done, Spec};
 
+use super::error::ParseError;
+
 #[derive(Debug)]
 pub enum Line {
     Empty,
@@ -21,14 +23,16 @@ pub enum Line {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("line {line}: unknown command {name:?}")]
-    UnknownCommand { line: usize, name: String },
-    #[error("line {line}: unknown format")]
-    UnknownFormat { line: usize },
+pub enum Reason {
+    #[error("unknown format")]
+    UnknownFormat,
+    #[error("unknown command {0:?}")]
+    UnknownCommand(String),
+    #[error("empty command body")]
+    EmptyCommand,
 }
 
-type Result<T> = result::Result<T, Error>;
+type Result<T> = result::Result<T, ParseError>;
 
 pub fn parse_lines(content: &str) -> Result<Vec<Line>> {
     content
@@ -46,6 +50,10 @@ fn parse_line(line: usize, content: &str) -> Result<Line> {
     } else if content.starts_with('\t') || content.starts_with(' ') {
         Ok(Line::Indented(content.to_string()))
     } else if let Some((name, rest)) = parse_command(content) {
+        let rest = rest.trim();
+        if rest.is_empty() {
+            return ParseError::pack(line, Reason::EmptyCommand);
+        }
         match name {
             "TASK" => Ok(Line::Task(rest.to_string())),
             "NOTE" => Ok(Line::Note(rest.to_string())),
@@ -56,13 +64,10 @@ fn parse_line(line: usize, content: &str) -> Result<Line> {
             "UNTIL" => parse_datum(rest).map(Line::Until),
             "EXCEPT" => parse_datum(rest).map(Line::Except),
             "DONE" => parse_done(rest),
-            _ => Err(Error::UnknownCommand {
-                line,
-                name: name.to_string(),
-            }),
+            _ => ParseError::pack(line, Reason::UnknownCommand(name.to_string())),
         }
     } else {
-        Err(Error::UnknownFormat { line })
+        ParseError::pack(line, Reason::UnknownFormat)
     }
 }
 
