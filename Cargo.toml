@@ -6,6 +6,5 @@ edition = "2018"
 [dependencies]
 anyhow = "1.0.45"
 chrono = "0.4.19"
-codespan-reporting = "0.11.1"
 structopt = "0.3.25"
 thiserror = "1.0.30"
