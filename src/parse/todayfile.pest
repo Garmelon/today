@@ -79,17 +79,21 @@ indented_line = { NEWLINE | WHITESPACE ~ rest ~ eol }
 
 description = { indented_line* }
 
+task_options = { (date | from | until | except | done)* }
+
 task = {
     "TASK"
     ~ title
-    ~ (date | from | until | except | done)*
+    ~ task_options
     ~ description
 }
+
+note_options = { (date | from | until | except)* }
 
 note = {
     "NOTE"
     ~ title
-    ~ (date | from | until | except | done)*
+    ~ note_options
     ~ description
 }
 

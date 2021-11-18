@@ -209,6 +209,9 @@ pub struct Done {
 pub struct Task {
     pub title: String,
     pub when: Vec<Spec>,
+    pub from: Option<NaiveDate>,
+    pub until: Option<NaiveDate>,
+    pub except: Vec<NaiveDate>,
     pub done: Vec<Done>,
     pub desc: Option<String>,
 }
@@ -217,6 +220,9 @@ pub struct Task {
 pub struct Note {
     pub title: String,
     pub when: Vec<Spec>, // Should not be empty?
+    pub from: Option<NaiveDate>,
+    pub until: Option<NaiveDate>,
+    pub except: Vec<NaiveDate>,
     pub desc: Option<String>,
 }
 
