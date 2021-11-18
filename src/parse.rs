@@ -96,13 +96,7 @@ fn parse_options(p: Pair<Rule>) -> Result<Options> {
 
 fn parse_indented_line(p: Pair<Rule>) -> Result<String> {
     assert_eq!(p.as_rule(), Rule::indented_line);
-    Ok(match p.into_inner().next() {
-        Some(rest) => {
-            assert_eq!(rest.as_rule(), Rule::rest);
-            rest.as_str().to_string()
-        }
-        None => "".to_string(),
-    })
+    Ok(p.as_str().to_string())
 }
 
 fn parse_description(p: Pair<Rule>) -> Result<Option<String>> {
@@ -115,8 +109,8 @@ fn parse_description(p: Pair<Rule>) -> Result<Option<String>> {
 
     // TODO Strip whitespace prefix
 
-    let desc = lines.join("\n");
-    Ok(Some(desc).filter(|s| !s.is_empty()))
+    let desc = lines.join("\n").trim_end().to_string();
+    Ok(if desc.is_empty() { None } else { Some(desc) })
 }
 
 fn parse_task(p: Pair<Rule>) -> Result<Task> {

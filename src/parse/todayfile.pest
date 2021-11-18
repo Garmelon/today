@@ -72,10 +72,10 @@ except = !{ "EXCEPT" ~ datum ~ eol }
 donedate = { "(" ~ datum ~ time ~ ")" }
 done = !{ "DONE" ~ datum? ~ donedate? ~ eol }
 
-// I need to use `nl` for the empty line here. Otherwise, the parser gets into
-// an endless loop at the `EOI` since `indented*` can appear at the end of the
-// file and would just repeatedly match the empty string.
-indented_line = { NEWLINE | WHITESPACE ~ rest ~ eol }
+// I need to use `NEWLINE` for the empty line here. Otherwise, the parser gets
+// into an endless loop at the `EOI` since `indented*` can appear at the end of
+// the file and would just repeatedly match the empty string.
+indented_line = @{ NEWLINE | WHITESPACE ~ rest ~ eol }
 
 description = { indented_line* }
 
