@@ -1,0 +1,105 @@
+eol = _{ NEWLINE | EOI }
+WHITESPACE = _{ !eol ~ WHITE_SPACE }
+rest = { (!eol ~ ANY)+ }
+
+title = { WHITESPACE ~ rest ~ eol }
+
+year = @{ ASCII_DIGIT{4} }
+month = @{ ASCII_DIGIT{2} }
+day = @{ ASCII_DIGIT{2} }
+datum = ${ year ~ "-" ~ month ~ "-" ~ day }
+bdatum = ${ (year | "?") ~ "-" ~ month ~ "-" ~ day }
+
+hour = @{ ASCII_DIGIT{2} }
+minute = @{ ASCII_DIGIT{2} }
+time = ${ hour ~ ":" ~ minute }
+
+weekday = { "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun" }
+
+amount = { ("+" | "-") ~ ASCII_DIGIT* }
+delta_weekdays = { amount ~ weekday }
+delta_years = { amount ~ ("y" | "Y") }
+delta_months = { amount ~ ("m" | "M") }
+delta_days = { amount ~ "d" }
+delta_weeks = { amount ~ "w" }
+delta_hours = { amount ~ "h" }
+delta_minutes = { amount ~ "m" }
+delta = { (delta_weekdays | delta_years | delta_months | delta_days | delta_weeks | delta_hours | delta_minutes)+ }
+
+paren_expr = { "(" ~ expr ~ ")" }
+number = @{ ASCII_DIGIT+ }
+boolean = { "true" | "false" }
+variable = {
+    "j"
+    | "yl" | "yd" | "Yd" | "yw" | "Yw" | "y"
+    | "ml" | "md" | "Md" | "mw" | "Mw" | "m"
+    | "d" | "D"
+    | "iy" | "iyl"
+    | "wd"
+    | "e"
+    | "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun"
+    | "isWeekday" | "isWeekend" | "isLeapYear"
+}
+term = { paren_expr | number | boolean | variable }
+op = {
+    "+" | "-" | "*" | "/" | "%"
+    | "=" | "!="
+    | "<=" | "<" | ">=" | ">"
+    | "&" | "|" | "^"
+}
+expr = { term ~ (op ~ term)* }
+
+date_fixed_start = { datum ~ delta? ~ time? }
+date_fixed_end = { datum ~ delta? ~ time? | delta ~ time? | time }
+date_fixed_repeat = { delta }
+date_fixed = { date_fixed_start ~ ("--" ~ date_fixed_end)? ~ (";" ~ date_fixed_repeat)? }
+
+date_expr_start = { ("*" | paren_expr) ~ delta? ~ time? }
+date_expr_end = { delta ~ time? | time }
+date_expr = { date_expr_start ~ ("--" ~ date_expr_end)? }
+
+date_weekday_start = { weekday ~ delta? ~ time? }
+date_weekday_end = { weekday ~ delta? ~ time? | delta ~ time? | time }
+date_weekday = { date_weekday_start ~ ("--" ~ date_weekday_end)? }
+
+date = !{ "DATE" ~ (date_fixed | date_expr | date_weekday) ~ eol }
+
+bdate = !{ "BDATE" ~ bdatum ~ eol }
+from = !{ "FROM" ~ datum ~ eol }
+until = !{ "UNTIL" ~ datum ~ eol }
+except = !{ "EXCEPT" ~ datum ~ eol }
+
+donedate = { "(" ~ datum ~ time ~ ")" }
+done = !{ "DONE" ~ datum? ~ donedate? ~ eol }
+
+// I need to use `nl` for the empty line here. Otherwise, the parser gets into
+// an endless loop at the `EOI` since `indented*` can appear at the end of the
+// file and would just repeatedly match the empty string.
+indented_line = { NEWLINE | WHITESPACE ~ rest ~ eol }
+
+description = { indented_line* }
+
+task = {
+    "TASK"
+    ~ title
+    ~ (date | from | until | except | done)*
+    ~ description
+}
+
+note = {
+    "NOTE"
+    ~ title
+    ~ (date | from | until | except | done)*
+    ~ description
+}
+
+birthday = {
+    "BIRTHDAY"
+    ~ title
+    ~ bdate
+    ~ description
+}
+
+command = { task | note | birthday }
+
+file = ${ SOI ~ NEWLINE* ~ command* ~ EOI }

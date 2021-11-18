@@ -1,6 +1,10 @@
+use std::fs;
 use std::path::PathBuf;
 
+use pest::Parser;
 use structopt::StructOpt;
+
+use parse::{MyParser, Rule};
 
 mod commands;
 mod parse;
@@ -11,10 +15,10 @@ pub struct Opt {
     file: PathBuf,
 }
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     let opt = Opt::from_args();
-    println!("{:#?}", opt);
-
-    let commands = parse::parse(&opt.file);
-    println!("{:#?}", commands);
+    let content = fs::read_to_string(&opt.file)?;
+    let parsed = MyParser::parse(Rule::file, &content)?.next().unwrap();
+    println!("{:#?}", parsed);
+    Ok(())
 }

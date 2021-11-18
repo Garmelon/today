@@ -75,7 +75,7 @@ pub struct WeekdaySpec {
 
 #[derive(Debug)]
 pub enum IntVar {
-    /// `j`, see https://en.wikipedia.org/wiki/Julian_day
+    /// `j`, see <https://en.wikipedia.org/wiki/Julian_day>
     JulianDay,
     /// `y`
     Year,
@@ -85,7 +85,7 @@ pub enum IntVar {
     YearLength,
     /// `yd`, day of the year
     YearDay,
-    /// `yD`, day of the year starting from the end
+    /// `Yd`, day of the year starting from the end
     ///
     /// Equal to `yl - yd + 1`
     YearDayReverse,
@@ -93,7 +93,7 @@ pub enum IntVar {
     ///
     /// Equal to `((yd - 1) / 7) + 1`
     YearWeek,
-    /// `yw`, 1 during the last 7 days of the year, 2 during the previous etc.
+    /// `Yw`, 1 during the last 7 days of the year, 2 during the previous etc.
     ///
     /// Equal to `((yD - 1) / 7) + 1`
     YearWeekReverse,
@@ -103,7 +103,7 @@ pub enum IntVar {
     MonthLength,
     /// `d` or `md`, day of the month
     MonthDay,
-    /// `D` or `mD`, day of the month starting from the end
+    /// `D` or `Md`, day of the month starting from the end
     ///
     /// Equal to `ml - md + 1`
     MonthDayReverse,
@@ -111,7 +111,7 @@ pub enum IntVar {
     ///
     /// Equal to `((md - 1) / 7) + 1`
     MonthWeek,
-    /// `mW`, 1 during the last 7 days of the month, 2 during the previous etc.
+    /// `Mw`, 1 during the last 7 days of the month, 2 during the previous etc.
     ///
     /// Equal to `((mD - 1) / 7) + 1`
     MonthWeekReverse,
