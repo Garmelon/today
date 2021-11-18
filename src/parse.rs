@@ -24,7 +24,9 @@ fn fail<S: Into<String>, T>(span: Span, message: S) -> Result<T> {
 
 fn parse_title(p: Pair<Rule>) -> Result<String> {
     assert_eq!(p.as_rule(), Rule::title);
-    Ok(p.into_inner().next().unwrap().as_str().to_string())
+    let p = p.into_inner().next().unwrap();
+    assert_eq!(p.as_rule(), Rule::rest_some);
+    Ok(p.as_str().to_string())
 }
 
 fn parse_datum(p: Pair<Rule>) -> Result<NaiveDate> {
@@ -94,23 +96,20 @@ fn parse_options(p: Pair<Rule>) -> Result<Options> {
     Ok(opts)
 }
 
-fn parse_indented_line(p: Pair<Rule>) -> Result<String> {
-    assert_eq!(p.as_rule(), Rule::indented_line);
-    Ok(p.as_str().to_string())
+fn parse_desc_line(p: Pair<Rule>) -> Result<String> {
+    assert_eq!(p.as_rule(), Rule::desc_line);
+    Ok(match p.into_inner().next() {
+        None => "".to_string(),
+        Some(p) => {
+            assert_eq!(p.as_rule(), Rule::rest_any);
+            p.as_str().to_string()
+        }
+    })
 }
 
-fn parse_description(p: Pair<Rule>) -> Result<Option<String>> {
+fn parse_description(p: Pair<Rule>) -> Result<Vec<String>> {
     assert_eq!(p.as_rule(), Rule::description);
-
-    let lines = p
-        .into_inner()
-        .map(parse_indented_line)
-        .collect::<Result<Vec<String>>>()?;
-
-    // TODO Strip whitespace prefix
-
-    let desc = lines.join("\n").trim_end().to_string();
-    Ok(if desc.is_empty() { None } else { Some(desc) })
+    p.into_inner().map(parse_desc_line).collect()
 }
 
 fn parse_task(p: Pair<Rule>) -> Result<Task> {

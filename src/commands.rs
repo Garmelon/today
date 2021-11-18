@@ -213,7 +213,7 @@ pub struct Task {
     pub until: Option<NaiveDate>,
     pub except: Vec<NaiveDate>,
     pub done: Vec<Done>,
-    pub desc: Option<String>,
+    pub desc: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -223,7 +223,7 @@ pub struct Note {
     pub from: Option<NaiveDate>,
     pub until: Option<NaiveDate>,
     pub except: Vec<NaiveDate>,
-    pub desc: Option<String>,
+    pub desc: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -236,7 +236,7 @@ pub struct BirthdaySpec {
 pub struct Birthday {
     pub title: String,
     pub when: BirthdaySpec,
-    pub desc: Option<String>,
+    pub desc: Vec<String>,
 }
 
 #[derive(Debug)]

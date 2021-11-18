@@ -1,8 +1,9 @@
 eol = _{ NEWLINE | EOI }
 WHITESPACE = _{ !eol ~ WHITE_SPACE }
-rest = { (!eol ~ ANY)+ }
+rest_some = { (!eol ~ ANY)+ }
+rest_any = { (!eol ~ ANY)* }
 
-title = { WHITESPACE ~ rest ~ eol }
+title = { WHITESPACE ~ rest_some ~ eol }
 
 year = @{ ASCII_DIGIT{4} }
 month = @{ ASCII_DIGIT{2} }
@@ -72,12 +73,8 @@ except = !{ "EXCEPT" ~ datum ~ eol }
 donedate = { "(" ~ datum ~ time ~ ")" }
 done = !{ "DONE" ~ datum? ~ donedate? ~ eol }
 
-// I need to use `NEWLINE` for the empty line here. Otherwise, the parser gets
-// into an endless loop at the `EOI` since `indented*` can appear at the end of
-// the file and would just repeatedly match the empty string.
-indented_line = @{ NEWLINE | WHITESPACE ~ rest ~ eol }
-
-description = { indented_line* }
+desc_line = { "#" ~ (" " ~ rest_any)? ~ eol }
+description = { desc_line* }
 
 task_options = { (date | from | until | except | done)* }
 
@@ -104,6 +101,7 @@ birthday = {
     ~ description
 }
 
+empty_line = _{ WHITESPACE* ~ NEWLINE }
 command = { task | note | birthday }
 
-file = ${ SOI ~ NEWLINE* ~ command* ~ EOI }
+file = ${ SOI ~ (empty_line* ~ command)* ~ empty_line* ~ WHITESPACE* ~ EOI }
