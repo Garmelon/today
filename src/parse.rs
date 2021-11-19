@@ -40,7 +40,7 @@ fn parse_title(p: Pair<Rule>) -> String {
     assert_eq!(p.as_rule(), Rule::title);
     let p = p.into_inner().next().unwrap();
     assert_eq!(p.as_rule(), Rule::rest_some);
-    p.as_str().to_string()
+    p.as_str().trim().to_string()
 }
 
 fn parse_datum(p: Pair<Rule>) -> Result<NaiveDate> {
@@ -597,7 +597,7 @@ fn parse_desc_line(p: Pair<Rule>) -> Result<String> {
         None => "".to_string(),
         Some(p) => {
             assert_eq!(p.as_rule(), Rule::rest_any);
-            p.as_str().to_string()
+            p.as_str().trim_end().to_string()
         }
     })
 }
