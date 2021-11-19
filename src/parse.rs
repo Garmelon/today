@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::result;
 
-use chrono::NaiveDate;
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use pest::error::{Error, ErrorVariant};
 use pest::iterators::Pair;
 use pest::{Parser, Span};
@@ -14,7 +14,6 @@ struct TodayfileParser;
 
 type Result<T> = result::Result<T, Error<Rule>>;
 
-#[must_use]
 fn fail<S: Into<String>, T>(span: Span, message: S) -> Result<T> {
     Err(Error::new_from_span(
         ErrorVariant::CustomError {
@@ -33,7 +32,7 @@ fn parse_title(p: Pair<Rule>) -> Result<String> {
 
 fn parse_datum(p: Pair<Rule>) -> Result<NaiveDate> {
     assert_eq!(p.as_rule(), Rule::datum);
-    let date_span = p.as_span();
+    let span = p.as_span();
     let mut p = p.into_inner();
 
     let year = p.next().unwrap().as_str().parse().unwrap();
@@ -44,7 +43,23 @@ fn parse_datum(p: Pair<Rule>) -> Result<NaiveDate> {
 
     match NaiveDate::from_ymd_opt(year, month, day) {
         Some(date) => Ok(date),
-        None => fail(date_span, "invalid date"),
+        None => fail(span, "invalid date"),
+    }
+}
+
+fn parse_time(p: Pair<Rule>) -> Result<NaiveTime> {
+    assert_eq!(p.as_rule(), Rule::time);
+    let span = p.as_span();
+    let mut p = p.into_inner();
+
+    let hour = p.next().unwrap().as_str().parse().unwrap();
+    let min = p.next().unwrap().as_str().parse().unwrap();
+
+    assert_eq!(p.next(), None);
+
+    match NaiveTime::from_hms_opt(hour, min, 0) {
+        Some(time) => Ok(time),
+        None => fail(span, "invalid time"),
     }
 }
 
@@ -68,9 +83,36 @@ fn parse_except(p: Pair<Rule>) -> Result<NaiveDate> {
     parse_datum(p.into_inner().next().unwrap())
 }
 
+fn parse_donedate(p: Pair<Rule>) -> Result<NaiveDateTime> {
+    assert_eq!(p.as_rule(), Rule::donedate);
+    let mut p = p.into_inner();
+
+    let date = parse_datum(p.next().unwrap())?;
+    let time = parse_time(p.next().unwrap())?;
+
+    assert_eq!(p.next(), None);
+
+    Ok(date.and_time(time))
+}
+
 fn parse_done(p: Pair<Rule>) -> Result<Done> {
-    dbg!(p);
-    todo!()
+    assert_eq!(p.as_rule(), Rule::done);
+
+    let mut refering_to = None;
+    let mut created_at = None;
+
+    for ele in p.into_inner() {
+        match ele.as_rule() {
+            Rule::datum => refering_to = Some(parse_datum(ele)?),
+            Rule::donedate => created_at = Some(parse_donedate(ele)?),
+            _ => unreachable!(),
+        }
+    }
+
+    Ok(Done {
+        refering_to,
+        created_at,
+    })
 }
 
 #[derive(Default)]
