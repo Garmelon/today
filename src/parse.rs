@@ -30,6 +30,11 @@ fn fail<S: Into<String>, T>(span: Span, message: S) -> Result<T> {
     Err(error(span, message))
 }
 
+fn parse_number(p: Pair<Rule>) -> Result<i32> {
+    assert_eq!(p.as_rule(), Rule::number);
+    Ok(p.as_str().parse().unwrap())
+}
+
 fn parse_title(p: Pair<Rule>) -> Result<String> {
     assert_eq!(p.as_rule(), Rule::title);
     let p = p.into_inner().next().unwrap();
@@ -101,7 +106,7 @@ fn parse_amount(p: Pair<Rule>) -> Result<Amount> {
     assert_eq!(p.as_rule(), Rule::amount);
 
     let mut sign = None;
-    let mut value = 0;
+    let mut value = 1;
     for p in p.into_inner() {
         match p.as_rule() {
             Rule::amount_sign => {
@@ -111,7 +116,7 @@ fn parse_amount(p: Pair<Rule>) -> Result<Amount> {
                     _ => unreachable!(),
                 })
             }
-            Rule::amount_value => value = p.as_str().parse().unwrap(),
+            Rule::number => value = parse_number(p)?,
             _ => unreachable!(),
         }
     }
@@ -188,13 +193,13 @@ fn parse_delta(p: Pair<Rule>) -> Result<Delta> {
             Rule::delta_weekdays => steps.push(parse_delta_weekdays(p, &mut sign)?),
             Rule::delta_minutes => steps.push(parse_delta_step(p, &mut sign, DeltaStep::Minute)?),
             Rule::delta_years => steps.push(parse_delta_step(p, &mut sign, DeltaStep::Year)?),
-            Rule::delta_months => steps.push(parse_delta_step(p, &mut sign, DeltaStep::Minute)?),
+            Rule::delta_months => steps.push(parse_delta_step(p, &mut sign, DeltaStep::Month)?),
             Rule::delta_months_reverse => {
-                steps.push(parse_delta_step(p, &mut sign, DeltaStep::Minute)?)
+                steps.push(parse_delta_step(p, &mut sign, DeltaStep::MonthReverse)?)
             }
-            Rule::delta_days => steps.push(parse_delta_step(p, &mut sign, DeltaStep::Minute)?),
-            Rule::delta_weeks => steps.push(parse_delta_step(p, &mut sign, DeltaStep::Minute)?),
-            Rule::delta_hours => steps.push(parse_delta_step(p, &mut sign, DeltaStep::Minute)?),
+            Rule::delta_days => steps.push(parse_delta_step(p, &mut sign, DeltaStep::Day)?),
+            Rule::delta_weeks => steps.push(parse_delta_step(p, &mut sign, DeltaStep::Week)?),
+            Rule::delta_hours => steps.push(parse_delta_step(p, &mut sign, DeltaStep::Hour)?),
             _ => unreachable!(),
         }
     }
@@ -202,10 +207,71 @@ fn parse_delta(p: Pair<Rule>) -> Result<Delta> {
     Ok(Delta(steps))
 }
 
+fn parse_date_fixed_start(p: Pair<Rule>, spec: &mut DateSpec) -> Result<()> {
+    assert_eq!(p.as_rule(), Rule::date_fixed_start);
+
+    for p in p.into_inner() {
+        match p.as_rule() {
+            Rule::datum => spec.start = parse_datum(p)?,
+            Rule::delta => spec.start_delta = Some(parse_delta(p)?),
+            Rule::time => spec.start_time = Some(parse_time(p)?),
+            _ => unreachable!(),
+        }
+    }
+
+    Ok(())
+}
+
+fn parse_date_fixed_end(p: Pair<Rule>, spec: &mut DateSpec) -> Result<()> {
+    assert_eq!(p.as_rule(), Rule::date_fixed_end);
+
+    for p in p.into_inner() {
+        match p.as_rule() {
+            Rule::datum => spec.end = Some(parse_datum(p)?),
+            Rule::delta => spec.end_delta = Some(parse_delta(p)?),
+            Rule::time => spec.end_time = Some(parse_time(p)?),
+            _ => unreachable!(),
+        }
+    }
+
+    Ok(())
+}
+
+fn parse_date_fixed_repeat(p: Pair<Rule>, spec: &mut DateSpec) -> Result<()> {
+    assert_eq!(p.as_rule(), Rule::date_fixed_repeat);
+    let mut p = p.into_inner();
+
+    if let Some(p) = p.next() {
+        spec.repeat = Some(parse_delta(p)?);
+    }
+
+    assert_eq!(p.next(), None);
+    Ok(())
+}
+
 fn parse_date_fixed(p: Pair<Rule>) -> Result<DateSpec> {
     assert_eq!(p.as_rule(), Rule::date_fixed);
-    dbg!(p);
-    todo!()
+
+    let mut spec = DateSpec {
+        start: NaiveDate::from_ymd(0, 1, 1),
+        start_delta: None,
+        start_time: None,
+        end: None,
+        end_delta: None,
+        end_time: None,
+        repeat: None,
+    };
+
+    for p in p.into_inner() {
+        match p.as_rule() {
+            Rule::date_fixed_start => parse_date_fixed_start(p, &mut spec)?,
+            Rule::date_fixed_end => parse_date_fixed_end(p, &mut spec)?,
+            Rule::date_fixed_repeat => parse_date_fixed_repeat(p, &mut spec)?,
+            _ => unreachable!(),
+        }
+    }
+
+    Ok(spec)
 }
 
 fn parse_date_expr(p: Pair<Rule>) -> Result<FormulaSpec> {
@@ -348,7 +414,7 @@ fn parse_task(p: Pair<Rule>) -> Result<Task> {
 }
 
 fn parse_note(p: Pair<Rule>) -> Result<Note> {
-    assert_eq!(p.as_rule(), Rule::task);
+    assert_eq!(p.as_rule(), Rule::note);
     let mut p = p.into_inner();
 
     let title = parse_title(p.next().unwrap())?;

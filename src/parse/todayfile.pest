@@ -3,6 +3,8 @@ WHITESPACE = _{ !eol ~ WHITE_SPACE }
 rest_some = { (!eol ~ ANY)+ }
 rest_any = { (!eol ~ ANY)* }
 
+number = @{ ASCII_DIGIT{1,9} } // Fits into an i32
+
 title = { WHITESPACE ~ rest_some ~ eol }
 
 year = @{ ASCII_DIGIT{4} }
@@ -17,9 +19,8 @@ time = ${ hour ~ ":" ~ minute }
 
 weekday = { "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun" }
 
-amount_sign = { ("+" | "-")? }
-amount_value = { ASCII_DIGIT{0,9} } // Fits in an i32
-amount = { amount_sign ~ amount_value }
+amount_sign = { "+" | "-" }
+amount = { amount_sign? ~ number? }
 delta_weekdays = { amount ~ weekday }
 delta_minutes = { amount ~ "min" }
 delta_years = { amount ~ "y" }
@@ -42,7 +43,6 @@ delta = {
 }
 
 paren_expr = { "(" ~ expr ~ ")" }
-number = @{ ASCII_DIGIT{1,9} } // Fits in an i32
 boolean = { "true" | "false" }
 variable = {
     "j"
