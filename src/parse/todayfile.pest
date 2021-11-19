@@ -42,25 +42,46 @@ delta = {
 }
 
 number = @{ ("+" | "-")? ~ ASCII_DIGIT{1,9} } // Fits into an i32
-paren_expr = { "(" ~ expr ~ ")" }
 boolean = { "true" | "false" }
 variable = {
-    "j"
+    "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun"
+    | "isWeekday" | "isWeekend" | "isLeapYear"
+    | "j"
     | "yl" | "yd" | "yD" | "yw" | "yW" | "y"
-    | "ml" | "md" | "mD" | "mw" | "mW" | "m"
+    | "ml" | "mw" | "mW" | "m"
     | "d" | "D"
-    | "iy" | "iyl"
+    | "iyl" | "iy"
     | "wd"
     | "e"
-    | "isWeekday" | "isWeekend" | "isLeapYear"
 }
-term = { paren_expr | number | boolean | weekday | variable }
-op = {
-    "+" | "-" | "*" | "/" | "%"
-    | "=" | "!="
-    | "<=" | "<" | ">=" | ">"
-    | "&" | "|" | "^"
+
+unop_neg = { "-" }
+unop_not = { "!" }
+unop = _{ unop_neg | unop_not }
+
+op_add = { "+" }
+op_sub = { "-" }
+op_mul = { "*" }
+op_div = { "/" }
+op_mod = { "%" }
+op_eq = { "=" }
+op_neq = { "!=" }
+op_lt = { "<" }
+op_lte = { "<=" }
+op_gt = { ">" }
+op_gte = { ">=" }
+op_and = { "&" }
+op_or = { "|" }
+op_xor = { "^" }
+op = _{
+    op_add | op_sub | op_mul | op_div | op_mod
+    | op_eq | op_neq | op_lt | op_lte | op_gt | op_gte
+    | op_and | op_or | op_xor
 }
+
+paren_expr = { "(" ~ expr ~ ")" }
+unop_expr = { unop ~ expr }
+term = { number | boolean | variable | paren_expr | unop_expr }
 expr = { term ~ (op ~ term)* }
 
 date_fixed_start = { datum ~ delta? ~ time? }
@@ -68,13 +89,12 @@ date_fixed_end = { datum ~ delta? ~ time? | delta ~ time? | time }
 date_fixed_repeat = { delta }
 date_fixed = { date_fixed_start ~ ("--" ~ date_fixed_end)? ~ (";" ~ date_fixed_repeat)? }
 
-wildcard_expr = { "*" }
-date_expr_start = { (wildcard_expr | paren_expr) ~ delta? ~ time? }
+date_expr_start = { ("*" | paren_expr) ~ delta? ~ time? }
 date_expr_end = { delta ~ time? | time }
 date_expr = { date_expr_start ~ ("--" ~ date_expr_end)? }
 
-date_weekday_start = { weekday ~ delta? ~ time? }
-date_weekday_end = { weekday ~ delta? ~ time? | delta ~ time? | time }
+date_weekday_start = { weekday ~ time? }
+date_weekday_end = { weekday ~ time? | delta ~ time? | time }
 date_weekday = { date_weekday_start ~ ("--" ~ date_weekday_end)? }
 
 date = !{ "DATE" ~ (date_fixed | date_expr | date_weekday) ~ eol }

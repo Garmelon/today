@@ -87,7 +87,7 @@ pub enum Var {
     YearLength,
     /// `yd`, day of the year
     YearDay,
-    /// `Yd`, day of the year starting from the end
+    /// `yD`, day of the year starting from the end
     ///
     /// Equal to `yl - yd + 1`
     YearDayReverse,
@@ -95,7 +95,7 @@ pub enum Var {
     ///
     /// Equal to `((yd - 1) / 7) + 1`
     YearWeek,
-    /// `Yw`, 1 during the last 7 days of the year, 2 during the previous etc.
+    /// `yW`, 1 during the last 7 days of the year, 2 during the previous etc.
     ///
     /// Equal to `((yD - 1) / 7) + 1`
     YearWeekReverse,
@@ -103,20 +103,20 @@ pub enum Var {
     Month,
     /// `ml`, length of the current month in days
     MonthLength,
-    /// `d` or `md`, day of the month
-    MonthDay,
-    /// `D` or `Md`, day of the month starting from the end
-    ///
-    /// Equal to `ml - md + 1`
-    MonthDayReverse,
     /// `mw`, 1 during the first 7 days of the month, 2 during the next etc.
     ///
     /// Equal to `((md - 1) / 7) + 1`
     MonthWeek,
-    /// `Mw`, 1 during the last 7 days of the month, 2 during the previous etc.
+    /// `mW`, 1 during the last 7 days of the month, 2 during the previous etc.
     ///
     /// Equal to `((mD - 1) / 7) + 1`
     MonthWeekReverse,
+    /// `d`, day of the month
+    Day,
+    /// `D`, day of the month starting from the end
+    ///
+    /// Equal to `ml - md + 1`
+    DayReverse,
     /// `iy`, ISO 8601 year
     IsoYear,
     /// `iyl`, length of current ISO 8601 year **in weeks**
@@ -180,7 +180,7 @@ pub struct FormulaSpec {
     pub start: Option<Expr>, // None: *
     pub start_delta: Option<Delta>,
     pub start_time: Option<Time>,
-    pub end: Option<Delta>,
+    pub end_delta: Option<Delta>,
     pub end_time: Option<Time>,
 }
 

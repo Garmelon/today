@@ -4,12 +4,12 @@ use std::result;
 use chrono::NaiveDate;
 use pest::error::{Error, ErrorVariant};
 use pest::iterators::Pair;
-use pest::prec_climber::PrecClimber;
+use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::{Parser, Span};
 
 use crate::commands::{
     Birthday, BirthdaySpec, Command, DateSpec, Delta, DeltaStep, Done, Expr, FormulaSpec, Note,
-    Spec, Task, Time, Weekday, WeekdaySpec,
+    Spec, Task, Time, Var, Weekday, WeekdaySpec,
 };
 
 #[derive(pest_derive::Parser)]
@@ -275,30 +275,230 @@ fn parse_number(p: Pair<Rule>) -> i32 {
     p.as_str().parse().unwrap()
 }
 
+fn parse_boolean(p: Pair<Rule>) -> bool {
+    assert_eq!(p.as_rule(), Rule::boolean);
+    match p.as_str() {
+        "true" => true,
+        "false" => false,
+        _ => unreachable!(),
+    }
+}
+
+fn parse_variable(p: Pair<Rule>) -> Var {
+    assert_eq!(p.as_rule(), Rule::variable);
+    match p.as_str() {
+        "j" => Var::JulianDay,
+        "y" => Var::Year,
+        "yl" => Var::YearLength,
+        "yd" => Var::YearDay,
+        "yD" => Var::YearDayReverse,
+        "yw" => Var::YearWeek,
+        "yW" => Var::YearWeekReverse,
+        "m" => Var::Month,
+        "ml" => Var::MonthLength,
+        "mw" => Var::MonthWeek,
+        "mW" => Var::MonthWeekReverse,
+        "d" => Var::Day,
+        "D" => Var::DayReverse,
+        "iy" => Var::IsoYear,
+        "iyl" => Var::IsoYearLength,
+        "iw" => Var::IsoWeek,
+        "wd" => Var::Weekday,
+        "e" => Var::Easter,
+        "mon" => Var::Monday,
+        "tue" => Var::Tuesday,
+        "wed" => Var::Wednesday,
+        "thu" => Var::Thursday,
+        "fri" => Var::Friday,
+        "sat" => Var::Saturday,
+        "sun" => Var::Sunday,
+        "isWeekday" => Var::IsWeekday,
+        "isWeekend" => Var::IsWeekend,
+        "isLeapYear" => Var::IsLeapYear,
+        _ => unreachable!(),
+    }
+}
+
+fn parse_unop_expr(p: Pair<Rule>) -> Expr {
+    assert_eq!(p.as_rule(), Rule::unop_expr);
+    let mut p = p.into_inner();
+    let p_op = p.next().unwrap();
+    let p_expr = p.next().unwrap();
+    assert_eq!(p.next(), None);
+
+    let expr = parse_expr(p_expr);
+    match p_op.as_rule() {
+        Rule::unop_neg => Expr::Neg(Box::new(expr)),
+        Rule::unop_not => Expr::Not(Box::new(expr)),
+        _ => unreachable!(),
+    }
+}
+
+fn parse_paren_expr(p: Pair<Rule>) -> Expr {
+    assert_eq!(p.as_rule(), Rule::paren_expr);
+    let inner = parse_expr(p.into_inner().next().unwrap());
+    Expr::Paren(Box::new(inner))
+}
+
 fn parse_term(p: Pair<Rule>) -> Expr {
-    todo!()
+    assert_eq!(p.as_rule(), Rule::term);
+    let p = p.into_inner().next().unwrap();
+    match p.as_rule() {
+        Rule::number => Expr::Lit(parse_number(p).into()),
+        Rule::boolean => Expr::Lit(if parse_boolean(p) { 1 } else { 0 }),
+        Rule::variable => Expr::Var(parse_variable(p)),
+        Rule::unop_expr => parse_unop_expr(p),
+        Rule::paren_expr => parse_paren_expr(p),
+        _ => unreachable!(),
+    }
 }
 
 fn parse_op(l: Expr, p: Pair<Rule>, r: Expr) -> Expr {
-    todo!()
+    match p.as_rule() {
+        // Integer-y operations
+        Rule::op_add => Expr::Add(Box::new(l), Box::new(r)),
+        Rule::op_sub => Expr::Sub(Box::new(l), Box::new(r)),
+        Rule::op_mul => Expr::Mul(Box::new(l), Box::new(r)),
+        Rule::op_div => Expr::Div(Box::new(l), Box::new(r)),
+        Rule::op_mod => Expr::Mod(Box::new(l), Box::new(r)),
+
+        // Comparisons
+        Rule::op_eq => Expr::Eq(Box::new(l), Box::new(r)),
+        Rule::op_neq => Expr::Neq(Box::new(l), Box::new(r)),
+        Rule::op_lt => Expr::Lt(Box::new(l), Box::new(r)),
+        Rule::op_lte => Expr::Lte(Box::new(l), Box::new(r)),
+        Rule::op_gt => Expr::Gt(Box::new(l), Box::new(r)),
+        Rule::op_gte => Expr::Gte(Box::new(l), Box::new(r)),
+
+        // Boolean-y operations
+        Rule::op_and => Expr::And(Box::new(l), Box::new(r)),
+        Rule::op_or => Expr::Or(Box::new(l), Box::new(r)),
+        Rule::op_xor => Expr::Xor(Box::new(l), Box::new(r)),
+
+        _ => unreachable!(),
+    }
 }
 
 fn parse_expr(p: Pair<Rule>) -> Expr {
     assert_eq!(p.as_rule(), Rule::expr);
-    let climber = PrecClimber::new(vec![todo!()]);
+
+    fn op(rule: Rule) -> Operator<Rule> {
+        Operator::new(rule, Assoc::Left)
+    }
+
+    let climber = PrecClimber::new(vec![
+        // Precedence from low to high
+        op(Rule::op_or) | op(Rule::op_xor),
+        op(Rule::op_and),
+        op(Rule::op_eq) | op(Rule::op_neq),
+        op(Rule::op_lt) | op(Rule::op_lte) | op(Rule::op_gt) | op(Rule::op_gte),
+        op(Rule::op_mul) | op(Rule::op_div) | op(Rule::op_mod),
+        op(Rule::op_add) | op(Rule::op_sub),
+    ]);
+
     climber.climb(p.into_inner(), parse_term, parse_op)
+}
+
+fn parse_date_expr_start(p: Pair<Rule>, spec: &mut FormulaSpec) -> Result<()> {
+    assert_eq!(p.as_rule(), Rule::date_expr_start);
+
+    for p in p.into_inner() {
+        match p.as_rule() {
+            Rule::paren_expr => spec.start = Some(parse_paren_expr(p)),
+            Rule::delta => spec.start_delta = Some(parse_delta(p)?),
+            Rule::time => spec.start_time = Some(parse_time(p)?),
+            _ => unreachable!(),
+        }
+    }
+
+    Ok(())
+}
+
+fn parse_date_expr_end(p: Pair<Rule>, spec: &mut FormulaSpec) -> Result<()> {
+    assert_eq!(p.as_rule(), Rule::date_expr_end);
+
+    for p in p.into_inner() {
+        match p.as_rule() {
+            Rule::delta => spec.end_delta = Some(parse_delta(p)?),
+            Rule::time => spec.end_time = Some(parse_time(p)?),
+            _ => unreachable!(),
+        }
+    }
+
+    Ok(())
 }
 
 fn parse_date_expr(p: Pair<Rule>) -> Result<FormulaSpec> {
     assert_eq!(p.as_rule(), Rule::date_expr);
-    dbg!(p);
-    todo!()
+
+    let mut spec = FormulaSpec {
+        start: None,
+        start_delta: None,
+        start_time: None,
+        end_delta: None,
+        end_time: None,
+    };
+
+    for p in p.into_inner() {
+        match p.as_rule() {
+            Rule::date_expr_start => parse_date_expr_start(p, &mut spec)?,
+            Rule::date_expr_end => parse_date_expr_end(p, &mut spec)?,
+            _ => unreachable!(),
+        }
+    }
+
+    Ok(spec)
+}
+
+fn parse_date_weekday_start(p: Pair<Rule>, spec: &mut WeekdaySpec) -> Result<()> {
+    assert_eq!(p.as_rule(), Rule::date_weekday_start);
+
+    for p in p.into_inner() {
+        match p.as_rule() {
+            Rule::weekday => spec.start = parse_weekday(p),
+            Rule::time => spec.start_time = Some(parse_time(p)?),
+            _ => unreachable!(),
+        }
+    }
+
+    Ok(())
+}
+
+fn parse_date_weekday_end(p: Pair<Rule>, spec: &mut WeekdaySpec) -> Result<()> {
+    assert_eq!(p.as_rule(), Rule::date_weekday_end);
+
+    for p in p.into_inner() {
+        match p.as_rule() {
+            Rule::weekday => spec.end = Some(parse_weekday(p)),
+            Rule::delta => spec.end_delta = Some(parse_delta(p)?),
+            Rule::time => spec.end_time = Some(parse_time(p)?),
+            _ => unreachable!(),
+        }
+    }
+
+    Ok(())
 }
 
 fn parse_date_weekday(p: Pair<Rule>) -> Result<WeekdaySpec> {
     assert_eq!(p.as_rule(), Rule::date_weekday);
-    dbg!(p);
-    todo!()
+
+    let mut spec = WeekdaySpec {
+        start: Weekday::Monday,
+        start_time: None,
+        end: None,
+        end_delta: None,
+        end_time: None,
+    };
+
+    for p in p.into_inner() {
+        match p.as_rule() {
+            Rule::date_weekday_start => parse_date_weekday_start(p, &mut spec)?,
+            Rule::date_weekday_end => parse_date_weekday_end(p, &mut spec)?,
+            _ => unreachable!(),
+        }
+    }
+
+    Ok(spec)
 }
 
 fn parse_date(p: Pair<Rule>) -> Result<Spec> {
