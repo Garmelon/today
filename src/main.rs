@@ -15,7 +15,7 @@ pub struct Opt {
 fn main() -> anyhow::Result<()> {
     let opt = Opt::from_args();
     let content = fs::read_to_string(&opt.file)?;
-    let commands = parse::parse(&opt.file, &content)?;
-    println!("{:#?}", commands);
+    let file = parse::parse(&opt.file, &content)?;
+    println!("{:#?}", file);
     Ok(())
 }

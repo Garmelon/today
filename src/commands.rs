@@ -237,3 +237,8 @@ pub enum Command {
     Note(Note),
     Birthday(Birthday),
 }
+
+#[derive(Debug)]
+pub struct File {
+    pub commands: Vec<Command>,
+}

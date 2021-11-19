@@ -8,8 +8,8 @@ use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::{Parser, Span};
 
 use crate::commands::{
-    Birthday, BirthdaySpec, Command, DateSpec, Delta, DeltaStep, Done, Expr, FormulaSpec, Note,
-    Spec, Task, Time, Var, Weekday, WeekdaySpec,
+    Birthday, BirthdaySpec, Command, DateSpec, Delta, DeltaStep, Done, Expr, File, FormulaSpec,
+    Note, Spec, Task, Time, Var, Weekday, WeekdaySpec,
 };
 
 #[derive(pest_derive::Parser)]
@@ -702,14 +702,16 @@ fn parse_command(p: Pair<Rule>) -> Result<Command> {
     }
 }
 
-pub fn parse(path: &Path, input: &str) -> Result<Vec<Command>> {
+pub fn parse(path: &Path, input: &str) -> Result<File> {
     let path = path.to_string_lossy();
     let mut pairs = TodayfileParser::parse(Rule::file, input)?;
     let file = pairs.next().unwrap();
-    file.into_inner()
+    let commands = file
+        .into_inner()
         // For some reason, the EOI in `file` always gets captured
         .take_while(|p| p.as_rule() == Rule::command)
         .map(parse_command)
         .collect::<Result<_>>()
-        .map_err(|e| e.with_path(&path))
+        .map_err(|e| e.with_path(&path))?;
+    Ok(File { commands })
 }
