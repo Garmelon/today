@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::result;
 
 use chrono::NaiveDate;
@@ -215,12 +216,14 @@ fn parse_command(p: Pair<Rule>) -> Result<Command> {
     }
 }
 
-pub fn parse(input: &str) -> Result<Vec<Command>> {
+pub fn parse(path: &Path, input: &str) -> Result<Vec<Command>> {
+    let path = path.to_string_lossy();
     let mut pairs = TodayfileParser::parse(Rule::file, input)?;
     let file = pairs.next().unwrap();
     file.into_inner()
         // For some reason, the EOI in `file` always gets captured
         .take_while(|p| p.as_rule() == Rule::command)
         .map(parse_command)
-        .collect()
+        .collect::<Result<_>>()
+        .map_err(|e| e.with_path(&path))
 }
