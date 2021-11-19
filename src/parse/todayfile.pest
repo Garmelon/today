@@ -3,8 +3,6 @@ WHITESPACE = _{ !eol ~ WHITE_SPACE }
 rest_some = { (!eol ~ ANY)+ }
 rest_any = { (!eol ~ ANY)* }
 
-number = @{ ASCII_DIGIT{1,9} } // Fits into an i32
-
 title = { WHITESPACE ~ rest_some ~ eol }
 
 year = @{ ASCII_DIGIT{4} }
@@ -20,7 +18,8 @@ time = ${ hour ~ ":" ~ minute }
 weekday = { "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun" }
 
 amount_sign = { "+" | "-" }
-amount = { amount_sign? ~ number? }
+amount_value = @{ ASCII_DIGIT{1,9} } // Fits into an i32
+amount = { amount_sign? ~ amount_value? }
 delta_weekdays = { amount ~ weekday }
 delta_minutes = { amount ~ "min" }
 delta_years = { amount ~ "y" }
@@ -42,20 +41,20 @@ delta = {
     )+
 }
 
+number = @{ ("+" | "-")? ~ ASCII_DIGIT{1,9} } // Fits into an i32
 paren_expr = { "(" ~ expr ~ ")" }
 boolean = { "true" | "false" }
 variable = {
     "j"
-    | "yl" | "yd" | "Yd" | "yw" | "Yw" | "y"
-    | "ml" | "md" | "Md" | "mw" | "Mw" | "m"
+    | "yl" | "yd" | "yD" | "yw" | "yW" | "y"
+    | "ml" | "md" | "mD" | "mw" | "mW" | "m"
     | "d" | "D"
     | "iy" | "iyl"
     | "wd"
     | "e"
-    | "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun"
     | "isWeekday" | "isWeekend" | "isLeapYear"
 }
-term = { paren_expr | number | boolean | variable }
+term = { paren_expr | number | boolean | weekday | variable }
 op = {
     "+" | "-" | "*" | "/" | "%"
     | "=" | "!="

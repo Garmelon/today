@@ -4,11 +4,12 @@ use std::result;
 use chrono::NaiveDate;
 use pest::error::{Error, ErrorVariant};
 use pest::iterators::Pair;
+use pest::prec_climber::PrecClimber;
 use pest::{Parser, Span};
 
 use crate::commands::{
-    Birthday, BirthdaySpec, Command, DateSpec, Delta, DeltaStep, Done, FormulaSpec, Note, Spec,
-    Task, Time, Weekday, WeekdaySpec,
+    Birthday, BirthdaySpec, Command, DateSpec, Delta, DeltaStep, Done, Expr, FormulaSpec, Note,
+    Spec, Task, Time, Weekday, WeekdaySpec,
 };
 
 #[derive(pest_derive::Parser)]
@@ -28,11 +29,6 @@ fn error<S: Into<String>>(span: Span, message: S) -> Error<Rule> {
 
 fn fail<S: Into<String>, T>(span: Span, message: S) -> Result<T> {
     Err(error(span, message))
-}
-
-fn parse_number(p: Pair<Rule>) -> Result<i32> {
-    assert_eq!(p.as_rule(), Rule::number);
-    Ok(p.as_str().parse().unwrap())
 }
 
 fn parse_title(p: Pair<Rule>) -> Result<String> {
@@ -116,7 +112,7 @@ fn parse_amount(p: Pair<Rule>) -> Result<Amount> {
                     _ => unreachable!(),
                 })
             }
-            Rule::number => value = parse_number(p)?,
+            Rule::amount_value => value = p.as_str().parse().unwrap(),
             _ => unreachable!(),
         }
     }
@@ -272,6 +268,25 @@ fn parse_date_fixed(p: Pair<Rule>) -> Result<DateSpec> {
     }
 
     Ok(spec)
+}
+
+fn parse_number(p: Pair<Rule>) -> Result<i32> {
+    assert_eq!(p.as_rule(), Rule::number);
+    Ok(p.as_str().parse().unwrap())
+}
+
+fn parse_term(p: Pair<Rule>) -> Expr {
+    todo!()
+}
+
+fn parse_op(l: Expr, p: Pair<Rule>, r: Expr) -> Expr {
+    todo!()
+}
+
+fn parse_expr(p: Pair<Rule>) -> Result<Expr> {
+    assert_eq!(p.as_rule(), Rule::expr);
+    let climber = PrecClimber::new(vec![todo!()]);
+    Ok(climber.climb(p.into_inner(), parse_term, parse_op))
 }
 
 fn parse_date_expr(p: Pair<Rule>) -> Result<FormulaSpec> {

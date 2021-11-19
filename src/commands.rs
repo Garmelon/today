@@ -1,4 +1,4 @@
-use chrono::{NaiveDate, NaiveDateTime};
+use chrono::NaiveDate;
 
 #[derive(Debug)]
 pub struct Time {
@@ -76,7 +76,7 @@ pub struct WeekdaySpec {
 }
 
 #[derive(Debug)]
-pub enum IntVar {
+pub enum Var {
     /// `j`, see <https://en.wikipedia.org/wiki/Julian_day>
     JulianDay,
     /// `y`
@@ -141,24 +141,6 @@ pub enum IntVar {
     Saturday,
     /// `sun`, always 7
     Sunday,
-}
-
-#[derive(Debug)]
-pub enum IntExpr {
-    Lit(i64),
-    Var(IntVar),
-    Paren(Box<IntVar>),
-    Neg(Box<IntExpr>),
-    Add(Box<IntExpr>, Box<IntExpr>),
-    Sub(Box<IntExpr>, Box<IntExpr>),
-    Mul(Box<IntExpr>, Box<IntExpr>),
-    Div(Box<IntExpr>, Box<IntExpr>),
-    Mod(Box<IntExpr>, Box<IntExpr>),
-    Ternary(Box<BoolExpr>, Box<IntExpr>, Box<IntExpr>),
-}
-
-#[derive(Debug)]
-pub enum BoolVar {
     /// `isWeekday`, whether the current day is one of mon-fri
     IsWeekday,
     /// `isWeekend`, whether the current day is one of sat-sun
@@ -168,27 +150,34 @@ pub enum BoolVar {
 }
 
 #[derive(Debug)]
-pub enum BoolExpr {
-    Lit(bool),
-    Var(BoolVar),
-    Paren(Box<BoolVar>),
-    Eq(Box<IntExpr>, Box<IntExpr>),
-    Neq(Box<IntExpr>, Box<IntExpr>),
-    Lt(Box<IntExpr>, Box<IntExpr>),
-    Lte(Box<IntExpr>, Box<IntExpr>),
-    Gt(Box<IntExpr>, Box<IntExpr>),
-    Gte(Box<IntExpr>, Box<IntExpr>),
-    Not(Box<BoolExpr>),
-    And(Box<BoolExpr>, Box<BoolExpr>),
-    Or(Box<BoolExpr>, Box<BoolExpr>),
-    Xor(Box<BoolExpr>, Box<BoolExpr>),
-    BEq(Box<BoolExpr>, Box<BoolExpr>),
-    BNeq(Box<BoolExpr>, Box<BoolExpr>),
+pub enum Expr {
+    Lit(i64),
+    Var(Var),
+    Paren(Box<Expr>),
+    // Integer-y operations
+    Neg(Box<Expr>),
+    Add(Box<Expr>, Box<Expr>),
+    Sub(Box<Expr>, Box<Expr>),
+    Mul(Box<Expr>, Box<Expr>),
+    Div(Box<Expr>, Box<Expr>),
+    Mod(Box<Expr>, Box<Expr>),
+    // Comparisons
+    Eq(Box<Expr>, Box<Expr>),
+    Neq(Box<Expr>, Box<Expr>),
+    Lt(Box<Expr>, Box<Expr>),
+    Lte(Box<Expr>, Box<Expr>),
+    Gt(Box<Expr>, Box<Expr>),
+    Gte(Box<Expr>, Box<Expr>),
+    // Boolean-y operations
+    Not(Box<Expr>),
+    And(Box<Expr>, Box<Expr>),
+    Or(Box<Expr>, Box<Expr>),
+    Xor(Box<Expr>, Box<Expr>),
 }
 
 #[derive(Debug)]
 pub struct FormulaSpec {
-    pub start: Option<BoolExpr>, // None: *
+    pub start: Option<Expr>, // None: *
     pub start_delta: Option<Delta>,
     pub start_time: Option<Time>,
     pub end: Option<Delta>,
