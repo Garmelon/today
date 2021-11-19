@@ -13,6 +13,7 @@ struct TodayfileParser;
 
 type Result<T> = result::Result<T, Error<Rule>>;
 
+#[must_use]
 fn fail<S: Into<String>, T>(span: Span, message: S) -> Result<T> {
     Err(Error::new_from_span(
         ErrorVariant::CustomError {
@@ -46,6 +47,31 @@ fn parse_datum(p: Pair<Rule>) -> Result<NaiveDate> {
     }
 }
 
+fn parse_date(p: Pair<Rule>) -> Result<Spec> {
+    dbg!(p);
+    todo!()
+}
+
+fn parse_from(p: Pair<Rule>) -> Result<NaiveDate> {
+    assert_eq!(p.as_rule(), Rule::from);
+    parse_datum(p.into_inner().next().unwrap())
+}
+
+fn parse_until(p: Pair<Rule>) -> Result<NaiveDate> {
+    assert_eq!(p.as_rule(), Rule::until);
+    parse_datum(p.into_inner().next().unwrap())
+}
+
+fn parse_except(p: Pair<Rule>) -> Result<NaiveDate> {
+    assert_eq!(p.as_rule(), Rule::except);
+    parse_datum(p.into_inner().next().unwrap())
+}
+
+fn parse_done(p: Pair<Rule>) -> Result<Done> {
+    dbg!(p);
+    todo!()
+}
+
 #[derive(Default)]
 struct Options {
     when: Vec<Spec>,
@@ -53,26 +79,6 @@ struct Options {
     until: Option<NaiveDate>,
     except: Vec<NaiveDate>,
     done: Vec<Done>,
-}
-
-fn parse_date(p: Pair<Rule>, opts: &mut Options) -> Result<()> {
-    todo!()
-}
-
-fn parse_from(p: Pair<Rule>, opts: &mut Options) -> Result<()> {
-    todo!()
-}
-
-fn parse_until(p: Pair<Rule>, opts: &mut Options) -> Result<()> {
-    todo!()
-}
-
-fn parse_except(p: Pair<Rule>, opts: &mut Options) -> Result<()> {
-    todo!()
-}
-
-fn parse_done(p: Pair<Rule>, opts: &mut Options) -> Result<()> {
-    todo!()
 }
 
 fn parse_options(p: Pair<Rule>) -> Result<Options> {
@@ -84,11 +90,13 @@ fn parse_options(p: Pair<Rule>) -> Result<Options> {
     let mut opts = Options::default();
     for opt in p.into_inner() {
         match opt.as_rule() {
-            Rule::date => parse_date(opt, &mut opts)?,
-            Rule::from => parse_from(opt, &mut opts)?,
-            Rule::until => parse_until(opt, &mut opts)?,
-            Rule::except => parse_except(opt, &mut opts)?,
-            Rule::done => parse_done(opt, &mut opts)?,
+            Rule::date => opts.when.push(parse_date(opt)?),
+            Rule::from if opts.from.is_none() => opts.from = Some(parse_from(opt)?),
+            Rule::from => fail(opt.as_span(), "FROM already defined earlier")?,
+            Rule::until if opts.until.is_none() => opts.until = Some(parse_until(opt)?),
+            Rule::until => fail(opt.as_span(), "UNTIL already defined earlier")?,
+            Rule::except => opts.except.push(parse_except(opt)?),
+            Rule::done => opts.done.push(parse_done(opt)?),
             _ => unreachable!(),
         }
     }
