@@ -144,7 +144,7 @@ fn parse_delta_weekdays(p: Pair<Rule>, sign: &mut Option<Sign>) -> Result<DeltaS
     let span = p.as_span();
     let mut p = p.into_inner();
 
-    let amount = parse_amount(p.next().unwrap());
+    let amount = parse_amount(p.next().unwrap()).with_prev_sign(*sign);
     let weekday = parse_weekday(p.next().unwrap());
 
     assert_eq!(p.next(), None);
