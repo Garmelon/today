@@ -17,15 +17,17 @@ time = ${ hour ~ ":" ~ minute }
 
 weekday = { "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun" }
 
-amount = { ("+" | "-") ~ ASCII_DIGIT* }
+amount_sign = { ("+" | "-")? }
+amount_value = { ASCII_DIGIT* }
+amount = { amount_sign ~ amount_value }
 delta_weekdays = { amount ~ weekday }
+delta_minutes = { amount ~ "min" }
 delta_years = { amount ~ ("y" | "Y") }
 delta_months = { amount ~ ("m" | "M") }
 delta_days = { amount ~ "d" }
 delta_weeks = { amount ~ "w" }
 delta_hours = { amount ~ "h" }
-delta_minutes = { amount ~ "m" }
-delta = { (delta_weekdays | delta_years | delta_months | delta_days | delta_weeks | delta_hours | delta_minutes)+ }
+delta = { (delta_weekdays | delta_minutes | delta_years | delta_months | delta_days | delta_weeks | delta_hours)+ }
 
 paren_expr = { "(" ~ expr ~ ")" }
 number = @{ ASCII_DIGIT+ }
@@ -55,7 +57,8 @@ date_fixed_end = { datum ~ delta? ~ time? | delta ~ time? | time }
 date_fixed_repeat = { delta }
 date_fixed = { date_fixed_start ~ ("--" ~ date_fixed_end)? ~ (";" ~ date_fixed_repeat)? }
 
-date_expr_start = { ("*" | paren_expr) ~ delta? ~ time? }
+wildcard_expr = { "*" }
+date_expr_start = { (wildcard_expr | paren_expr) ~ delta? ~ time? }
 date_expr_end = { delta ~ time? | time }
 date_expr = { date_expr_start ~ ("--" ~ date_expr_end)? }
 
