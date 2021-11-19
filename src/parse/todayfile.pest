@@ -18,19 +18,31 @@ time = ${ hour ~ ":" ~ minute }
 weekday = { "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun" }
 
 amount_sign = { ("+" | "-")? }
-amount_value = { ASCII_DIGIT* }
+amount_value = { ASCII_DIGIT{0,9} } // Fits in an i32
 amount = { amount_sign ~ amount_value }
 delta_weekdays = { amount ~ weekday }
 delta_minutes = { amount ~ "min" }
-delta_years = { amount ~ ("y" | "Y") }
-delta_months = { amount ~ ("m" | "M") }
+delta_years = { amount ~ "y" }
+delta_months = { amount ~ "m" }
+delta_months_reverse = { amount ~ "M" }
 delta_days = { amount ~ "d" }
 delta_weeks = { amount ~ "w" }
 delta_hours = { amount ~ "h" }
-delta = { (delta_weekdays | delta_minutes | delta_years | delta_months | delta_days | delta_weeks | delta_hours)+ }
+delta = {
+    (
+        delta_weekdays
+        | delta_minutes
+        | delta_years
+        | delta_months
+        | delta_months_reverse
+        | delta_days
+        | delta_weeks
+        | delta_hours
+    )+
+}
 
 paren_expr = { "(" ~ expr ~ ")" }
-number = @{ ASCII_DIGIT+ }
+number = @{ ASCII_DIGIT{1,9} } // Fits in an i32
 boolean = { "true" | "false" }
 variable = {
     "j"

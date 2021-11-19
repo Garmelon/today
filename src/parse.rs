@@ -7,7 +7,8 @@ use pest::iterators::Pair;
 use pest::{Parser, Span};
 
 use crate::commands::{
-    Birthday, BirthdaySpec, Command, DateSpec, Done, FormulaSpec, Note, Spec, Task, WeekdaySpec,
+    Birthday, BirthdaySpec, Command, DateSpec, Delta, DeltaStep, Done, FormulaSpec, Note, Spec,
+    Task, Weekday, WeekdaySpec,
 };
 
 #[derive(pest_derive::Parser)]
@@ -16,13 +17,17 @@ struct TodayfileParser;
 
 type Result<T> = result::Result<T, Error<Rule>>;
 
-fn fail<S: Into<String>, T>(span: Span, message: S) -> Result<T> {
-    Err(Error::new_from_span(
+fn error<S: Into<String>>(span: Span, message: S) -> Error<Rule> {
+    Error::new_from_span(
         ErrorVariant::CustomError {
             message: message.into(),
         },
         span,
-    ))
+    )
+}
+
+fn fail<S: Into<String>, T>(span: Span, message: S) -> Result<T> {
+    Err(error(span, message))
 }
 
 fn parse_title(p: Pair<Rule>) -> Result<String> {
@@ -63,6 +68,138 @@ fn parse_time(p: Pair<Rule>) -> Result<NaiveTime> {
         Some(time) => Ok(time),
         None => fail(span, "invalid time"),
     }
+}
+
+#[derive(Clone, Copy)]
+pub enum Sign {
+    Positive,
+    Negative,
+}
+pub struct Amount {
+    sign: Option<Sign>,
+    value: i32,
+}
+
+impl Amount {
+    pub fn with_prev_sign(mut self, prev: Option<Sign>) -> Self {
+        if self.sign.is_none() {
+            self.sign = prev;
+        }
+        self
+    }
+
+    pub fn value(&self) -> Option<i32> {
+        match self.sign {
+            None => None,
+            Some(Sign::Positive) => Some(self.value),
+            Some(Sign::Negative) => Some(-self.value),
+        }
+    }
+}
+
+fn parse_amount(p: Pair<Rule>) -> Result<Amount> {
+    assert_eq!(p.as_rule(), Rule::amount);
+
+    let mut sign = None;
+    let mut value = 0;
+    for p in p.into_inner() {
+        match p.as_rule() {
+            Rule::amount_sign => {
+                sign = Some(match p.as_str() {
+                    "+" => Sign::Positive,
+                    "-" => Sign::Negative,
+                    _ => unreachable!(),
+                })
+            }
+            Rule::amount_value => value = p.as_str().parse().unwrap(),
+            _ => unreachable!(),
+        }
+    }
+
+    Ok(Amount { sign, value })
+}
+
+fn parse_weekday(p: Pair<Rule>) -> Result<Weekday> {
+    assert_eq!(p.as_rule(), Rule::weekday);
+    Ok(match p.as_str() {
+        "mon" => Weekday::Monday,
+        "tue" => Weekday::Tuesday,
+        "wed" => Weekday::Wednesday,
+        "thu" => Weekday::Thursday,
+        "fri" => Weekday::Friday,
+        "sat" => Weekday::Saturday,
+        "sun" => Weekday::Sunday,
+        _ => unreachable!(),
+    })
+}
+
+fn parse_delta_weekdays(p: Pair<Rule>, sign: &mut Option<Sign>) -> Result<DeltaStep> {
+    assert_eq!(p.as_rule(), Rule::delta_weekdays);
+    let span = p.as_span();
+    let mut p = p.into_inner();
+
+    let amount = parse_amount(p.next().unwrap())?;
+    let weekday = parse_weekday(p.next().unwrap())?;
+
+    assert_eq!(p.next(), None);
+
+    let value = amount
+        .value()
+        .ok_or_else(|| error(span, "ambiguous sign"))?;
+    *sign = amount.sign;
+
+    Ok(DeltaStep::Weekday(value, weekday))
+}
+
+fn parse_delta_step(
+    p: Pair<Rule>,
+    sign: &mut Option<Sign>,
+    f: impl FnOnce(i32) -> DeltaStep,
+) -> Result<DeltaStep> {
+    assert!(matches!(
+        p.as_rule(),
+        Rule::delta_years
+            | Rule::delta_months
+            | Rule::delta_months_reverse
+            | Rule::delta_days
+            | Rule::delta_weeks
+            | Rule::delta_hours
+            | Rule::delta_minutes
+    ));
+
+    let span = p.as_span();
+    let amount = parse_amount(p.into_inner().next().unwrap())?.with_prev_sign(*sign);
+    let value = amount
+        .value()
+        .ok_or_else(|| error(span, "ambiguous sign"))?;
+
+    *sign = amount.sign;
+    Ok(f(value))
+}
+
+fn parse_delta(p: Pair<Rule>) -> Result<Delta> {
+    assert_eq!(p.as_rule(), Rule::delta);
+
+    let mut sign = None;
+    let mut steps = vec![];
+
+    for p in p.into_inner() {
+        match p.as_rule() {
+            Rule::delta_weekdays => steps.push(parse_delta_weekdays(p, &mut sign)?),
+            Rule::delta_minutes => steps.push(parse_delta_step(p, &mut sign, DeltaStep::Minute)?),
+            Rule::delta_years => steps.push(parse_delta_step(p, &mut sign, DeltaStep::Year)?),
+            Rule::delta_months => steps.push(parse_delta_step(p, &mut sign, DeltaStep::Minute)?),
+            Rule::delta_months_reverse => {
+                steps.push(parse_delta_step(p, &mut sign, DeltaStep::Minute)?)
+            }
+            Rule::delta_days => steps.push(parse_delta_step(p, &mut sign, DeltaStep::Minute)?),
+            Rule::delta_weeks => steps.push(parse_delta_step(p, &mut sign, DeltaStep::Minute)?),
+            Rule::delta_hours => steps.push(parse_delta_step(p, &mut sign, DeltaStep::Minute)?),
+            _ => unreachable!(),
+        }
+    }
+
+    Ok(Delta(steps))
 }
 
 fn parse_date_fixed(p: Pair<Rule>) -> Result<DateSpec> {

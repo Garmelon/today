@@ -34,14 +34,7 @@ pub enum DeltaStep {
 }
 
 #[derive(Debug)]
-pub struct Delta {
-    pub years: i32,
-    pub months: i32,
-    pub weeks: i32,
-    pub days: i32,
-    pub hours: i32,
-    pub minutes: i32,
-}
+pub struct Delta(pub Vec<DeltaStep>);
 
 #[derive(Debug)]
 pub struct DateEndSpec {
