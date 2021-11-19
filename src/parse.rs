@@ -31,11 +31,11 @@ fn fail<S: Into<String>, T>(span: Span, message: S) -> Result<T> {
     Err(error(span, message))
 }
 
-fn parse_title(p: Pair<Rule>) -> Result<String> {
+fn parse_title(p: Pair<Rule>) -> String {
     assert_eq!(p.as_rule(), Rule::title);
     let p = p.into_inner().next().unwrap();
     assert_eq!(p.as_rule(), Rule::rest_some);
-    Ok(p.as_str().to_string())
+    p.as_str().to_string()
 }
 
 fn parse_datum(p: Pair<Rule>) -> Result<NaiveDate> {
@@ -98,7 +98,7 @@ impl Amount {
     }
 }
 
-fn parse_amount(p: Pair<Rule>) -> Result<Amount> {
+fn parse_amount(p: Pair<Rule>) -> Amount {
     assert_eq!(p.as_rule(), Rule::amount);
 
     let mut sign = None;
@@ -117,12 +117,12 @@ fn parse_amount(p: Pair<Rule>) -> Result<Amount> {
         }
     }
 
-    Ok(Amount { sign, value })
+    Amount { sign, value }
 }
 
-fn parse_weekday(p: Pair<Rule>) -> Result<Weekday> {
+fn parse_weekday(p: Pair<Rule>) -> Weekday {
     assert_eq!(p.as_rule(), Rule::weekday);
-    Ok(match p.as_str() {
+    match p.as_str() {
         "mon" => Weekday::Monday,
         "tue" => Weekday::Tuesday,
         "wed" => Weekday::Wednesday,
@@ -131,7 +131,7 @@ fn parse_weekday(p: Pair<Rule>) -> Result<Weekday> {
         "sat" => Weekday::Saturday,
         "sun" => Weekday::Sunday,
         _ => unreachable!(),
-    })
+    }
 }
 
 fn parse_delta_weekdays(p: Pair<Rule>, sign: &mut Option<Sign>) -> Result<DeltaStep> {
@@ -139,8 +139,8 @@ fn parse_delta_weekdays(p: Pair<Rule>, sign: &mut Option<Sign>) -> Result<DeltaS
     let span = p.as_span();
     let mut p = p.into_inner();
 
-    let amount = parse_amount(p.next().unwrap())?;
-    let weekday = parse_weekday(p.next().unwrap())?;
+    let amount = parse_amount(p.next().unwrap());
+    let weekday = parse_weekday(p.next().unwrap());
 
     assert_eq!(p.next(), None);
 
@@ -169,7 +169,7 @@ fn parse_delta_step(
     ));
 
     let span = p.as_span();
-    let amount = parse_amount(p.into_inner().next().unwrap())?.with_prev_sign(*sign);
+    let amount = parse_amount(p.into_inner().next().unwrap()).with_prev_sign(*sign);
     let value = amount
         .value()
         .ok_or_else(|| error(span, "ambiguous sign"))?;
@@ -270,9 +270,9 @@ fn parse_date_fixed(p: Pair<Rule>) -> Result<DateSpec> {
     Ok(spec)
 }
 
-fn parse_number(p: Pair<Rule>) -> Result<i32> {
+fn parse_number(p: Pair<Rule>) -> i32 {
     assert_eq!(p.as_rule(), Rule::number);
-    Ok(p.as_str().parse().unwrap())
+    p.as_str().parse().unwrap()
 }
 
 fn parse_term(p: Pair<Rule>) -> Expr {
@@ -283,10 +283,10 @@ fn parse_op(l: Expr, p: Pair<Rule>, r: Expr) -> Expr {
     todo!()
 }
 
-fn parse_expr(p: Pair<Rule>) -> Result<Expr> {
+fn parse_expr(p: Pair<Rule>) -> Expr {
     assert_eq!(p.as_rule(), Rule::expr);
     let climber = PrecClimber::new(vec![todo!()]);
-    Ok(climber.climb(p.into_inner(), parse_term, parse_op))
+    climber.climb(p.into_inner(), parse_term, parse_op)
 }
 
 fn parse_date_expr(p: Pair<Rule>) -> Result<FormulaSpec> {
@@ -411,7 +411,7 @@ fn parse_task(p: Pair<Rule>) -> Result<Task> {
     assert_eq!(p.as_rule(), Rule::task);
     let mut p = p.into_inner();
 
-    let title = parse_title(p.next().unwrap())?;
+    let title = parse_title(p.next().unwrap());
     let opts = parse_options(p.next().unwrap())?;
     let desc = parse_description(p.next().unwrap())?;
 
@@ -432,7 +432,7 @@ fn parse_note(p: Pair<Rule>) -> Result<Note> {
     assert_eq!(p.as_rule(), Rule::note);
     let mut p = p.into_inner();
 
-    let title = parse_title(p.next().unwrap())?;
+    let title = parse_title(p.next().unwrap());
     let opts = parse_options(p.next().unwrap())?;
     let desc = parse_description(p.next().unwrap())?;
 
@@ -483,7 +483,7 @@ fn parse_birthday(p: Pair<Rule>) -> Result<Birthday> {
     assert_eq!(p.as_rule(), Rule::birthday);
     let mut p = p.into_inner();
 
-    let title = parse_title(p.next().unwrap())?;
+    let title = parse_title(p.next().unwrap());
     let when = parse_bdate(p.next().unwrap())?;
     let desc = parse_description(p.next().unwrap())?;
 
