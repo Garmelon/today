@@ -6,7 +6,9 @@ use pest::error::{Error, ErrorVariant};
 use pest::iterators::Pair;
 use pest::{Parser, Span};
 
-use crate::commands::{Birthday, BirthdaySpec, Command, Done, Note, Spec, Task};
+use crate::commands::{
+    Birthday, BirthdaySpec, Command, DateSpec, Done, FormulaSpec, Note, Spec, Task, WeekdaySpec,
+};
 
 #[derive(pest_derive::Parser)]
 #[grammar = "parse/todayfile.pest"]
@@ -63,9 +65,33 @@ fn parse_time(p: Pair<Rule>) -> Result<NaiveTime> {
     }
 }
 
-fn parse_date(p: Pair<Rule>) -> Result<Spec> {
+fn parse_date_fixed(p: Pair<Rule>) -> Result<DateSpec> {
+    assert_eq!(p.as_rule(), Rule::date_fixed);
     dbg!(p);
     todo!()
+}
+
+fn parse_date_expr(p: Pair<Rule>) -> Result<FormulaSpec> {
+    assert_eq!(p.as_rule(), Rule::date_expr);
+    dbg!(p);
+    todo!()
+}
+
+fn parse_date_weekday(p: Pair<Rule>) -> Result<WeekdaySpec> {
+    assert_eq!(p.as_rule(), Rule::date_weekday);
+    dbg!(p);
+    todo!()
+}
+
+fn parse_date(p: Pair<Rule>) -> Result<Spec> {
+    assert_eq!(p.as_rule(), Rule::date);
+    let p = p.into_inner().next().unwrap();
+    match p.as_rule() {
+        Rule::date_fixed => parse_date_fixed(p).map(Spec::Date),
+        Rule::date_expr => parse_date_expr(p).map(Spec::Formula),
+        Rule::date_weekday => parse_date_weekday(p).map(Spec::Weekday),
+        _ => unreachable!(),
+    }
 }
 
 fn parse_from(p: Pair<Rule>) -> Result<NaiveDate> {
