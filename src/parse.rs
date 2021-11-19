@@ -31,6 +31,11 @@ fn fail<S: Into<String>, T>(span: Span, message: S) -> Result<T> {
     Err(error(span, message))
 }
 
+fn parse_number(p: Pair<Rule>) -> i32 {
+    assert_eq!(p.as_rule(), Rule::number);
+    p.as_str().parse().unwrap()
+}
+
 fn parse_title(p: Pair<Rule>) -> String {
     assert_eq!(p.as_rule(), Rule::title);
     let p = p.into_inner().next().unwrap();
@@ -112,7 +117,7 @@ fn parse_amount(p: Pair<Rule>) -> Amount {
                     _ => unreachable!(),
                 })
             }
-            Rule::amount_value => value = p.as_str().parse().unwrap(),
+            Rule::number => value = parse_number(p),
             _ => unreachable!(),
         }
     }
@@ -268,11 +273,6 @@ fn parse_date_fixed(p: Pair<Rule>) -> Result<DateSpec> {
     }
 
     Ok(spec)
-}
-
-fn parse_number(p: Pair<Rule>) -> i32 {
-    assert_eq!(p.as_rule(), Rule::number);
-    p.as_str().parse().unwrap()
 }
 
 fn parse_boolean(p: Pair<Rule>) -> bool {
