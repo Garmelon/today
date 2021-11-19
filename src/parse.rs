@@ -275,11 +275,11 @@ fn parse_date_fixed(p: Pair<Rule>) -> Result<DateSpec> {
     Ok(spec)
 }
 
-fn parse_boolean(p: Pair<Rule>) -> bool {
+fn parse_boolean(p: Pair<Rule>) -> Var {
     assert_eq!(p.as_rule(), Rule::boolean);
     match p.as_str() {
-        "true" => true,
-        "false" => false,
+        "true" => Var::True,
+        "false" => Var::False,
         _ => unreachable!(),
     }
 }
@@ -345,7 +345,7 @@ fn parse_term(p: Pair<Rule>) -> Expr {
     let p = p.into_inner().next().unwrap();
     match p.as_rule() {
         Rule::number => Expr::Lit(parse_number(p).into()),
-        Rule::boolean => Expr::Lit(if parse_boolean(p) { 1 } else { 0 }),
+        Rule::boolean => Expr::Var(parse_boolean(p)),
         Rule::variable => Expr::Var(parse_variable(p)),
         Rule::unop_expr => parse_unop_expr(p),
         Rule::paren_expr => parse_paren_expr(p),
@@ -404,7 +404,7 @@ fn parse_date_expr_start(p: Pair<Rule>, spec: &mut FormulaSpec) -> Result<()> {
 
     for p in p.into_inner() {
         match p.as_rule() {
-            Rule::paren_expr => spec.start = Some(parse_paren_expr(p)),
+            Rule::paren_expr => spec.start = Some(parse_expr(p.into_inner().next().unwrap())),
             Rule::delta => spec.start_delta = Some(parse_delta(p)?),
             Rule::time => spec.start_time = Some(parse_time(p)?),
             _ => unreachable!(),

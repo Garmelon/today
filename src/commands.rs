@@ -2,8 +2,8 @@ use chrono::NaiveDate;
 
 #[derive(Debug)]
 pub struct Time {
-    hour: u8,
-    min: u8,
+    pub hour: u8,
+    pub min: u8,
 }
 
 impl Time {
@@ -19,7 +19,7 @@ impl Time {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Weekday {
     Monday,
     Tuesday,
@@ -28,6 +28,20 @@ pub enum Weekday {
     Friday,
     Saturday,
     Sunday,
+}
+
+impl Weekday {
+    pub fn name(&self) -> &'static str {
+        match self {
+            Weekday::Monday => "mon",
+            Weekday::Tuesday => "tue",
+            Weekday::Wednesday => "wed",
+            Weekday::Thursday => "thu",
+            Weekday::Friday => "fri",
+            Weekday::Saturday => "sat",
+            Weekday::Sunday => "sun",
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -50,6 +64,34 @@ pub enum DeltaStep {
     ///
     /// Move to the next occurrence of the specified weekday
     Weekday(i32, Weekday),
+}
+
+impl DeltaStep {
+    pub fn amount(&self) -> i32 {
+        match self {
+            DeltaStep::Year(i) => *i,
+            DeltaStep::Month(i) => *i,
+            DeltaStep::MonthReverse(i) => *i,
+            DeltaStep::Day(i) => *i,
+            DeltaStep::Week(i) => *i,
+            DeltaStep::Hour(i) => *i,
+            DeltaStep::Minute(i) => *i,
+            DeltaStep::Weekday(i, _) => *i,
+        }
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self {
+            DeltaStep::Year(_) => "y",
+            DeltaStep::Month(_) => "m",
+            DeltaStep::MonthReverse(_) => "M",
+            DeltaStep::Day(_) => "d",
+            DeltaStep::Week(_) => "w",
+            DeltaStep::Hour(_) => "h",
+            DeltaStep::Minute(_) => "min",
+            DeltaStep::Weekday(_, wd) => wd.name(),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -77,6 +119,24 @@ pub struct WeekdaySpec {
 
 #[derive(Debug)]
 pub enum Var {
+    /// `true`, always 1
+    True,
+    /// `false`, always 0
+    False,
+    /// `mon`, always 1
+    Monday,
+    /// `tue`, always 2
+    Tuesday,
+    /// `wed`, always 3
+    Wednesday,
+    /// `thu`, always 4
+    Thursday,
+    /// `fri`, always 5
+    Friday,
+    /// `sat`, always 6
+    Saturday,
+    /// `sun`, always 7
+    Sunday,
     /// `j`, see <https://en.wikipedia.org/wiki/Julian_day>
     JulianDay,
     /// `y`
@@ -127,26 +187,52 @@ pub enum Var {
     Weekday,
     /// `e`, day of the year that easter falls on
     Easter,
-    /// `mon`, always 1
-    Monday,
-    /// `tue`, always 2
-    Tuesday,
-    /// `wed`, always 3
-    Wednesday,
-    /// `thu`, always 4
-    Thursday,
-    /// `fri`, always 5
-    Friday,
-    /// `sat`, always 6
-    Saturday,
-    /// `sun`, always 7
-    Sunday,
     /// `isWeekday`, whether the current day is one of mon-fri
     IsWeekday,
     /// `isWeekend`, whether the current day is one of sat-sun
     IsWeekend,
     /// `isLeapYear`, whether the current year is a leap year
     IsLeapYear,
+}
+
+impl Var {
+    pub fn name(&self) -> &'static str {
+        match self {
+            // Constants
+            Var::True => "true",
+            Var::False => "false",
+            Var::Monday => "mon",
+            Var::Tuesday => "tue",
+            Var::Wednesday => "wed",
+            Var::Thursday => "thu",
+            Var::Friday => "fri",
+            Var::Saturday => "sat",
+            Var::Sunday => "sun",
+            // Variables
+            Var::JulianDay => "j",
+            Var::Year => "y",
+            Var::YearLength => "yl",
+            Var::YearDay => "yd",
+            Var::YearDayReverse => "yD",
+            Var::YearWeek => "yw",
+            Var::YearWeekReverse => "yW",
+            Var::Month => "m",
+            Var::MonthLength => "ml",
+            Var::MonthWeek => "mw",
+            Var::MonthWeekReverse => "mW",
+            Var::Day => "d",
+            Var::DayReverse => "D",
+            Var::IsoYear => "iy",
+            Var::IsoYearLength => "iyl",
+            Var::IsoWeek => "iw",
+            Var::Weekday => "wd",
+            Var::Easter => "e",
+            // Variables with "boolean" values
+            Var::IsWeekday => "isWeekday",
+            Var::IsWeekend => "isWeekend",
+            Var::IsLeapYear => "isLeapYear",
+        }
+    }
 }
 
 #[derive(Debug)]
