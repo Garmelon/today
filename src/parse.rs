@@ -1,14 +1,14 @@
 use std::path::Path;
 use std::result;
 
-use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+use chrono::NaiveDate;
 use pest::error::{Error, ErrorVariant};
 use pest::iterators::Pair;
 use pest::{Parser, Span};
 
 use crate::commands::{
     Birthday, BirthdaySpec, Command, DateSpec, Delta, DeltaStep, Done, FormulaSpec, Note, Spec,
-    Task, Weekday, WeekdaySpec,
+    Task, Time, Weekday, WeekdaySpec,
 };
 
 #[derive(pest_derive::Parser)]
@@ -59,7 +59,7 @@ fn parse_datum(p: Pair<Rule>) -> Result<NaiveDate> {
     }
 }
 
-fn parse_time(p: Pair<Rule>) -> Result<NaiveTime> {
+fn parse_time(p: Pair<Rule>) -> Result<Time> {
     assert_eq!(p.as_rule(), Rule::time);
     let span = p.as_span();
     let mut p = p.into_inner();
@@ -69,7 +69,7 @@ fn parse_time(p: Pair<Rule>) -> Result<NaiveTime> {
 
     assert_eq!(p.next(), None);
 
-    match NaiveTime::from_hms_opt(hour, min, 0) {
+    match Time::new(hour, min) {
         Some(time) => Ok(time),
         None => fail(span, "invalid time"),
     }
@@ -312,7 +312,7 @@ fn parse_except(p: Pair<Rule>) -> Result<NaiveDate> {
     parse_datum(p.into_inner().next().unwrap())
 }
 
-fn parse_donedate(p: Pair<Rule>) -> Result<NaiveDateTime> {
+fn parse_donedate(p: Pair<Rule>) -> Result<(NaiveDate, Time)> {
     assert_eq!(p.as_rule(), Rule::donedate);
     let mut p = p.into_inner();
 
@@ -321,7 +321,7 @@ fn parse_donedate(p: Pair<Rule>) -> Result<NaiveDateTime> {
 
     assert_eq!(p.next(), None);
 
-    Ok(date.and_time(time))
+    Ok((date, time))
 }
 
 fn parse_done(p: Pair<Rule>) -> Result<Done> {

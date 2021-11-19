@@ -1,4 +1,23 @@
-use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+use chrono::{NaiveDate, NaiveDateTime};
+
+#[derive(Debug)]
+pub struct Time {
+    hour: u8,
+    min: u8,
+}
+
+impl Time {
+    pub fn new(hour: u32, min: u32) -> Option<Self> {
+        if hour < 24 && min < 60 || hour == 24 && min == 0 {
+            Some(Self {
+                hour: hour as u8,
+                min: min as u8,
+            })
+        } else {
+            None
+        }
+    }
+}
 
 #[derive(Debug)]
 pub enum Weekday {
@@ -37,33 +56,23 @@ pub enum DeltaStep {
 pub struct Delta(pub Vec<DeltaStep>);
 
 #[derive(Debug)]
-pub struct DateEndSpec {
-    pub end: Option<NaiveDate>,
-    pub delta: Option<Delta>,
-    pub end_time: Option<NaiveTime>,
-}
-
-#[derive(Debug)]
 pub struct DateSpec {
     pub start: NaiveDate,
-    pub delta: Option<Delta>,
-    pub start_time: Option<NaiveTime>,
-    pub end: Option<DateEndSpec>,
+    pub start_delta: Option<Delta>,
+    pub start_time: Option<Time>,
+    pub end: Option<NaiveDate>,
+    pub end_delta: Option<Delta>,
+    pub end_time: Option<Time>,
     pub repeat: Option<Delta>,
-}
-
-#[derive(Debug)]
-pub struct WeekdayEndSpec {
-    pub end: Option<Weekday>,
-    pub delta: Option<Delta>,
-    pub end_time: Option<NaiveTime>,
 }
 
 #[derive(Debug)]
 pub struct WeekdaySpec {
     pub start: Weekday,
-    pub start_time: Option<NaiveTime>,
-    pub end: Option<WeekdayEndSpec>,
+    pub start_time: Option<Time>,
+    pub end: Option<Weekday>,
+    pub end_delta: Option<Delta>,
+    pub end_time: Option<Time>,
 }
 
 #[derive(Debug)]
@@ -180,9 +189,10 @@ pub enum BoolExpr {
 #[derive(Debug)]
 pub struct FormulaSpec {
     pub start: Option<BoolExpr>, // None: *
-    pub start_time: Option<NaiveTime>,
-    pub offset: Option<Delta>,
+    pub start_delta: Option<Delta>,
+    pub start_time: Option<Time>,
     pub end: Option<Delta>,
+    pub end_time: Option<Time>,
 }
 
 #[derive(Debug)]
@@ -195,7 +205,7 @@ pub enum Spec {
 #[derive(Debug)]
 pub struct Done {
     pub refering_to: Option<NaiveDate>,
-    pub created_at: Option<NaiveDateTime>,
+    pub created_at: Option<(NaiveDate, Time)>,
 }
 
 #[derive(Debug)]
