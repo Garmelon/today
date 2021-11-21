@@ -3,6 +3,9 @@ WHITESPACE = _{ !eol ~ WHITE_SPACE }
 rest_some = { (!eol ~ ANY)+ }
 rest_any = { (!eol ~ ANY)* }
 
+include = { "INCLUDE" ~ WHITESPACE ~ rest_some ~ eol }
+timezone = { "TIMEZONE" ~ WHITESPACE ~ rest_some ~ eol }
+
 number = @{ ASCII_DIGIT{1,9} } // Fits into an i32
 
 title = { WHITESPACE ~ rest_some ~ eol }
@@ -136,6 +139,6 @@ birthday = {
 }
 
 empty_line = _{ WHITESPACE* ~ NEWLINE }
-command = { task | note | birthday }
+command = { include | timezone | task | note | birthday }
 
 file = ${ SOI ~ (empty_line* ~ command)* ~ empty_line* ~ WHITESPACE* ~ EOI }

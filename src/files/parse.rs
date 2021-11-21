@@ -1,7 +1,8 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::result;
 
 use chrono::NaiveDate;
+use chrono_tz::Tz;
 use pest::error::ErrorVariant;
 use pest::iterators::Pair;
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
@@ -30,6 +31,22 @@ fn error<S: Into<String>>(span: Span, message: S) -> Error {
 
 fn fail<S: Into<String>, T>(span: Span, message: S) -> Result<T> {
     Err(error(span, message))
+}
+
+fn parse_include(p: Pair<Rule>) -> String {
+    assert_eq!(p.as_rule(), Rule::include);
+    p.into_inner().next().unwrap().as_str().to_string()
+}
+
+fn parse_timezone(p: Pair<Rule>) -> Result<Tz> {
+    assert_eq!(p.as_rule(), Rule::timezone);
+    let span = p.as_span();
+    p.into_inner()
+        .next()
+        .unwrap()
+        .as_str()
+        .parse()
+        .map_err(|_| error(span, "invalid timezone"))
 }
 
 fn parse_number(p: Pair<Rule>) -> i32 {
@@ -691,34 +708,58 @@ fn parse_birthday(p: Pair<Rule>) -> Result<Birthday> {
     Ok(Birthday { title, when, desc })
 }
 
-fn parse_command(p: Pair<Rule>) -> Result<Command> {
+fn parse_command(p: Pair<Rule>, file: &mut File) -> Result<()> {
     assert_eq!(p.as_rule(), Rule::command);
 
     let p = p.into_inner().next().unwrap();
     match p.as_rule() {
-        Rule::task => parse_task(p).map(Command::Task),
-        Rule::note => parse_note(p).map(Command::Note),
-        Rule::birthday => parse_birthday(p).map(Command::Birthday),
+        Rule::include => {
+            // Since we've successfully opened the file, its name can't be the
+            // root directory or empty string and must thus have a parent.
+            let parent = file.name.parent().unwrap();
+            file.includes.push(parent.join(parse_include(p)));
+        }
+        Rule::timezone => match file.timezone {
+            None => file.timezone = Some(parse_timezone(p)?),
+            Some(_) => fail(p.as_span(), "cannot set timezone multiple times")?,
+        },
+        Rule::task => file.commands.push(Command::Task(parse_task(p)?)),
+        Rule::note => file.commands.push(Command::Note(parse_note(p)?)),
+        Rule::birthday => file.commands.push(Command::Birthday(parse_birthday(p)?)),
         _ => unreachable!(),
     }
+
+    Ok(())
 }
 
-pub fn parse(path: PathBuf, input: &str) -> Result<File> {
-    let pathstr = path.to_string_lossy();
-    let mut pairs = TodayfileParser::parse(Rule::file, input)?;
-    let file = pairs.next().unwrap();
-    let commands = file
-        .into_inner()
-        // For some reason, the EOI in `file` always gets captured
-        .take_while(|p| p.as_rule() == Rule::command)
-        .map(parse_command)
-        .collect::<Result<_>>()
-        .map_err(|e| e.with_path(&pathstr))?;
+pub fn parse_file(p: Pair<Rule>, name: PathBuf) -> Result<File> {
+    assert_eq!(p.as_rule(), Rule::file);
 
-    Ok(File {
-        name: path,
+    let mut file = File {
+        name,
         includes: vec![],
         timezone: None,
-        commands,
-    })
+        commands: vec![],
+    };
+
+    for p in p.into_inner() {
+        // For some reason, the EOI in `file` always gets captured
+        if p.as_rule() == Rule::EOI {
+            break;
+        }
+
+        parse_command(p, &mut file)?;
+    }
+
+    Ok(file)
+}
+
+pub fn parse(path: &Path, input: &str) -> Result<File> {
+    let pathstr = path.to_string_lossy();
+
+    let mut pairs = TodayfileParser::parse(Rule::file, input).map_err(|e| e.with_path(&pathstr))?;
+    let file_pair = pairs.next().unwrap();
+    assert_eq!(pairs.next(), None);
+
+    parse_file(file_pair, path.to_owned()).map_err(|e| e.with_path(&pathstr))
 }
