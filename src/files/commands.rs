@@ -1,4 +1,7 @@
+use std::path::PathBuf;
+
 use chrono::NaiveDate;
+use chrono_tz::Tz;
 
 #[derive(Debug)]
 pub struct Time {
@@ -326,5 +329,8 @@ pub enum Command {
 
 #[derive(Debug)]
 pub struct File {
+    pub name: PathBuf,
+    pub includes: Vec<PathBuf>,
+    pub timezone: Option<Tz>,
     pub commands: Vec<Command>,
 }

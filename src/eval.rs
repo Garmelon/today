@@ -3,7 +3,7 @@ use std::result;
 
 use chrono::{Datelike, NaiveDate};
 
-use crate::commands::{Birthday, Command, File, Note, Spec, Task};
+use crate::files::commands::{Birthday, Command, File, Note, Spec, Task};
 
 use self::entries::{DateRange, Entry, EntryKind, EntryMap};
 

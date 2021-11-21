@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::PathBuf;
 use std::result;
 
 use chrono::NaiveDate;
@@ -7,13 +7,13 @@ use pest::iterators::Pair;
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::{Parser, Span};
 
-use crate::commands::{
+use super::commands::{
     Birthday, BirthdaySpec, Command, DateSpec, Delta, DeltaStep, Done, Expr, File, FormulaSpec,
     Note, Spec, Task, Time, Var, Weekday, WeekdaySpec,
 };
 
 #[derive(pest_derive::Parser)]
-#[grammar = "parse/todayfile.pest"]
+#[grammar = "files/grammar.pest"]
 struct TodayfileParser;
 
 pub type Error = pest::error::Error<Rule>;
@@ -703,8 +703,8 @@ fn parse_command(p: Pair<Rule>) -> Result<Command> {
     }
 }
 
-pub fn parse(path: &Path, input: &str) -> Result<File> {
-    let path = path.to_string_lossy();
+pub fn parse(path: PathBuf, input: &str) -> Result<File> {
+    let pathstr = path.to_string_lossy();
     let mut pairs = TodayfileParser::parse(Rule::file, input)?;
     let file = pairs.next().unwrap();
     let commands = file
@@ -713,6 +713,12 @@ pub fn parse(path: &Path, input: &str) -> Result<File> {
         .take_while(|p| p.as_rule() == Rule::command)
         .map(parse_command)
         .collect::<Result<_>>()
-        .map_err(|e| e.with_path(&path))?;
-    Ok(File { commands })
+        .map_err(|e| e.with_path(&pathstr))?;
+
+    Ok(File {
+        name: path,
+        includes: vec![],
+        timezone: None,
+        commands,
+    })
 }

@@ -4,11 +4,8 @@ use structopt::StructOpt;
 
 use crate::files::Files;
 
-mod commands;
 mod eval;
 mod files;
-mod format;
-mod parse;
 
 #[derive(Debug, StructOpt)]
 pub struct Opt {

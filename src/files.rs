@@ -4,8 +4,11 @@ use std::{fs, io, result};
 
 use chrono_tz::Tz;
 
-use crate::commands::File;
-use crate::parse;
+use self::commands::File;
+
+pub mod commands;
+mod format;
+mod parse;
 
 #[derive(Debug)]
 pub struct Files {
@@ -30,24 +33,24 @@ impl Files {
             timezone: None,
         };
 
-        new.load_file(path)?;
+        new.load_file(path.to_owned())?;
         new.determine_timezone()?;
 
         Ok(new)
     }
 
-    fn load_file(&mut self, path: &Path) -> Result<()> {
+    fn load_file(&mut self, path: PathBuf) -> Result<()> {
         let canon_path = path.canonicalize()?;
         if self.files.contains_key(&canon_path) {
             // We've already loaded this exact file.
             return Ok(());
         }
 
-        let content = fs::read_to_string(path)?;
+        let content = fs::read_to_string(&path)?;
         let file = parse::parse(path, &content)?;
         self.files.insert(canon_path, file);
 
-        // TODO Also load all imported files
+        // TODO Also load all included files
 
         Ok(())
     }
