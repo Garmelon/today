@@ -2,7 +2,8 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::{fs, io, result};
 
-use chrono_tz::Tz;
+use chrono::{DateTime, Utc};
+use tzfile::Tz;
 
 use self::commands::File;
 
@@ -13,7 +14,7 @@ mod parse;
 #[derive(Debug)]
 pub struct Files {
     files: HashMap<PathBuf, File>,
-    timezone: Option<Tz>,
+    timezone: Tz,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -25,9 +26,9 @@ pub enum Error {
     #[error("{file1} has time zone {tz1} but {file2} has time zone {tz2}")]
     TzConflict {
         file1: PathBuf,
-        tz1: Tz,
+        tz1: String,
         file2: PathBuf,
-        tz2: Tz,
+        tz2: String,
     },
 }
 
@@ -35,20 +36,15 @@ pub type Result<T> = result::Result<T, Error>;
 
 impl Files {
     pub fn load(path: &Path) -> Result<Self> {
-        let mut new = Self {
-            files: HashMap::new(),
-            timezone: None,
-        };
-
-        new.load_file(path)?;
-        new.determine_timezone()?;
-
-        Ok(new)
+        let mut files = HashMap::new();
+        Self::load_file(&mut files, path)?;
+        let timezone = Self::determine_timezone(&files)?;
+        Ok(Self { files, timezone })
     }
 
-    fn load_file(&mut self, path: &Path) -> Result<()> {
+    fn load_file(files: &mut HashMap<PathBuf, File>, path: &Path) -> Result<()> {
         let canon_path = path.canonicalize()?;
-        if self.files.contains_key(&canon_path) {
+        if files.contains_key(&canon_path) {
             // We've already loaded this exact file.
             return Ok(());
         }
@@ -57,39 +53,43 @@ impl Files {
         let file = parse::parse(path, &content)?;
         let includes = file.includes.clone();
 
-        self.files.insert(canon_path, file);
+        files.insert(canon_path, file);
 
         for include in includes {
-            self.load_file(&include)?;
+            Self::load_file(files, &include)?;
         }
 
         Ok(())
     }
 
-    fn determine_timezone(&mut self) -> Result<()> {
-        let mut found: Option<(PathBuf, Tz)> = None;
+    fn determine_timezone(files: &HashMap<PathBuf, File>) -> Result<Tz> {
+        let mut found: Option<(PathBuf, String)> = None;
 
-        for file in self.files.values() {
-            if let Some(file_tz) = file.timezone {
+        for file in files.values() {
+            if let Some(file_tz) = &file.timezone {
                 if let Some((found_name, found_tz)) = &found {
-                    if *found_tz != file_tz {
+                    if found_tz != file_tz {
                         return Err(Error::TzConflict {
                             file1: found_name.clone(),
-                            tz1: *found_tz,
+                            tz1: found_tz.clone(),
                             file2: file.name.clone(),
-                            tz2: file_tz,
+                            tz2: file_tz.clone(),
                         });
                     }
                 } else {
-                    found = Some((file.name.clone(), file_tz));
+                    found = Some((file.name.clone(), file_tz.clone()));
                 }
             }
         }
 
-        if let Some((_, tz)) = found {
-            self.timezone = Some(tz);
-        }
+        Ok(if let Some((_, tz)) = found {
+            Tz::named(&tz)?
+        } else {
+            Tz::local()?
+        })
+    }
 
-        Ok(())
+    pub fn now(&self) -> DateTime<&Tz> {
+        Utc::now().with_timezone(&&self.timezone)
     }
 }

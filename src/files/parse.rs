@@ -2,7 +2,6 @@ use std::path::{Path, PathBuf};
 use std::result;
 
 use chrono::NaiveDate;
-use chrono_tz::Tz;
 use pest::error::ErrorVariant;
 use pest::iterators::Pair;
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
@@ -38,15 +37,9 @@ fn parse_include(p: Pair<Rule>) -> String {
     p.into_inner().next().unwrap().as_str().to_string()
 }
 
-fn parse_timezone(p: Pair<Rule>) -> Result<Tz> {
+fn parse_timezone(p: Pair<Rule>) -> String {
     assert_eq!(p.as_rule(), Rule::timezone);
-    let span = p.as_span();
-    p.into_inner()
-        .next()
-        .unwrap()
-        .as_str()
-        .parse()
-        .map_err(|_| error(span, "invalid timezone"))
+    p.into_inner().next().unwrap().as_str().trim().to_string()
 }
 
 fn parse_number(p: Pair<Rule>) -> i32 {
@@ -720,7 +713,7 @@ fn parse_command(p: Pair<Rule>, file: &mut File) -> Result<()> {
             file.includes.push(parent.join(parse_include(p)));
         }
         Rule::timezone => match file.timezone {
-            None => file.timezone = Some(parse_timezone(p)?),
+            None => file.timezone = Some(parse_timezone(p)),
             Some(_) => fail(p.as_span(), "cannot set timezone multiple times")?,
         },
         Rule::task => file.commands.push(Command::Task(parse_task(p)?)),
