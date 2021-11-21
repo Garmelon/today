@@ -2,7 +2,7 @@ use std::path::Path;
 use std::result;
 
 use chrono::NaiveDate;
-use pest::error::{Error, ErrorVariant};
+use pest::error::ErrorVariant;
 use pest::iterators::Pair;
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::{Parser, Span};
@@ -16,9 +16,10 @@ use crate::commands::{
 #[grammar = "parse/todayfile.pest"]
 struct TodayfileParser;
 
-type Result<T> = result::Result<T, Error<Rule>>;
+pub type Error = pest::error::Error<Rule>;
+pub type Result<T> = result::Result<T, Error>;
 
-fn error<S: Into<String>>(span: Span, message: S) -> Error<Rule> {
+fn error<S: Into<String>>(span: Span, message: S) -> Error {
     Error::new_from_span(
         ErrorVariant::CustomError {
             message: message.into(),
