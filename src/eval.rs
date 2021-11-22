@@ -7,6 +7,7 @@ use crate::files::commands::{Birthday, Command, File, Note, Spec, Task};
 
 use self::entries::{DateRange, Entry, EntryKind, EntryMap};
 
+mod delta;
 pub mod entries;
 
 #[derive(Debug, thiserror::Error)]
