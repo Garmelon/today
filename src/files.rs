@@ -12,8 +12,20 @@ mod format;
 mod parse;
 
 #[derive(Debug)]
+struct LoadedFile {
+    file: File,
+    dirty: bool,
+}
+
+impl LoadedFile {
+    pub fn new(file: File) -> Self {
+        Self { file, dirty: false }
+    }
+}
+
+#[derive(Debug)]
 pub struct Files {
-    files: HashMap<PathBuf, File>,
+    files: HashMap<PathBuf, LoadedFile>,
     timezone: Tz,
 }
 
@@ -42,7 +54,7 @@ impl Files {
         Ok(Self { files, timezone })
     }
 
-    fn load_file(files: &mut HashMap<PathBuf, File>, path: &Path) -> Result<()> {
+    fn load_file(files: &mut HashMap<PathBuf, LoadedFile>, path: &Path) -> Result<()> {
         let canon_path = path.canonicalize()?;
         if files.contains_key(&canon_path) {
             // We've already loaded this exact file.
@@ -53,31 +65,34 @@ impl Files {
         let file = parse::parse(path, &content)?;
         let includes = file.includes.clone();
 
-        files.insert(canon_path, file);
+        files.insert(canon_path, LoadedFile::new(file));
 
         for include in includes {
-            Self::load_file(files, &include)?;
+            // Since we've successfully opened the file, its name can't be the
+            // root directory or empty string and must thus have a parent.
+            let include_path = path.parent().unwrap().join(include);
+            Self::load_file(files, &include_path)?;
         }
 
         Ok(())
     }
 
-    fn determine_timezone(files: &HashMap<PathBuf, File>) -> Result<Tz> {
+    fn determine_timezone(files: &HashMap<PathBuf, LoadedFile>) -> Result<Tz> {
         let mut found: Option<(PathBuf, String)> = None;
 
         for file in files.values() {
-            if let Some(file_tz) = &file.timezone {
+            if let Some(file_tz) = &file.file.timezone {
                 if let Some((found_name, found_tz)) = &found {
                     if found_tz != file_tz {
                         return Err(Error::TzConflict {
                             file1: found_name.clone(),
                             tz1: found_tz.clone(),
-                            file2: file.name.clone(),
+                            file2: file.file.name.clone(),
                             tz2: file_tz.clone(),
                         });
                     }
                 } else {
-                    found = Some((file.name.clone(), file_tz.clone()));
+                    found = Some((file.file.name.clone(), file_tz.clone()));
                 }
             }
         }
@@ -87,6 +102,26 @@ impl Files {
         } else {
             Tz::local()?
         })
+    }
+
+    pub fn save(&self) -> Result<()> {
+        for (path, file) in &self.files {
+            if file.dirty {
+                Self::save_file(path, &file.file)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn save_file(path: &Path, file: &File) -> Result<()> {
+        fs::write(path, &format!("{}", file))?;
+        Ok(())
+    }
+
+    pub fn mark_all_dirty(&mut self) {
+        for (_, file) in self.files.iter_mut() {
+            file.dirty = true;
+        }
     }
 
     pub fn now(&self) -> DateTime<&Tz> {

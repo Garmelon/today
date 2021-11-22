@@ -15,7 +15,12 @@ pub struct Opt {
 
 fn main() -> anyhow::Result<()> {
     let opt = Opt::from_args();
-    let files = Files::load(&opt.file)?;
+
+    let mut files = Files::load(&opt.file)?;
     println!("{}", files.now().format("%F %T %Z"));
+
+    files.mark_all_dirty();
+    files.save()?;
+
     Ok(())
 }

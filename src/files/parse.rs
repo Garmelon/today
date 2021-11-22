@@ -706,12 +706,7 @@ fn parse_command(p: Pair<Rule>, file: &mut File) -> Result<()> {
 
     let p = p.into_inner().next().unwrap();
     match p.as_rule() {
-        Rule::include => {
-            // Since we've successfully opened the file, its name can't be the
-            // root directory or empty string and must thus have a parent.
-            let parent = file.name.parent().unwrap();
-            file.includes.push(parent.join(parse_include(p)));
-        }
+        Rule::include => file.includes.push(parse_include(p)),
         Rule::timezone => match file.timezone {
             None => file.timezone = Some(parse_timezone(p)),
             Some(_) => fail(p.as_span(), "cannot set timezone multiple times")?,

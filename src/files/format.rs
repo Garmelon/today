@@ -273,14 +273,28 @@ impl fmt::Display for Command {
 
 impl fmt::Display for File {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut commands = self.commands.iter();
-        if let Some(command) = commands.next() {
-            write!(f, "{}", command)?;
-            for command in commands {
-                writeln!(f)?;
-                write!(f, "{}", command)?;
-            }
+        let mut empty = true;
+        for include in &self.includes {
+            writeln!(f, "INCLUDE {}", include)?;
+            empty = false;
         }
+
+        if let Some(tz) = &self.timezone {
+            if !empty {
+                writeln!(f)?;
+            }
+            writeln!(f, "TIMEZONE {}", tz)?;
+            empty = false;
+        }
+
+        for command in &self.commands {
+            if !empty {
+                writeln!(f)?;
+            }
+            write!(f, "{}", command)?;
+            empty = false;
+        }
+
         Ok(())
     }
 }
