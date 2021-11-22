@@ -19,7 +19,7 @@ struct TodayfileParser;
 pub type Error = pest::error::Error<Rule>;
 pub type Result<T> = result::Result<T, Error>;
 
-fn error<S: Into<String>>(span: Span, message: S) -> Error {
+fn error<S: Into<String>>(span: Span<'_>, message: S) -> Error {
     Error::new_from_span(
         ErrorVariant::CustomError {
             message: message.into(),
@@ -28,33 +28,33 @@ fn error<S: Into<String>>(span: Span, message: S) -> Error {
     )
 }
 
-fn fail<S: Into<String>, T>(span: Span, message: S) -> Result<T> {
+fn fail<S: Into<String>, T>(span: Span<'_>, message: S) -> Result<T> {
     Err(error(span, message))
 }
 
-fn parse_include(p: Pair<Rule>) -> String {
+fn parse_include(p: Pair<'_, Rule>) -> String {
     assert_eq!(p.as_rule(), Rule::include);
     p.into_inner().next().unwrap().as_str().to_string()
 }
 
-fn parse_timezone(p: Pair<Rule>) -> String {
+fn parse_timezone(p: Pair<'_, Rule>) -> String {
     assert_eq!(p.as_rule(), Rule::timezone);
     p.into_inner().next().unwrap().as_str().trim().to_string()
 }
 
-fn parse_number(p: Pair<Rule>) -> i32 {
+fn parse_number(p: Pair<'_, Rule>) -> i32 {
     assert_eq!(p.as_rule(), Rule::number);
     p.as_str().parse().unwrap()
 }
 
-fn parse_title(p: Pair<Rule>) -> String {
+fn parse_title(p: Pair<'_, Rule>) -> String {
     assert_eq!(p.as_rule(), Rule::title);
     let p = p.into_inner().next().unwrap();
     assert_eq!(p.as_rule(), Rule::rest_some);
     p.as_str().trim().to_string()
 }
 
-fn parse_datum(p: Pair<Rule>) -> Result<NaiveDate> {
+fn parse_datum(p: Pair<'_, Rule>) -> Result<NaiveDate> {
     assert_eq!(p.as_rule(), Rule::datum);
     let span = p.as_span();
     let mut p = p.into_inner();
@@ -71,7 +71,7 @@ fn parse_datum(p: Pair<Rule>) -> Result<NaiveDate> {
     }
 }
 
-fn parse_time(p: Pair<Rule>) -> Result<Time> {
+fn parse_time(p: Pair<'_, Rule>) -> Result<Time> {
     assert_eq!(p.as_rule(), Rule::time);
     let span = p.as_span();
     let mut p = p.into_inner();
@@ -114,7 +114,7 @@ impl Amount {
     }
 }
 
-fn parse_amount(p: Pair<Rule>) -> Amount {
+fn parse_amount(p: Pair<'_, Rule>) -> Amount {
     assert_eq!(p.as_rule(), Rule::amount);
 
     let mut sign = None;
@@ -136,7 +136,7 @@ fn parse_amount(p: Pair<Rule>) -> Amount {
     Amount { sign, value }
 }
 
-fn parse_weekday(p: Pair<Rule>) -> Weekday {
+fn parse_weekday(p: Pair<'_, Rule>) -> Weekday {
     assert_eq!(p.as_rule(), Rule::weekday);
     match p.as_str() {
         "mon" => Weekday::Monday,
@@ -150,7 +150,7 @@ fn parse_weekday(p: Pair<Rule>) -> Weekday {
     }
 }
 
-fn parse_delta_weekdays(p: Pair<Rule>, sign: &mut Option<Sign>) -> Result<DeltaStep> {
+fn parse_delta_weekdays(p: Pair<'_, Rule>, sign: &mut Option<Sign>) -> Result<DeltaStep> {
     assert_eq!(p.as_rule(), Rule::delta_weekdays);
     let span = p.as_span();
     let mut p = p.into_inner();
@@ -169,7 +169,7 @@ fn parse_delta_weekdays(p: Pair<Rule>, sign: &mut Option<Sign>) -> Result<DeltaS
 }
 
 fn parse_delta_step(
-    p: Pair<Rule>,
+    p: Pair<'_, Rule>,
     sign: &mut Option<Sign>,
     f: impl FnOnce(i32) -> DeltaStep,
 ) -> Result<DeltaStep> {
@@ -194,7 +194,7 @@ fn parse_delta_step(
     Ok(f(value))
 }
 
-fn parse_delta(p: Pair<Rule>) -> Result<Delta> {
+fn parse_delta(p: Pair<'_, Rule>) -> Result<Delta> {
     assert_eq!(p.as_rule(), Rule::delta);
 
     let mut sign = None;
@@ -219,7 +219,7 @@ fn parse_delta(p: Pair<Rule>) -> Result<Delta> {
     Ok(Delta(steps))
 }
 
-fn parse_date_fixed_start(p: Pair<Rule>, spec: &mut DateSpec) -> Result<()> {
+fn parse_date_fixed_start(p: Pair<'_, Rule>, spec: &mut DateSpec) -> Result<()> {
     assert_eq!(p.as_rule(), Rule::date_fixed_start);
 
     for p in p.into_inner() {
@@ -234,7 +234,7 @@ fn parse_date_fixed_start(p: Pair<Rule>, spec: &mut DateSpec) -> Result<()> {
     Ok(())
 }
 
-fn parse_date_fixed_end(p: Pair<Rule>, spec: &mut DateSpec) -> Result<()> {
+fn parse_date_fixed_end(p: Pair<'_, Rule>, spec: &mut DateSpec) -> Result<()> {
     assert_eq!(p.as_rule(), Rule::date_fixed_end);
 
     for p in p.into_inner() {
@@ -249,7 +249,7 @@ fn parse_date_fixed_end(p: Pair<Rule>, spec: &mut DateSpec) -> Result<()> {
     Ok(())
 }
 
-fn parse_date_fixed_repeat(p: Pair<Rule>, spec: &mut DateSpec) -> Result<()> {
+fn parse_date_fixed_repeat(p: Pair<'_, Rule>, spec: &mut DateSpec) -> Result<()> {
     assert_eq!(p.as_rule(), Rule::date_fixed_repeat);
     let mut p = p.into_inner();
 
@@ -261,7 +261,7 @@ fn parse_date_fixed_repeat(p: Pair<Rule>, spec: &mut DateSpec) -> Result<()> {
     Ok(())
 }
 
-fn parse_date_fixed(p: Pair<Rule>) -> Result<DateSpec> {
+fn parse_date_fixed(p: Pair<'_, Rule>) -> Result<DateSpec> {
     assert_eq!(p.as_rule(), Rule::date_fixed);
 
     let mut spec = DateSpec {
@@ -286,7 +286,7 @@ fn parse_date_fixed(p: Pair<Rule>) -> Result<DateSpec> {
     Ok(spec)
 }
 
-fn parse_boolean(p: Pair<Rule>) -> Var {
+fn parse_boolean(p: Pair<'_, Rule>) -> Var {
     assert_eq!(p.as_rule(), Rule::boolean);
     match p.as_str() {
         "true" => Var::True,
@@ -295,7 +295,7 @@ fn parse_boolean(p: Pair<Rule>) -> Var {
     }
 }
 
-fn parse_variable(p: Pair<Rule>) -> Var {
+fn parse_variable(p: Pair<'_, Rule>) -> Var {
     assert_eq!(p.as_rule(), Rule::variable);
     match p.as_str() {
         "j" => Var::JulianDay,
@@ -330,7 +330,7 @@ fn parse_variable(p: Pair<Rule>) -> Var {
     }
 }
 
-fn parse_unop_expr(p: Pair<Rule>) -> Expr {
+fn parse_unop_expr(p: Pair<'_, Rule>) -> Expr {
     assert_eq!(p.as_rule(), Rule::unop_expr);
     let mut p = p.into_inner();
     let p_op = p.next().unwrap();
@@ -345,13 +345,13 @@ fn parse_unop_expr(p: Pair<Rule>) -> Expr {
     }
 }
 
-fn parse_paren_expr(p: Pair<Rule>) -> Expr {
+fn parse_paren_expr(p: Pair<'_, Rule>) -> Expr {
     assert_eq!(p.as_rule(), Rule::paren_expr);
     let inner = parse_expr(p.into_inner().next().unwrap());
     Expr::Paren(Box::new(inner))
 }
 
-fn parse_term(p: Pair<Rule>) -> Expr {
+fn parse_term(p: Pair<'_, Rule>) -> Expr {
     assert_eq!(p.as_rule(), Rule::term);
     let p = p.into_inner().next().unwrap();
     match p.as_rule() {
@@ -364,7 +364,7 @@ fn parse_term(p: Pair<Rule>) -> Expr {
     }
 }
 
-fn parse_op(l: Expr, p: Pair<Rule>, r: Expr) -> Expr {
+fn parse_op(l: Expr, p: Pair<'_, Rule>, r: Expr) -> Expr {
     match p.as_rule() {
         // Integer-y operations
         Rule::op_add => Expr::Add(Box::new(l), Box::new(r)),
@@ -390,7 +390,7 @@ fn parse_op(l: Expr, p: Pair<Rule>, r: Expr) -> Expr {
     }
 }
 
-fn parse_expr(p: Pair<Rule>) -> Expr {
+fn parse_expr(p: Pair<'_, Rule>) -> Expr {
     assert_eq!(p.as_rule(), Rule::expr);
 
     fn op(rule: Rule) -> Operator<Rule> {
@@ -410,7 +410,7 @@ fn parse_expr(p: Pair<Rule>) -> Expr {
     climber.climb(p.into_inner(), parse_term, parse_op)
 }
 
-fn parse_date_expr_start(p: Pair<Rule>, spec: &mut FormulaSpec) -> Result<()> {
+fn parse_date_expr_start(p: Pair<'_, Rule>, spec: &mut FormulaSpec) -> Result<()> {
     assert_eq!(p.as_rule(), Rule::date_expr_start);
 
     for p in p.into_inner() {
@@ -425,7 +425,7 @@ fn parse_date_expr_start(p: Pair<Rule>, spec: &mut FormulaSpec) -> Result<()> {
     Ok(())
 }
 
-fn parse_date_expr_end(p: Pair<Rule>, spec: &mut FormulaSpec) -> Result<()> {
+fn parse_date_expr_end(p: Pair<'_, Rule>, spec: &mut FormulaSpec) -> Result<()> {
     assert_eq!(p.as_rule(), Rule::date_expr_end);
 
     for p in p.into_inner() {
@@ -439,7 +439,7 @@ fn parse_date_expr_end(p: Pair<Rule>, spec: &mut FormulaSpec) -> Result<()> {
     Ok(())
 }
 
-fn parse_date_expr(p: Pair<Rule>) -> Result<FormulaSpec> {
+fn parse_date_expr(p: Pair<'_, Rule>) -> Result<FormulaSpec> {
     assert_eq!(p.as_rule(), Rule::date_expr);
 
     let mut spec = FormulaSpec {
@@ -461,7 +461,7 @@ fn parse_date_expr(p: Pair<Rule>) -> Result<FormulaSpec> {
     Ok(spec)
 }
 
-fn parse_date_weekday_start(p: Pair<Rule>, spec: &mut WeekdaySpec) -> Result<()> {
+fn parse_date_weekday_start(p: Pair<'_, Rule>, spec: &mut WeekdaySpec) -> Result<()> {
     assert_eq!(p.as_rule(), Rule::date_weekday_start);
 
     for p in p.into_inner() {
@@ -475,7 +475,7 @@ fn parse_date_weekday_start(p: Pair<Rule>, spec: &mut WeekdaySpec) -> Result<()>
     Ok(())
 }
 
-fn parse_date_weekday_end(p: Pair<Rule>, spec: &mut WeekdaySpec) -> Result<()> {
+fn parse_date_weekday_end(p: Pair<'_, Rule>, spec: &mut WeekdaySpec) -> Result<()> {
     assert_eq!(p.as_rule(), Rule::date_weekday_end);
 
     for p in p.into_inner() {
@@ -490,7 +490,7 @@ fn parse_date_weekday_end(p: Pair<Rule>, spec: &mut WeekdaySpec) -> Result<()> {
     Ok(())
 }
 
-fn parse_date_weekday(p: Pair<Rule>) -> Result<WeekdaySpec> {
+fn parse_date_weekday(p: Pair<'_, Rule>) -> Result<WeekdaySpec> {
     assert_eq!(p.as_rule(), Rule::date_weekday);
 
     let mut spec = WeekdaySpec {
@@ -512,7 +512,7 @@ fn parse_date_weekday(p: Pair<Rule>) -> Result<WeekdaySpec> {
     Ok(spec)
 }
 
-fn parse_date(p: Pair<Rule>) -> Result<Spec> {
+fn parse_date(p: Pair<'_, Rule>) -> Result<Spec> {
     assert_eq!(p.as_rule(), Rule::date);
     let p = p.into_inner().next().unwrap();
     match p.as_rule() {
@@ -523,22 +523,22 @@ fn parse_date(p: Pair<Rule>) -> Result<Spec> {
     }
 }
 
-fn parse_from(p: Pair<Rule>) -> Result<NaiveDate> {
+fn parse_from(p: Pair<'_, Rule>) -> Result<NaiveDate> {
     assert_eq!(p.as_rule(), Rule::from);
     parse_datum(p.into_inner().next().unwrap())
 }
 
-fn parse_until(p: Pair<Rule>) -> Result<NaiveDate> {
+fn parse_until(p: Pair<'_, Rule>) -> Result<NaiveDate> {
     assert_eq!(p.as_rule(), Rule::until);
     parse_datum(p.into_inner().next().unwrap())
 }
 
-fn parse_except(p: Pair<Rule>) -> Result<NaiveDate> {
+fn parse_except(p: Pair<'_, Rule>) -> Result<NaiveDate> {
     assert_eq!(p.as_rule(), Rule::except);
     parse_datum(p.into_inner().next().unwrap())
 }
 
-fn parse_donedate(p: Pair<Rule>) -> Result<(NaiveDate, Time)> {
+fn parse_donedate(p: Pair<'_, Rule>) -> Result<(NaiveDate, Time)> {
     assert_eq!(p.as_rule(), Rule::donedate);
     let mut p = p.into_inner();
 
@@ -550,7 +550,7 @@ fn parse_donedate(p: Pair<Rule>) -> Result<(NaiveDate, Time)> {
     Ok((date, time))
 }
 
-fn parse_done(p: Pair<Rule>) -> Result<Done> {
+fn parse_done(p: Pair<'_, Rule>) -> Result<Done> {
     assert_eq!(p.as_rule(), Rule::done);
 
     let mut refering_to = None;
@@ -579,7 +579,7 @@ struct Options {
     done: Vec<Done>,
 }
 
-fn parse_options(p: Pair<Rule>) -> Result<Options> {
+fn parse_options(p: Pair<'_, Rule>) -> Result<Options> {
     assert!(matches!(
         p.as_rule(),
         Rule::task_options | Rule::note_options
@@ -602,7 +602,7 @@ fn parse_options(p: Pair<Rule>) -> Result<Options> {
     Ok(opts)
 }
 
-fn parse_desc_line(p: Pair<Rule>) -> Result<String> {
+fn parse_desc_line(p: Pair<'_, Rule>) -> Result<String> {
     assert_eq!(p.as_rule(), Rule::desc_line);
     Ok(match p.into_inner().next() {
         None => "".to_string(),
@@ -613,12 +613,12 @@ fn parse_desc_line(p: Pair<Rule>) -> Result<String> {
     })
 }
 
-fn parse_description(p: Pair<Rule>) -> Result<Vec<String>> {
+fn parse_description(p: Pair<'_, Rule>) -> Result<Vec<String>> {
     assert_eq!(p.as_rule(), Rule::description);
     p.into_inner().map(parse_desc_line).collect()
 }
 
-fn parse_task(p: Pair<Rule>) -> Result<Task> {
+fn parse_task(p: Pair<'_, Rule>) -> Result<Task> {
     assert_eq!(p.as_rule(), Rule::task);
     let mut p = p.into_inner();
 
@@ -639,7 +639,7 @@ fn parse_task(p: Pair<Rule>) -> Result<Task> {
     })
 }
 
-fn parse_note(p: Pair<Rule>) -> Result<Note> {
+fn parse_note(p: Pair<'_, Rule>) -> Result<Note> {
     assert_eq!(p.as_rule(), Rule::note);
     let mut p = p.into_inner();
 
@@ -660,7 +660,7 @@ fn parse_note(p: Pair<Rule>) -> Result<Note> {
     })
 }
 
-fn parse_bdatum(p: Pair<Rule>) -> Result<BirthdaySpec> {
+fn parse_bdatum(p: Pair<'_, Rule>) -> Result<BirthdaySpec> {
     assert_eq!(p.as_rule(), Rule::bdatum);
     let span = p.as_span();
     let p = p.into_inner().collect::<Vec<_>>();
@@ -685,12 +685,12 @@ fn parse_bdatum(p: Pair<Rule>) -> Result<BirthdaySpec> {
     Ok(BirthdaySpec { date, year_known })
 }
 
-fn parse_bdate(p: Pair<Rule>) -> Result<BirthdaySpec> {
+fn parse_bdate(p: Pair<'_, Rule>) -> Result<BirthdaySpec> {
     assert_eq!(p.as_rule(), Rule::bdate);
     parse_bdatum(p.into_inner().next().unwrap())
 }
 
-fn parse_birthday(p: Pair<Rule>) -> Result<Birthday> {
+fn parse_birthday(p: Pair<'_, Rule>) -> Result<Birthday> {
     assert_eq!(p.as_rule(), Rule::birthday);
     let mut p = p.into_inner();
 
@@ -701,7 +701,7 @@ fn parse_birthday(p: Pair<Rule>) -> Result<Birthday> {
     Ok(Birthday { title, when, desc })
 }
 
-fn parse_command(p: Pair<Rule>, file: &mut File) -> Result<()> {
+fn parse_command(p: Pair<'_, Rule>, file: &mut File) -> Result<()> {
     assert_eq!(p.as_rule(), Rule::command);
 
     let p = p.into_inner().next().unwrap();
@@ -720,7 +720,7 @@ fn parse_command(p: Pair<Rule>, file: &mut File) -> Result<()> {
     Ok(())
 }
 
-pub fn parse_file(p: Pair<Rule>, name: PathBuf) -> Result<File> {
+pub fn parse_file(p: Pair<'_, Rule>, name: PathBuf) -> Result<File> {
     assert_eq!(p.as_rule(), Rule::file);
 
     let mut file = File {

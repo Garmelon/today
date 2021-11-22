@@ -1,3 +1,8 @@
+#![warn(future_incompatible)]
+#![warn(rust_2018_idioms)]
+#![warn(clippy::all)]
+#![warn(clippy::use_self)]
+
 use std::path::PathBuf;
 
 use structopt::StructOpt;
