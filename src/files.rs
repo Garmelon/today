@@ -5,7 +5,7 @@ use std::{fs, io, result};
 use chrono::{DateTime, Utc};
 use tzfile::Tz;
 
-use self::commands::File;
+use self::commands::{Command, File};
 
 pub mod commands;
 mod format;
@@ -21,6 +21,18 @@ impl LoadedFile {
     pub fn new(file: File) -> Self {
         Self { file, dirty: false }
     }
+}
+
+#[derive(Debug)]
+pub struct Source<'a> {
+    file: &'a Path,
+    index: usize,
+}
+
+#[derive(Debug)]
+pub struct SourcedCommand<'a> {
+    pub source: Source<'a>,
+    pub command: &'a Command,
 }
 
 #[derive(Debug)]
@@ -122,6 +134,17 @@ impl Files {
         for (_, file) in self.files.iter_mut() {
             file.dirty = true;
         }
+    }
+
+    pub fn commands(&self) -> Vec<SourcedCommand<'_>> {
+        let mut result = vec![];
+        for (path, file) in &self.files {
+            for (index, command) in file.file.commands.iter().enumerate() {
+                let source = Source { file: path, index };
+                result.push(SourcedCommand { source, command });
+            }
+        }
+        result
     }
 
     pub fn now(&self) -> DateTime<&Tz> {
