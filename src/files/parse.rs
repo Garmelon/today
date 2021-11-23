@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::result;
 
 use chrono::NaiveDate;
@@ -720,11 +720,10 @@ fn parse_command(p: Pair<'_, Rule>, file: &mut File) -> Result<()> {
     Ok(())
 }
 
-pub fn parse_file(p: Pair<'_, Rule>, name: PathBuf) -> Result<File> {
+pub fn parse_file(p: Pair<'_, Rule>) -> Result<File> {
     assert_eq!(p.as_rule(), Rule::file);
 
     let mut file = File {
-        name,
         includes: vec![],
         timezone: None,
         commands: vec![],
@@ -749,5 +748,5 @@ pub fn parse(path: &Path, input: &str) -> Result<File> {
     let file_pair = pairs.next().unwrap();
     assert_eq!(pairs.next(), None);
 
-    parse_file(file_pair, path.to_owned()).map_err(|e| e.with_path(&pathstr))
+    parse_file(file_pair).map_err(|e| e.with_path(&pathstr))
 }

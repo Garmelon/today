@@ -13,31 +13,41 @@ mod parse;
 
 #[derive(Debug)]
 struct LoadedFile {
+    /// Canonical path for this file
+    path: PathBuf,
+    // User-readable path for this file
+    name: PathBuf,
     file: File,
+    /// Whether this file has been changed
     dirty: bool,
 }
 
 impl LoadedFile {
-    pub fn new(file: File) -> Self {
-        Self { file, dirty: false }
+    pub fn new(path: PathBuf, name: PathBuf, file: File) -> Self {
+        Self {
+            path,
+            name,
+            file,
+            dirty: false,
+        }
     }
 }
 
-#[derive(Debug)]
-pub struct Source<'a> {
-    file: &'a Path,
-    index: usize,
+#[derive(Debug, Clone, Copy)]
+pub struct Source {
+    file: usize,
+    command: usize,
 }
 
 #[derive(Debug)]
 pub struct SourcedCommand<'a> {
-    pub source: Source<'a>,
+    pub source: Source,
     pub command: &'a Command,
 }
 
 #[derive(Debug)]
 pub struct Files {
-    files: HashMap<PathBuf, LoadedFile>,
+    files: Vec<LoadedFile>,
     timezone: Tz,
 }
 
@@ -60,51 +70,58 @@ pub type Result<T> = result::Result<T, Error>;
 
 impl Files {
     pub fn load(path: &Path) -> Result<Self> {
-        let mut files = HashMap::new();
-        Self::load_file(&mut files, path)?;
+        let mut paths = HashMap::new();
+        let mut files = vec![];
+        Self::load_file(&mut paths, &mut files, path)?;
         let timezone = Self::determine_timezone(&files)?;
         Ok(Self { files, timezone })
     }
 
-    fn load_file(files: &mut HashMap<PathBuf, LoadedFile>, path: &Path) -> Result<()> {
-        let canon_path = path.canonicalize()?;
-        if files.contains_key(&canon_path) {
+    fn load_file(
+        paths: &mut HashMap<PathBuf, usize>,
+        files: &mut Vec<LoadedFile>,
+        name: &Path,
+    ) -> Result<()> {
+        let path = name.canonicalize()?;
+        if paths.contains_key(&path) {
             // We've already loaded this exact file.
             return Ok(());
         }
 
-        let content = fs::read_to_string(path)?;
-        let file = parse::parse(path, &content)?;
+        let content = fs::read_to_string(name)?;
+        // Using `name` instead of `path` for the unwrap below.
+        let file = parse::parse(name, &content)?;
         let includes = file.includes.clone();
 
-        files.insert(canon_path, LoadedFile::new(file));
+        paths.insert(path.clone(), files.len());
+        files.push(LoadedFile::new(path, name.to_owned(), file));
 
         for include in includes {
             // Since we've successfully opened the file, its name can't be the
             // root directory or empty string and must thus have a parent.
-            let include_path = path.parent().unwrap().join(include);
-            Self::load_file(files, &include_path)?;
+            let include_path = name.parent().unwrap().join(include);
+            Self::load_file(paths, files, &include_path)?;
         }
 
         Ok(())
     }
 
-    fn determine_timezone(files: &HashMap<PathBuf, LoadedFile>) -> Result<Tz> {
+    fn determine_timezone(files: &[LoadedFile]) -> Result<Tz> {
         let mut found: Option<(PathBuf, String)> = None;
 
-        for file in files.values() {
+        for file in files {
             if let Some(file_tz) = &file.file.timezone {
                 if let Some((found_name, found_tz)) = &found {
                     if found_tz != file_tz {
                         return Err(Error::TzConflict {
                             file1: found_name.clone(),
                             tz1: found_tz.clone(),
-                            file2: file.file.name.clone(),
+                            file2: file.name.clone(),
                             tz2: file_tz.clone(),
                         });
                     }
                 } else {
-                    found = Some((file.file.name.clone(), file_tz.clone()));
+                    found = Some((file.name.clone(), file_tz.clone()));
                 }
             }
         }
@@ -117,9 +134,9 @@ impl Files {
     }
 
     pub fn save(&self) -> Result<()> {
-        for (path, file) in &self.files {
+        for file in &self.files {
             if file.dirty {
-                Self::save_file(path, &file.file)?;
+                Self::save_file(&file.path, &file.file)?;
             }
         }
         Ok(())
@@ -131,16 +148,19 @@ impl Files {
     }
 
     pub fn mark_all_dirty(&mut self) {
-        for (_, file) in self.files.iter_mut() {
+        for file in self.files.iter_mut() {
             file.dirty = true;
         }
     }
 
     pub fn commands(&self) -> Vec<SourcedCommand<'_>> {
         let mut result = vec![];
-        for (path, file) in &self.files {
-            for (index, command) in file.file.commands.iter().enumerate() {
-                let source = Source { file: path, index };
+        for (file_index, file) in self.files.iter().enumerate() {
+            for (command_index, command) in file.file.commands.iter().enumerate() {
+                let source = Source {
+                    file: file_index,
+                    command: command_index,
+                };
                 result.push(SourcedCommand { source, command });
             }
         }
