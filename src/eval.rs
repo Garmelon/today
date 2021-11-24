@@ -55,10 +55,11 @@ impl Eval {
                     source: self.source,
                     date: EntryDate::Date { root: date },
                 };
-                self.map.insert(date, entry);
+                self.map.insert(entry);
             } else {
                 assert_eq!(when.date.month(), 2);
                 assert_eq!(when.date.day(), 29);
+
                 let date = NaiveDate::from_ymd(year, 2, 28);
                 let entry = Entry {
                     kind: EntryKind::Birthday,
@@ -67,7 +68,7 @@ impl Eval {
                     source: self.source,
                     date: EntryDate::Date { root: date },
                 };
-                self.map.insert(date, entry);
+                self.map.insert(entry);
 
                 let date = NaiveDate::from_ymd(year, 3, 1);
                 let entry = Entry {
@@ -77,7 +78,7 @@ impl Eval {
                     source: self.source,
                     date: EntryDate::Date { root: date },
                 };
-                self.map.insert(date, entry);
+                self.map.insert(entry);
             }
         }
     }

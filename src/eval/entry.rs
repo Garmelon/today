@@ -62,6 +62,7 @@ pub struct Entry {
 pub struct EntryMap {
     range: DateRange,
     map: HashMap<NaiveDate, Option<Entry>>,
+    undated: Vec<Entry>,
 }
 
 impl EntryMap {
@@ -69,6 +70,7 @@ impl EntryMap {
         Self {
             range,
             map: HashMap::new(),
+            undated: vec![],
         }
     }
 
@@ -82,13 +84,21 @@ impl EntryMap {
         }
     }
 
-    pub fn insert(&mut self, date: NaiveDate, entry: Entry) {
-        if self.range.contains(date) {
-            self.map.entry(date).or_insert(Some(entry));
+    pub fn insert(&mut self, entry: Entry) {
+        if let Some(date) = entry.date.root() {
+            if self.range.contains(date) {
+                self.map.entry(date).or_insert(Some(entry));
+            }
+        } else {
+            self.undated.push(entry);
         }
     }
 
     pub fn drain(&mut self) -> Vec<Entry> {
-        self.map.drain().filter_map(|(_, entry)| entry).collect()
+        self.map
+            .drain()
+            .filter_map(|(_, entry)| entry)
+            .chain(self.undated.drain(..))
+            .collect()
     }
 }
