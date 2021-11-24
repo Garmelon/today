@@ -78,6 +78,14 @@ impl EntryMap {
         self.range
     }
 
+    pub fn set_from(&mut self, from: NaiveDate) {
+        self.range = DateRange::new(from, self.range.until());
+    }
+
+    pub fn set_until(&mut self, until: NaiveDate) {
+        self.range = DateRange::new(self.range.from(), until);
+    }
+
     pub fn block(&mut self, date: NaiveDate) {
         if self.range.contains(date) {
             self.map.entry(date).or_insert(None);

@@ -3,8 +3,8 @@ use std::result;
 use chrono::{Datelike, NaiveDate};
 
 use crate::eval::entry::EntryDate;
-use crate::files::commands::{Birthday, Command};
-use crate::files::{Files, Source};
+use crate::files::commands::{Birthday, Command, Note, Spec, Task};
+use crate::files::{Files, Source, SourcedCommand};
 
 use self::entry::{Entry, EntryKind, EntryMap};
 pub use self::range::DateRange;
@@ -27,11 +27,55 @@ struct Eval {
 }
 
 impl Eval {
-    pub fn new(range: DateRange, source: Source) -> Self {
-        Self {
-            map: EntryMap::new(range),
-            source,
+    fn eval_spec(
+        &mut self,
+        spec: &Spec,
+        new_entry: impl Fn(Source, EntryDate) -> Entry,
+    ) -> Result<()> {
+        todo!()
+    }
+
+    fn eval_note(&mut self, note: &Note) -> Result<()> {
+        if note.when.is_empty() {
+            let entry = Entry {
+                kind: EntryKind::Note,
+                title: note.title.clone(),
+                desc: note.desc.clone(),
+                source: self.source,
+                date: EntryDate::None,
+            };
+            self.map.insert(entry);
+        } else {
+            if let Some(from) = note.from {
+                if self.map.range().until() < from {
+                    return Ok(());
+                }
+                if self.map.range().from() < from {
+                    self.map.set_from(from);
+                }
+            }
+            if let Some(until) = note.until {
+                if until < self.map.range().from() {
+                    return Ok(());
+                }
+                if until < self.map.range().until() {
+                    self.map.set_until(until);
+                }
+            }
+            for except in &note.except {
+                self.map.block(*except);
+            }
+            for spec in &note.when {
+                self.eval_spec(spec, |source, date| Entry {
+                    kind: EntryKind::Note,
+                    title: note.title.clone(),
+                    desc: note.desc.clone(),
+                    source,
+                    date,
+                })?;
+            }
         }
+        Ok(())
     }
 
     fn eval_birthday(&mut self, birthday: &Birthday) {
@@ -83,15 +127,17 @@ impl Eval {
         }
     }
 
-    pub fn eval(&mut self, command: &Command) -> Result<Vec<Entry>> {
-        // This function fills the entry map and then drains it again, so in
-        // theory, the struct can even be reused afterwards.
-        match command {
-            Command::Task(task) => todo!(),
-            Command::Note(note) => todo!(),
-            Command::Birthday(birthday) => self.eval_birthday(birthday),
+    pub fn eval(range: DateRange, command: &SourcedCommand<'_>) -> Result<Vec<Entry>> {
+        let mut map = Self {
+            map: EntryMap::new(range),
+            source: command.source,
+        };
+        match command.command {
+            Command::Task(task) => map.eval_task(task)?,
+            Command::Note(note) => map.eval_note(note)?,
+            Command::Birthday(birthday) => map.eval_birthday(birthday),
         }
-        Ok(self.map.drain())
+        Ok(map.map.drain())
     }
 }
 
@@ -99,7 +145,7 @@ impl Files {
     pub fn eval(&self, range: DateRange) -> Result<Vec<Entry>> {
         let mut result = vec![];
         for command in self.commands() {
-            result.append(&mut Eval::new(range, command.source).eval(command.command)?);
+            result.append(&mut Eval::eval(range, &command)?);
         }
         Ok(result)
     }
