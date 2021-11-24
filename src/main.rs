@@ -5,8 +5,10 @@
 
 use std::path::PathBuf;
 
+use chrono::NaiveDate;
 use structopt::StructOpt;
 
+use crate::eval::DateRange;
 use crate::files::Files;
 
 mod eval;
@@ -23,6 +25,12 @@ fn main() -> anyhow::Result<()> {
 
     let mut files = Files::load(&opt.file)?;
     println!("{}", files.now().format("%F %T %Z"));
+
+    let range = DateRange::new(
+        NaiveDate::from_ymd(2021, 11, 20),
+        NaiveDate::from_ymd(2021, 11, 26),
+    );
+    println!("{:#?}", files.eval(range));
 
     files.mark_all_dirty();
     files.save()?;
