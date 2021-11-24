@@ -3,8 +3,8 @@ use std::fmt;
 use chrono::Datelike;
 
 use super::commands::{
-    Birthday, BirthdaySpec, Command, DateSpec, Delta, DeltaStep, Done, Expr, File, FormulaSpec,
-    Note, Spec, Task, Time, Var, Weekday, WeekdaySpec,
+    Birthday, BirthdaySpec, Command, DateSpec, Delta, DeltaStep, Done, DoneDate, Expr, File,
+    FormulaSpec, Note, Spec, Task, Time, Var, Weekday, WeekdaySpec,
 };
 
 fn format_desc(f: &mut fmt::Formatter<'_>, desc: &[String]) -> fmt::Result {
@@ -186,14 +186,27 @@ impl fmt::Display for Spec {
     }
 }
 
+impl fmt::Display for DoneDate {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            DoneDate::Date { root } => write!(f, "{}", root),
+            DoneDate::DateWithTime { root, root_time } => write!(f, "{} {}", root, root_time),
+            DoneDate::DateToDate { root, other } => write!(f, "{} -- {}", root, other),
+            DoneDate::DateToDateWithTime {
+                root,
+                root_time,
+                other,
+                other_time,
+            } => write!(f, "{} {} -- {} {}", root, root_time, other, other_time),
+        }
+    }
+}
+
 impl fmt::Display for Done {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "DONE")?;
-        if let Some(date) = &self.refering_to {
+        write!(f, "DONE [{}]", self.done_at)?;
+        if let Some(date) = &self.date {
             write!(f, " {}", date)?;
-        }
-        if let Some((date, time)) = &self.created_at {
-            write!(f, " ({} {})", date, time)?;
         }
         writeln!(f)
     }

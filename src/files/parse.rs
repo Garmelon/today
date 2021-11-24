@@ -8,8 +8,8 @@ use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::{Parser, Span};
 
 use super::commands::{
-    Birthday, BirthdaySpec, Command, DateSpec, Delta, DeltaStep, Done, Expr, File, FormulaSpec,
-    Note, Spec, Task, Time, Var, Weekday, WeekdaySpec,
+    Birthday, BirthdaySpec, Command, DateSpec, Delta, DeltaStep, Done, DoneDate, Expr, File,
+    FormulaSpec, Note, Spec, Task, Time, Var, Weekday, WeekdaySpec,
 };
 
 #[derive(pest_derive::Parser)]
@@ -538,36 +538,52 @@ fn parse_except(p: Pair<'_, Rule>) -> Result<NaiveDate> {
     parse_datum(p.into_inner().next().unwrap())
 }
 
-fn parse_donedate(p: Pair<'_, Rule>) -> Result<(NaiveDate, Time)> {
+fn parse_donedate(p: Pair<'_, Rule>) -> Result<DoneDate> {
     assert_eq!(p.as_rule(), Rule::donedate);
-    let mut p = p.into_inner();
+    let mut ps = p.into_inner().collect::<Vec<_>>();
 
-    let date = parse_datum(p.next().unwrap())?;
-    let time = parse_time(p.next().unwrap())?;
-
-    assert_eq!(p.next(), None);
-
-    Ok((date, time))
+    // Popping the elements off of the vector in reverse so I don't have to
+    // shuffle them around weirdly. In Haskell, I would've just pattern-matched
+    // the list ;-;
+    Ok(match ps.len() {
+        1 => DoneDate::Date {
+            root: parse_datum(ps.pop().unwrap())?,
+        },
+        2 => match ps[1].as_rule() {
+            Rule::time => DoneDate::DateWithTime {
+                root_time: parse_time(ps.pop().unwrap())?,
+                root: parse_datum(ps.pop().unwrap())?,
+            },
+            Rule::datum => DoneDate::DateToDate {
+                other: parse_datum(ps.pop().unwrap())?,
+                root: parse_datum(ps.pop().unwrap())?,
+            },
+            _ => unreachable!(),
+        },
+        4 => DoneDate::DateToDateWithTime {
+            other_time: parse_time(ps.pop().unwrap())?,
+            other: parse_datum(ps.pop().unwrap())?,
+            root_time: parse_time(ps.pop().unwrap())?,
+            root: parse_datum(ps.pop().unwrap())?,
+        },
+        _ => unreachable!(),
+    })
 }
 
 fn parse_done(p: Pair<'_, Rule>) -> Result<Done> {
     assert_eq!(p.as_rule(), Rule::done);
+    let mut p = p.into_inner();
 
-    let mut refering_to = None;
-    let mut created_at = None;
+    let done_at = parse_datum(p.next().unwrap())?;
+    let date = if let Some(p) = p.next() {
+        Some(parse_donedate(p)?)
+    } else {
+        None
+    };
 
-    for ele in p.into_inner() {
-        match ele.as_rule() {
-            Rule::datum => refering_to = Some(parse_datum(ele)?),
-            Rule::donedate => created_at = Some(parse_donedate(ele)?),
-            _ => unreachable!(),
-        }
-    }
+    assert_eq!(p.next(), None);
 
-    Ok(Done {
-        refering_to,
-        created_at,
-    })
+    Ok(Done { date, done_at })
 }
 
 #[derive(Default)]

@@ -278,9 +278,30 @@ pub enum Spec {
 }
 
 #[derive(Debug)]
+pub enum DoneDate {
+    Date {
+        root: NaiveDate,
+    },
+    DateWithTime {
+        root: NaiveDate,
+        root_time: Time,
+    },
+    DateToDate {
+        root: NaiveDate,
+        other: NaiveDate,
+    },
+    DateToDateWithTime {
+        root: NaiveDate,
+        root_time: Time,
+        other: NaiveDate,
+        other_time: Time,
+    },
+}
+
+#[derive(Debug)]
 pub struct Done {
-    pub refering_to: Option<NaiveDate>,
-    pub created_at: Option<(NaiveDate, Time)>,
+    pub date: Option<DoneDate>,
+    pub done_at: NaiveDate,
 }
 
 #[derive(Debug)]

@@ -107,8 +107,13 @@ from = !{ "FROM" ~ datum ~ eol }
 until = !{ "UNTIL" ~ datum ~ eol }
 except = !{ "EXCEPT" ~ datum ~ eol }
 
-donedate = { "(" ~ datum ~ time ~ ")" }
-done = !{ "DONE" ~ datum? ~ donedate? ~ eol }
+donedate = {
+    datum ~ time ~ "--" ~ datum ~ time
+    | datum ~ time
+    | datum ~ "--" ~ datum
+    | datum
+}
+done = !{ "DONE" ~ "[" ~ datum ~ "]" ~ donedate? ~ eol }
 
 desc_line = { "#" ~ (" " ~ rest_any)? ~ eol }
 description = { desc_line* }
