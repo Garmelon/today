@@ -4,7 +4,7 @@ use chrono::Datelike;
 
 use super::commands::{
     Birthday, BirthdaySpec, Command, DateSpec, Delta, DeltaStep, Done, DoneDate, Expr, File,
-    FormulaSpec, Note, Spec, Task, Time, Var, Weekday, WeekdaySpec,
+    FormulaSpec, Note, Repeat, Spec, Task, Time, Var, Weekday, WeekdaySpec,
 };
 
 fn format_desc(f: &mut fmt::Formatter<'_>, desc: &[String]) -> fmt::Result {
@@ -49,6 +49,15 @@ impl fmt::Display for Delta {
             format_delta_step(f, step, &mut sign)?;
         }
         Ok(())
+    }
+}
+
+impl fmt::Display for Repeat {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.start_at_done {
+            write!(f, "done ")?;
+        }
+        write!(f, "{}", self.delta)
     }
 }
 

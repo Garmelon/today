@@ -89,7 +89,8 @@ expr = { term ~ (op ~ term)* }
 
 date_fixed_start = { datum ~ delta? ~ time? }
 date_fixed_end = { datum ~ delta? ~ time? | delta ~ time? | time }
-date_fixed_repeat = { delta }
+repeat_done = { "done" }
+date_fixed_repeat = { repeat_done? ~ delta }
 date_fixed = { date_fixed_start ~ ("--" ~ date_fixed_end)? ~ (";" ~ date_fixed_repeat)? }
 
 date_expr_start = { ("*" | paren_expr) ~ delta? ~ time? }

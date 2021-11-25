@@ -7,6 +7,8 @@ use pest::iterators::Pair;
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::{Parser, Span};
 
+use crate::files::commands::Repeat;
+
 use super::commands::{
     Birthday, BirthdaySpec, Command, DateSpec, Delta, DeltaStep, Done, DoneDate, Expr, File,
     FormulaSpec, Note, Spec, Task, Time, Var, Weekday, WeekdaySpec,
@@ -251,13 +253,25 @@ fn parse_date_fixed_end(p: Pair<'_, Rule>, spec: &mut DateSpec) -> Result<()> {
 
 fn parse_date_fixed_repeat(p: Pair<'_, Rule>, spec: &mut DateSpec) -> Result<()> {
     assert_eq!(p.as_rule(), Rule::date_fixed_repeat);
-    let mut p = p.into_inner();
+    let mut ps = p.into_inner().collect::<Vec<_>>();
 
-    if let Some(p) = p.next() {
-        spec.repeat = Some(parse_delta(p)?);
-    }
+    let repeat = match ps.len() {
+        1 => Repeat {
+            start_at_done: false,
+            delta: parse_delta(ps.pop().unwrap())?,
+        },
+        2 => {
+            assert_eq!(ps[0].as_rule(), Rule::repeat_done);
+            Repeat {
+                start_at_done: true,
+                delta: parse_delta(ps.pop().unwrap())?,
+            }
+        }
+        _ => unreachable!(),
+    };
 
-    assert_eq!(p.next(), None);
+    spec.repeat = Some(repeat);
+
     Ok(())
 }
 

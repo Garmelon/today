@@ -98,6 +98,14 @@ impl DeltaStep {
 pub struct Delta(pub Vec<DeltaStep>);
 
 #[derive(Debug)]
+pub struct Repeat {
+    /// Start at the date when the latest `DONE` was created instead of the
+    /// task's previous occurrence.
+    pub start_at_done: bool,
+    pub delta: Delta,
+}
+
+#[derive(Debug)]
 pub struct DateSpec {
     pub start: NaiveDate,
     pub start_delta: Option<Delta>,
@@ -105,7 +113,7 @@ pub struct DateSpec {
     pub end: Option<NaiveDate>,
     pub end_delta: Option<Delta>,
     pub end_time: Option<Time>,
-    pub repeat: Option<Delta>,
+    pub repeat: Option<Repeat>,
 }
 
 #[derive(Debug)]
