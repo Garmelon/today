@@ -3,15 +3,18 @@ use std::result;
 
 use chrono::{Datelike, NaiveDate};
 
+use crate::files::commands::DateSpec;
 use crate::files::commands::{Birthday, Command, DoneDate, Note, Spec, Task};
 use crate::files::{Files, Source, SourcedCommand};
 
 use self::entry::EntryMap;
 pub use self::entry::{Entry, EntryKind};
+use self::formula_spec::FormulaSpec;
 pub use self::range::DateRange;
 
 mod delta;
 mod entry;
+mod formula_spec;
 mod range;
 
 #[derive(Debug, thiserror::Error)]
@@ -28,13 +31,34 @@ struct Eval {
 }
 
 impl Eval {
+    fn eval_date_spec(
+        &mut self,
+        spec: &DateSpec,
+        last_done: Option<NaiveDate>,
+        new_entry: impl Fn(Source, Option<DoneDate>) -> Entry,
+    ) -> Result<()> {
+        todo!()
+    }
+
+    fn eval_formula_spec(
+        &mut self,
+        spec: FormulaSpec,
+        new_entry: impl Fn(Source, Option<DoneDate>) -> Entry,
+    ) -> Result<()> {
+        todo!()
+    }
+
     fn eval_spec(
         &mut self,
         spec: &Spec,
         last_done: Option<NaiveDate>,
         new_entry: impl Fn(Source, Option<DoneDate>) -> Entry,
     ) -> Result<()> {
-        todo!()
+        match spec {
+            Spec::Date(spec) => self.eval_date_spec(spec, last_done, new_entry),
+            Spec::Weekday(spec) => self.eval_formula_spec(spec.into(), new_entry),
+            Spec::Formula(spec) => self.eval_formula_spec(spec.into(), new_entry),
+        }
     }
 
     fn eval_dones(&mut self, task: &Task) {

@@ -1,8 +1,41 @@
 use std::cmp::Ordering;
 
-use crate::files::commands::{Delta, DeltaStep};
+use crate::files::commands::{self, Time, Weekday};
+
+/// Like [`commands::DeltaStep`] but includes a new constructor,
+/// [`DeltaStep::Time`].
+#[derive(Debug, Clone, Copy)]
+pub enum DeltaStep {
+    Year(i32),
+    Month(i32),
+    MonthReverse(i32),
+    Day(i32),
+    Week(i32),
+    Hour(i32),
+    Minute(i32),
+    Weekday(i32, Weekday),
+    /// Set the time to the next occurrence of the specified time. Useful to
+    /// unify the end delta and end time for different specs.
+    Time(Time),
+}
+
+impl From<commands::DeltaStep> for DeltaStep {
+    fn from(step: commands::DeltaStep) -> Self {
+        match step {
+            commands::DeltaStep::Year(n) => Self::Year(n),
+            commands::DeltaStep::Month(n) => Self::Month(n),
+            commands::DeltaStep::MonthReverse(n) => Self::MonthReverse(n),
+            commands::DeltaStep::Day(n) => Self::Day(n),
+            commands::DeltaStep::Week(n) => Self::Week(n),
+            commands::DeltaStep::Hour(n) => Self::Hour(n),
+            commands::DeltaStep::Minute(n) => Self::Minute(n),
+            commands::DeltaStep::Weekday(n, wd) => Self::Weekday(n, wd),
+        }
+    }
+}
 
 impl DeltaStep {
+    /// A lower bound on days
     fn lower_bound(&self) -> i32 {
         match self {
             DeltaStep::Year(n) => {
@@ -40,9 +73,11 @@ impl DeltaStep {
                 Ordering::Equal => 0,
                 Ordering::Greater => *n * 7 - 7,
             },
+            DeltaStep::Time(_) => 0,
         }
     }
 
+    /// An upper bound on days
     fn upper_bound(&self) -> i32 {
         match self {
             DeltaStep::Year(n) => {
@@ -80,16 +115,30 @@ impl DeltaStep {
                 Ordering::Equal => 0,
                 Ordering::Greater => *n * 7 - 1,
             },
+            DeltaStep::Time(_) => 1,
+        }
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct Delta {
+    pub steps: Vec<DeltaStep>,
+}
+
+impl From<&commands::Delta> for Delta {
+    fn from(delta: &commands::Delta) -> Self {
+        Self {
+            steps: delta.0.iter().map(|&step| step.into()).collect(),
         }
     }
 }
 
 impl Delta {
     pub fn lower_bound(&self) -> i32 {
-        self.0.iter().map(DeltaStep::lower_bound).sum()
+        self.steps.iter().map(DeltaStep::lower_bound).sum()
     }
 
     pub fn upper_bound(&self) -> i32 {
-        self.0.iter().map(DeltaStep::upper_bound).sum()
+        self.steps.iter().map(DeltaStep::upper_bound).sum()
     }
 }

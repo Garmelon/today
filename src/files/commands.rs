@@ -1,6 +1,6 @@
 use chrono::NaiveDate;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Time {
     pub hour: u8,
     pub min: u8,
@@ -44,7 +44,7 @@ impl Weekday {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum DeltaStep {
     /// `y`, move by a year, keeping the same month and day
     Year(i32),
@@ -94,7 +94,7 @@ impl DeltaStep {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Delta(pub Vec<DeltaStep>);
 
 #[derive(Debug)]
@@ -125,7 +125,7 @@ pub struct WeekdaySpec {
     pub end_time: Option<Time>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Var {
     /// `true`, always 1
     True,
@@ -243,7 +243,21 @@ impl Var {
     }
 }
 
-#[derive(Debug)]
+impl From<Weekday> for Var {
+    fn from(wd: Weekday) -> Self {
+        match wd {
+            Weekday::Monday => Self::Monday,
+            Weekday::Tuesday => Self::Tuesday,
+            Weekday::Wednesday => Self::Wednesday,
+            Weekday::Thursday => Self::Thursday,
+            Weekday::Friday => Self::Friday,
+            Weekday::Saturday => Self::Saturday,
+            Weekday::Sunday => Self::Sunday,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum Expr {
     Lit(i64),
     Var(Var),
