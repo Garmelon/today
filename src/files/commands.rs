@@ -1,6 +1,6 @@
 use chrono::NaiveDate;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Time {
     pub hour: u8,
     pub min: u8,
@@ -285,7 +285,7 @@ pub enum Spec {
     Formula(FormulaSpec),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum DoneDate {
     Date {
         root: NaiveDate,
@@ -304,6 +304,17 @@ pub enum DoneDate {
         other: NaiveDate,
         other_time: Time,
     },
+}
+
+impl DoneDate {
+    pub fn root(&self) -> NaiveDate {
+        match self {
+            DoneDate::Date { root } => *root,
+            DoneDate::DateWithTime { root, .. } => *root,
+            DoneDate::DateToDate { root, .. } => *root,
+            DoneDate::DateToDateWithTime { root, .. } => *root,
+        }
+    }
 }
 
 #[derive(Debug)]
