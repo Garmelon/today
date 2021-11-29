@@ -1,4 +1,47 @@
+use std::fmt;
+
 use chrono::NaiveDate;
+
+#[derive(Debug, Clone, Copy)]
+pub struct Span {
+    pub start: usize,
+    pub end: usize,
+}
+
+impl<'a> From<&pest::Span<'a>> for Span {
+    fn from(pspan: &pest::Span<'a>) -> Self {
+        Self {
+            start: pspan.start(),
+            end: pspan.end(),
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct Spanned<T> {
+    pub span: Span,
+    pub value: T,
+}
+
+impl<T: fmt::Debug> fmt::Debug for Spanned<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        self.value.fmt(f)
+    }
+}
+
+impl<T> Spanned<T> {
+    pub fn new(span: Span, value: T) -> Self {
+        Self { span, value }
+    }
+}
+
+// I don't know how one would write this. It works as a polymorphic standalone
+// function, but not in an impl block.
+// impl<S, T: Into<S>> Spanned<T> {
+//     pub fn convert(&self) -> Spanned<S> {
+//         Self::new(self.span, self.value.into())
+//     }
+// }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Time {
@@ -95,7 +138,7 @@ impl DeltaStep {
 }
 
 #[derive(Debug, Default)]
-pub struct Delta(pub Vec<DeltaStep>);
+pub struct Delta(pub Vec<Spanned<DeltaStep>>);
 
 #[derive(Debug)]
 pub struct Repeat {
@@ -110,9 +153,9 @@ pub struct DateSpec {
     pub start: NaiveDate,
     pub start_delta: Option<Delta>,
     pub start_time: Option<Time>,
-    pub end: Option<NaiveDate>,
+    pub end: Option<Spanned<NaiveDate>>,
     pub end_delta: Option<Delta>,
-    pub end_time: Option<Time>,
+    pub end_time: Option<Spanned<Time>>,
     pub repeat: Option<Repeat>,
 }
 
@@ -120,9 +163,9 @@ pub struct DateSpec {
 pub struct WeekdaySpec {
     pub start: Weekday,
     pub start_time: Option<Time>,
-    pub end: Option<Weekday>,
+    pub end: Option<Spanned<Weekday>>,
     pub end_delta: Option<Delta>,
-    pub end_time: Option<Time>,
+    pub end_time: Option<Spanned<Time>>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -289,7 +332,7 @@ pub struct FormulaSpec {
     pub start_delta: Option<Delta>,
     pub start_time: Option<Time>,
     pub end_delta: Option<Delta>,
-    pub end_time: Option<Time>,
+    pub end_time: Option<Spanned<Time>>,
 }
 
 #[derive(Debug)]
@@ -368,6 +411,7 @@ pub struct BirthdaySpec {
 pub struct Birthday {
     pub title: String,
     pub when: BirthdaySpec,
+    // pub until: Option<NaiveDate>, // TODO Add UNTIL to birthday
     pub desc: Vec<String>,
 }
 

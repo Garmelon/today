@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use crate::files::commands::{self, Time, Weekday};
+use crate::files::commands::{self, Spanned, Time, Weekday};
 
 /// Like [`commands::DeltaStep`] but includes a new constructor,
 /// [`DeltaStep::Time`].
@@ -122,23 +122,27 @@ impl DeltaStep {
 
 #[derive(Debug, Default)]
 pub struct Delta {
-    pub steps: Vec<DeltaStep>,
+    pub steps: Vec<Spanned<DeltaStep>>,
 }
 
 impl From<&commands::Delta> for Delta {
     fn from(delta: &commands::Delta) -> Self {
         Self {
-            steps: delta.0.iter().map(|&step| step.into()).collect(),
+            steps: delta
+                .0
+                .iter()
+                .map(|step| Spanned::new(step.span, step.value.into()))
+                .collect(),
         }
     }
 }
 
 impl Delta {
     pub fn lower_bound(&self) -> i32 {
-        self.steps.iter().map(DeltaStep::lower_bound).sum()
+        self.steps.iter().map(|step| step.value.lower_bound()).sum()
     }
 
     pub fn upper_bound(&self) -> i32 {
-        self.steps.iter().map(DeltaStep::upper_bound).sum()
+        self.steps.iter().map(|step| step.value.upper_bound()).sum()
     }
 }

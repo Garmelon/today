@@ -7,7 +7,7 @@ use pest::iterators::Pair;
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::{Parser, Span};
 
-use crate::files::commands::Repeat;
+use crate::files::commands::{Repeat, Spanned};
 
 use super::commands::{
     Birthday, BirthdaySpec, Command, DateSpec, Delta, DeltaStep, Done, DoneDate, Expr, File,
@@ -56,9 +56,10 @@ fn parse_title(p: Pair<'_, Rule>) -> String {
     p.as_str().trim().to_string()
 }
 
-fn parse_datum(p: Pair<'_, Rule>) -> Result<NaiveDate> {
+fn parse_datum(p: Pair<'_, Rule>) -> Result<Spanned<NaiveDate>> {
     assert_eq!(p.as_rule(), Rule::datum);
-    let span = p.as_span();
+    let pspan = p.as_span();
+    let span = (&pspan).into();
     let mut p = p.into_inner();
 
     let year = p.next().unwrap().as_str().parse().unwrap();
@@ -68,14 +69,15 @@ fn parse_datum(p: Pair<'_, Rule>) -> Result<NaiveDate> {
     assert_eq!(p.next(), None);
 
     match NaiveDate::from_ymd_opt(year, month, day) {
-        Some(date) => Ok(date),
-        None => fail(span, "invalid date"),
+        Some(date) => Ok(Spanned::new(span, date)),
+        None => fail(pspan, "invalid date"),
     }
 }
 
-fn parse_time(p: Pair<'_, Rule>) -> Result<Time> {
+fn parse_time(p: Pair<'_, Rule>) -> Result<Spanned<Time>> {
     assert_eq!(p.as_rule(), Rule::time);
-    let span = p.as_span();
+    let pspan = p.as_span();
+    let span = (&pspan).into();
     let mut p = p.into_inner();
 
     let hour = p.next().unwrap().as_str().parse().unwrap();
@@ -84,8 +86,8 @@ fn parse_time(p: Pair<'_, Rule>) -> Result<Time> {
     assert_eq!(p.next(), None);
 
     match Time::new(hour, min) {
-        Some(time) => Ok(time),
-        None => fail(span, "invalid time"),
+        Some(time) => Ok(Spanned::new(span, time)),
+        None => fail(pspan, "invalid time"),
     }
 }
 
@@ -138,9 +140,10 @@ fn parse_amount(p: Pair<'_, Rule>) -> Amount {
     Amount { sign, value }
 }
 
-fn parse_weekday(p: Pair<'_, Rule>) -> Weekday {
+fn parse_weekday(p: Pair<'_, Rule>) -> Spanned<Weekday> {
     assert_eq!(p.as_rule(), Rule::weekday);
-    match p.as_str() {
+    let span = (&p.as_span()).into();
+    let wd = match p.as_str() {
         "mon" => Weekday::Monday,
         "tue" => Weekday::Tuesday,
         "wed" => Weekday::Wednesday,
@@ -149,32 +152,34 @@ fn parse_weekday(p: Pair<'_, Rule>) -> Weekday {
         "sat" => Weekday::Saturday,
         "sun" => Weekday::Sunday,
         _ => unreachable!(),
-    }
+    };
+    Spanned::new(span, wd)
 }
 
-fn parse_delta_weekdays(p: Pair<'_, Rule>, sign: &mut Option<Sign>) -> Result<DeltaStep> {
+fn parse_delta_weekdays(p: Pair<'_, Rule>, sign: &mut Option<Sign>) -> Result<Spanned<DeltaStep>> {
     assert_eq!(p.as_rule(), Rule::delta_weekdays);
-    let span = p.as_span();
+    let pspan = p.as_span();
+    let span = (&pspan).into();
     let mut p = p.into_inner();
 
     let amount = parse_amount(p.next().unwrap()).with_prev_sign(*sign);
-    let weekday = parse_weekday(p.next().unwrap());
+    let weekday = parse_weekday(p.next().unwrap()).value;
 
     assert_eq!(p.next(), None);
 
     let value = amount
         .value()
-        .ok_or_else(|| error(span, "ambiguous sign"))?;
+        .ok_or_else(|| error(pspan, "ambiguous sign"))?;
     *sign = amount.sign;
 
-    Ok(DeltaStep::Weekday(value, weekday))
+    Ok(Spanned::new(span, DeltaStep::Weekday(value, weekday)))
 }
 
 fn parse_delta_step(
     p: Pair<'_, Rule>,
     sign: &mut Option<Sign>,
     f: impl FnOnce(i32) -> DeltaStep,
-) -> Result<DeltaStep> {
+) -> Result<Spanned<DeltaStep>> {
     assert!(matches!(
         p.as_rule(),
         Rule::delta_years
@@ -186,14 +191,15 @@ fn parse_delta_step(
             | Rule::delta_minutes
     ));
 
-    let span = p.as_span();
+    let pspan = p.as_span();
+    let span = (&pspan).into();
     let amount = parse_amount(p.into_inner().next().unwrap()).with_prev_sign(*sign);
     let value = amount
         .value()
-        .ok_or_else(|| error(span, "ambiguous sign"))?;
+        .ok_or_else(|| error(pspan, "ambiguous sign"))?;
 
     *sign = amount.sign;
-    Ok(f(value))
+    Ok(Spanned::new(span, f(value)))
 }
 
 fn parse_delta(p: Pair<'_, Rule>) -> Result<Delta> {
@@ -226,9 +232,9 @@ fn parse_date_fixed_start(p: Pair<'_, Rule>, spec: &mut DateSpec) -> Result<()> 
 
     for p in p.into_inner() {
         match p.as_rule() {
-            Rule::datum => spec.start = parse_datum(p)?,
+            Rule::datum => spec.start = parse_datum(p)?.value,
             Rule::delta => spec.start_delta = Some(parse_delta(p)?),
-            Rule::time => spec.start_time = Some(parse_time(p)?),
+            Rule::time => spec.start_time = Some(parse_time(p)?.value),
             _ => unreachable!(),
         }
     }
@@ -431,7 +437,7 @@ fn parse_date_expr_start(p: Pair<'_, Rule>, spec: &mut FormulaSpec) -> Result<()
         match p.as_rule() {
             Rule::paren_expr => spec.start = Some(parse_expr(p.into_inner().next().unwrap())),
             Rule::delta => spec.start_delta = Some(parse_delta(p)?),
-            Rule::time => spec.start_time = Some(parse_time(p)?),
+            Rule::time => spec.start_time = Some(parse_time(p)?.value),
             _ => unreachable!(),
         }
     }
@@ -480,8 +486,8 @@ fn parse_date_weekday_start(p: Pair<'_, Rule>, spec: &mut WeekdaySpec) -> Result
 
     for p in p.into_inner() {
         match p.as_rule() {
-            Rule::weekday => spec.start = parse_weekday(p),
-            Rule::time => spec.start_time = Some(parse_time(p)?),
+            Rule::weekday => spec.start = parse_weekday(p).value,
+            Rule::time => spec.start_time = Some(parse_time(p)?.value),
             _ => unreachable!(),
         }
     }
@@ -539,17 +545,20 @@ fn parse_date(p: Pair<'_, Rule>) -> Result<Spec> {
 
 fn parse_from(p: Pair<'_, Rule>) -> Result<NaiveDate> {
     assert_eq!(p.as_rule(), Rule::from);
-    parse_datum(p.into_inner().next().unwrap())
+    let datum = parse_datum(p.into_inner().next().unwrap())?;
+    Ok(datum.value)
 }
 
 fn parse_until(p: Pair<'_, Rule>) -> Result<NaiveDate> {
     assert_eq!(p.as_rule(), Rule::until);
-    parse_datum(p.into_inner().next().unwrap())
+    let datum = parse_datum(p.into_inner().next().unwrap())?;
+    Ok(datum.value)
 }
 
 fn parse_except(p: Pair<'_, Rule>) -> Result<NaiveDate> {
     assert_eq!(p.as_rule(), Rule::except);
-    parse_datum(p.into_inner().next().unwrap())
+    let datum = parse_datum(p.into_inner().next().unwrap())?;
+    Ok(datum.value)
 }
 
 fn parse_donedate(p: Pair<'_, Rule>) -> Result<DoneDate> {
@@ -561,24 +570,24 @@ fn parse_donedate(p: Pair<'_, Rule>) -> Result<DoneDate> {
     // the list ;-;
     Ok(match ps.len() {
         1 => DoneDate::Date {
-            root: parse_datum(ps.pop().unwrap())?,
+            root: parse_datum(ps.pop().unwrap())?.value,
         },
         2 => match ps[1].as_rule() {
             Rule::time => DoneDate::DateWithTime {
-                root_time: parse_time(ps.pop().unwrap())?,
-                root: parse_datum(ps.pop().unwrap())?,
+                root_time: parse_time(ps.pop().unwrap())?.value,
+                root: parse_datum(ps.pop().unwrap())?.value,
             },
             Rule::datum => DoneDate::DateToDate {
-                other: parse_datum(ps.pop().unwrap())?,
-                root: parse_datum(ps.pop().unwrap())?,
+                other: parse_datum(ps.pop().unwrap())?.value,
+                root: parse_datum(ps.pop().unwrap())?.value,
             },
             _ => unreachable!(),
         },
         4 => DoneDate::DateToDateWithTime {
-            other_time: parse_time(ps.pop().unwrap())?,
-            other: parse_datum(ps.pop().unwrap())?,
-            root_time: parse_time(ps.pop().unwrap())?,
-            root: parse_datum(ps.pop().unwrap())?,
+            other_time: parse_time(ps.pop().unwrap())?.value,
+            other: parse_datum(ps.pop().unwrap())?.value,
+            root_time: parse_time(ps.pop().unwrap())?.value,
+            root: parse_datum(ps.pop().unwrap())?.value,
         },
         _ => unreachable!(),
     })
@@ -588,7 +597,7 @@ fn parse_done(p: Pair<'_, Rule>) -> Result<Done> {
     assert_eq!(p.as_rule(), Rule::done);
     let mut p = p.into_inner();
 
-    let done_at = parse_datum(p.next().unwrap())?;
+    let done_at = parse_datum(p.next().unwrap())?.value;
     let date = if let Some(p) = p.next() {
         Some(parse_donedate(p)?)
     } else {

@@ -4,8 +4,14 @@ use chrono::Datelike;
 
 use super::commands::{
     Birthday, BirthdaySpec, Command, DateSpec, Delta, DeltaStep, Done, DoneDate, Expr, File,
-    FormulaSpec, Note, Repeat, Spec, Task, Time, Var, Weekday, WeekdaySpec,
+    FormulaSpec, Note, Repeat, Spanned, Spec, Task, Time, Var, Weekday, WeekdaySpec,
 };
+
+impl<T: fmt::Display> fmt::Display for Spanned<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.value.fmt(f)
+    }
+}
 
 fn format_desc(f: &mut fmt::Formatter<'_>, desc: &[String]) -> fmt::Result {
     for line in desc {
@@ -46,7 +52,7 @@ impl fmt::Display for Delta {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut sign = 0;
         for step in &self.0 {
-            format_delta_step(f, step, &mut sign)?;
+            format_delta_step(f, &step.value, &mut sign)?;
         }
         Ok(())
     }

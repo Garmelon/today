@@ -1,6 +1,6 @@
 use chrono::NaiveDate;
 
-use crate::files::commands::{self, DoneDate, Time};
+use crate::files::commands::{self, DoneDate, Spanned, Time};
 use crate::files::Source;
 
 use super::delta::{Delta, DeltaStep};
@@ -29,7 +29,9 @@ impl From<&commands::DateSpec> for DateSpec {
             .map(|delta| delta.into())
             .unwrap_or_default();
         if let Some(time) = spec.end_time {
-            end_delta.steps.push(DeltaStep::Time(time));
+            end_delta
+                .steps
+                .push(Spanned::new(time.span, DeltaStep::Time(time.value)));
         }
 
         let repeat: Option<Delta> = spec.repeat.as_ref().map(|repeat| (&repeat.delta).into());

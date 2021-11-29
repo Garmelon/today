@@ -1,4 +1,4 @@
-use crate::files::commands::{self, DoneDate, Expr, Time, Var};
+use crate::files::commands::{self, DoneDate, Expr, Spanned, Time, Var};
 use crate::files::Source;
 
 use super::delta::{Delta, DeltaStep};
@@ -28,7 +28,9 @@ impl From<&commands::FormulaSpec> for FormulaSpec {
             .map(|delta| delta.into())
             .unwrap_or_default();
         if let Some(time) = spec.end_time {
-            end_delta.steps.push(DeltaStep::Time(time));
+            end_delta
+                .steps
+                .push(Spanned::new(time.span, DeltaStep::Time(time.value)));
         }
 
         Self {
@@ -49,15 +51,21 @@ impl From<&commands::WeekdaySpec> for FormulaSpec {
 
         let mut end_delta = Delta::default();
         if let Some(wd) = spec.end {
-            end_delta.steps.push(DeltaStep::Weekday(1, wd));
+            end_delta
+                .steps
+                .push(Spanned::new(wd.span, DeltaStep::Weekday(1, wd.value)));
         }
         if let Some(delta) = &spec.end_delta {
             for step in &delta.0 {
-                end_delta.steps.push((*step).into());
+                end_delta
+                    .steps
+                    .push(Spanned::new(step.span, step.value.into()));
             }
         }
         if let Some(time) = spec.end_time {
-            end_delta.steps.push(DeltaStep::Time(time));
+            end_delta
+                .steps
+                .push(Spanned::new(time.span, DeltaStep::Time(time.value)));
         }
 
         Self {
