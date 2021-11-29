@@ -424,6 +424,7 @@ pub enum Command {
 
 #[derive(Debug)]
 pub struct File {
+    pub contents: String,
     pub includes: Vec<String>,
     pub timezone: Option<String>,
     pub commands: Vec<Command>,
