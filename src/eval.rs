@@ -3,7 +3,7 @@ use std::result;
 
 use chrono::{Datelike, NaiveDate};
 
-use crate::files::commands::{Birthday, Command, DoneDate, Note, Spec, Task};
+use crate::files::commands::{Birthday, Command, DoneDate, Note, Span, Spec, Task, Time};
 use crate::files::{Files, Source, SourcedCommand};
 
 use self::entry::EntryMap;
@@ -16,10 +16,20 @@ mod entry;
 mod formula_spec;
 mod range;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum Error {
-    #[error("TODO")]
-    Todo,
+    DeltaInvalidStep {
+        span: Span,
+        start: NaiveDate,
+        start_time: Option<Time>,
+        prev: NaiveDate,
+        prev_time: Option<Time>,
+    },
+    DeltaNoTime {
+        span: Span,
+        start: NaiveDate,
+        prev: NaiveDate,
+    },
 }
 
 type Result<T> = result::Result<T, Error>;
