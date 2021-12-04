@@ -1,6 +1,6 @@
 use chrono::NaiveDate;
 
-use crate::files::commands::Time;
+use crate::files::commands::{DoneDate, Time};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Times {
@@ -37,8 +37,8 @@ impl Dates {
 
     pub fn new_with_time(
         start: NaiveDate,
-        end: NaiveDate,
         start_time: Time,
+        end: NaiveDate,
         end_time: Time,
     ) -> Self {
         assert!(start <= end);
@@ -73,5 +73,35 @@ impl Dates {
 
     pub fn end_time(&self) -> Option<Time> {
         self.times.as_ref().map(Times::end)
+    }
+}
+
+impl From<DoneDate> for Dates {
+    fn from(date: DoneDate) -> Self {
+        match date {
+            DoneDate::Date { root } => Self::new(root, root),
+            DoneDate::DateWithTime { root, root_time } => {
+                Self::new_with_time(root, root_time, root, root_time)
+            }
+            DoneDate::DateToDate { root, other } => {
+                if root <= other {
+                    Self::new(root, other)
+                } else {
+                    Self::new(other, root)
+                }
+            }
+            DoneDate::DateToDateWithTime {
+                root,
+                root_time,
+                other,
+                other_time,
+            } => {
+                if root < other || (root == other && root_time <= other_time) {
+                    Self::new_with_time(root, root_time, other, other_time)
+                } else {
+                    Self::new_with_time(other, other_time, root, root_time)
+                }
+            }
+        }
     }
 }

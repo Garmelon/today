@@ -605,11 +605,12 @@ fn parse_stmt_except(p: Pair<'_, Rule>) -> Result<Statement> {
 
 fn parse_stmt_move(p: Pair<'_, Rule>) -> Result<Statement> {
     assert_eq!(p.as_rule(), Rule::stmt_move);
+    let span = (&p.as_span()).into();
     let mut p = p.into_inner();
     let from = parse_datum(p.next().unwrap())?.value;
     let to = parse_datum(p.next().unwrap())?.value;
     assert_eq!(p.next(), None);
-    Ok(Statement::Move(from, to))
+    Ok(Statement::Move { span, from, to })
 }
 
 fn parse_statements(p: Pair<'_, Rule>) -> Result<Vec<Statement>> {

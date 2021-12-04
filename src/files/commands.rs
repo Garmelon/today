@@ -355,7 +355,11 @@ pub enum Statement {
     From(Option<NaiveDate>),
     Until(Option<NaiveDate>),
     Except(NaiveDate), // TODO Allow excluding ranges
-    Move(NaiveDate, NaiveDate),
+    Move {
+        span: Span,
+        from: NaiveDate,
+        to: NaiveDate,
+    },
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -438,6 +442,22 @@ pub struct Note {
 pub enum Command {
     Task(Task),
     Note(Note),
+}
+
+impl Command {
+    pub fn title(&self) -> &str {
+        match self {
+            Command::Task(task) => &task.title,
+            Command::Note(note) => &note.title,
+        }
+    }
+
+    pub fn desc(&self) -> &[String] {
+        match self {
+            Command::Task(task) => &task.desc,
+            Command::Note(note) => &note.desc,
+        }
+    }
 }
 
 #[derive(Debug)]

@@ -18,6 +18,9 @@ pub enum Error {
         start: NaiveDate,
         prev: NaiveDate,
     },
+    /// A `MOVE a TO b` statement was executed, but there was no entry at the
+    /// date `a`.
+    MoveWithoutSource { span: Span },
 }
 
 pub type Result<T> = result::Result<T, Error>;

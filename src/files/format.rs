@@ -219,7 +219,7 @@ impl fmt::Display for Statement {
             Statement::Until(Some(date)) => writeln!(f, "UNTIL {}", date),
             Statement::Until(None) => writeln!(f, "UNTIL *"),
             Statement::Except(date) => writeln!(f, "EXCEPT {}", date),
-            Statement::Move(from, to) => writeln!(f, "MOVE {} TO {}", from, to),
+            Statement::Move { span, from, to } => writeln!(f, "MOVE {} TO {}", from, to),
         }
     }
 }
