@@ -1,8 +1,8 @@
 use chrono::NaiveDate;
 
-use crate::files::commands::DoneDate;
 use crate::files::Source;
 
+use super::date::Dates;
 use super::range::DateRange;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -21,7 +21,8 @@ pub struct Entry {
     pub desc: Vec<String>,
 
     pub source: Source,
-    pub root: Option<DoneDate>,
+    pub dates: Option<Dates>,
+    pub root: Option<NaiveDate>,
 }
 
 /// Mode that determines how entries are filtered when they are added to
@@ -57,22 +58,22 @@ impl Entries {
 
     fn is_rooted(&self, entry: &Entry) -> bool {
         match entry.root {
-            Some(date) => self.range.contains(date.root()),
+            Some(date) => self.range.contains(date),
             None => false,
         }
     }
 
     fn is_touching(&self, entry: &Entry) -> bool {
-        if let Some(date) = entry.root {
+        if let Some(dates) = entry.dates {
             // Inside the range or overlapping it
-            date.first() <= self.range.until() && self.range.from() <= date.last()
+            dates.start() <= self.range.until() && self.range.from() <= dates.end()
         } else {
             false
         }
     }
 
     fn is_relevant(&self, entry: &Entry) -> bool {
-        if entry.root.is_none() {
+        if entry.dates.is_none() {
             return true;
         }
 
@@ -90,14 +91,14 @@ impl Entries {
 
         // Unfinished tasks before or inside the range
         if let EntryKind::Task = entry.kind {
-            if let Some(date) = entry.root {
-                if date.first() <= self.range.until() {
+            if let Some(dates) = entry.dates {
+                if dates.start() <= self.range.until() {
                     return true;
                 }
             }
         }
 
-        return false;
+        false
     }
 
     pub fn add(&mut self, entry: Entry) {

@@ -7,6 +7,7 @@ pub use self::error::{Error, Result};
 pub use self::range::DateRange;
 
 mod command;
+mod date;
 mod delta;
 mod entry;
 mod error;
