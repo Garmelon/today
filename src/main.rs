@@ -27,8 +27,8 @@ fn main() -> anyhow::Result<()> {
     println!("{}", files.now().format("%F %T %Z"));
 
     let range = DateRange::new(
-        NaiveDate::from_ymd(2021, 11, 20),
-        NaiveDate::from_ymd(2021, 11, 26),
+        NaiveDate::from_ymd(2021, 1, 1),
+        NaiveDate::from_ymd(2021, 12, 31),
     );
     println!("{:#?}", files.eval(EntryMode::Relevant, range));
 

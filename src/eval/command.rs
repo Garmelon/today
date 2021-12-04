@@ -115,7 +115,7 @@ impl<'a> CommandState<'a> {
     fn eval_statement(&mut self, statement: &Statement) -> Result<()> {
         match statement {
             Statement::Date(spec) => self.eval_date(spec)?,
-            Statement::BDate(spec) => self.eval_bdate(spec)?,
+            Statement::BDate(spec) => self.eval_bdate(spec),
             Statement::From(date) => self.from = *date,
             Statement::Until(date) => self.until = *date,
             Statement::Except(date) => self.eval_except(*date),
@@ -132,8 +132,8 @@ impl<'a> CommandState<'a> {
         }
     }
 
-    fn eval_bdate(&mut self, spec: &BirthdaySpec) -> Result<()> {
-        self.eval_birthday_spec(spec)
+    fn eval_bdate(&mut self, spec: &BirthdaySpec) {
+        self.eval_birthday_spec(spec);
     }
 
     fn eval_except(&mut self, date: NaiveDate) {
