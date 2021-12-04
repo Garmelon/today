@@ -1,8 +1,8 @@
-use crate::files::commands::{self, DoneDate, Expr, Spanned, Time, Var};
-use crate::files::Source;
+use crate::files::commands::{self, Expr, Spanned, Time, Var};
 
-use super::delta::{Delta, DeltaStep};
-use super::{Entry, Eval, Result};
+use super::super::command::CommandState;
+use super::super::delta::{Delta, DeltaStep};
+use super::super::Result;
 
 pub struct FormulaSpec {
     // TODO Implement more efficient exprs and expr evaluation
@@ -77,12 +77,8 @@ impl From<&commands::WeekdaySpec> for FormulaSpec {
     }
 }
 
-impl Eval {
-    pub fn eval_formula_spec(
-        &mut self,
-        spec: FormulaSpec,
-        new_entry: impl Fn(Source, Option<DoneDate>) -> Entry,
-    ) -> Result<()> {
+impl<'a> CommandState<'a> {
+    pub fn eval_formula_spec(&mut self, spec: FormulaSpec) -> Result<()> {
         todo!()
     }
 }

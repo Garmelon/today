@@ -7,6 +7,10 @@ use crate::files::{Source, SourcedCommand};
 
 use super::{DateRange, Entry, EntryKind, Error, Result};
 
+mod birthday;
+mod date;
+mod formula;
+
 pub struct CommandState<'a> {
     command: SourcedCommand<'a>,
     range: DateRange,
@@ -121,11 +125,15 @@ impl<'a> CommandState<'a> {
     }
 
     fn eval_date(&mut self, spec: &Spec) -> Result<()> {
-        todo!()
+        match spec {
+            Spec::Date(spec) => self.eval_date_spec(spec.into()),
+            Spec::Weekday(spec) => self.eval_formula_spec(spec.into()),
+            Spec::Formula(spec) => self.eval_formula_spec(spec.into()),
+        }
     }
 
     fn eval_bdate(&mut self, spec: &BirthdaySpec) -> Result<()> {
-        todo!()
+        self.eval_birthday_spec(spec)
     }
 
     fn eval_except(&mut self, date: NaiveDate) {

@@ -1,10 +1,10 @@
 use chrono::NaiveDate;
 
-use crate::files::commands::{self, DoneDate, Spanned, Time};
-use crate::files::Source;
+use crate::files::commands::{self, Spanned, Time};
 
-use super::delta::{Delta, DeltaStep};
-use super::{Entry, Eval, Result};
+use super::super::command::CommandState;
+use super::super::delta::{Delta, DeltaStep};
+use super::super::Result;
 
 pub struct DateSpec {
     pub start: NaiveDate,
@@ -52,13 +52,8 @@ impl From<&commands::DateSpec> for DateSpec {
     }
 }
 
-impl Eval {
-    pub fn eval_date_spec(
-        &mut self,
-        spec: DateSpec,
-        last_done: Option<NaiveDate>,
-        new_entry: impl Fn(Source, Option<DoneDate>) -> Entry,
-    ) -> Result<()> {
+impl<'a> CommandState<'a> {
+    pub fn eval_date_spec(&mut self, spec: DateSpec) -> Result<()> {
         todo!()
     }
 }
