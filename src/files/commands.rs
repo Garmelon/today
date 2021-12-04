@@ -342,6 +342,22 @@ pub enum Spec {
     Formula(FormulaSpec),
 }
 
+#[derive(Debug)]
+pub struct BirthdaySpec {
+    pub date: NaiveDate,
+    pub year_known: bool, // If year is unknown, use NaiveDate of year 0
+}
+
+#[derive(Debug)]
+pub enum Statement {
+    Date(Spec),
+    BDate(BirthdaySpec),
+    From(Option<NaiveDate>),
+    Until(Option<NaiveDate>),
+    Except(NaiveDate), // TODO Allow excluding ranges
+    Move(NaiveDate, NaiveDate),
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum DoneDate {
     Date {
@@ -406,10 +422,7 @@ pub struct Done {
 #[derive(Debug)]
 pub struct Task {
     pub title: String,
-    pub when: Vec<Spec>,
-    pub from: Option<NaiveDate>,
-    pub until: Option<NaiveDate>,
-    pub except: Vec<NaiveDate>,
+    pub statements: Vec<Statement>,
     pub done: Vec<Done>,
     pub desc: Vec<String>,
 }
@@ -417,24 +430,7 @@ pub struct Task {
 #[derive(Debug)]
 pub struct Note {
     pub title: String,
-    pub when: Vec<Spec>, // Should not be empty?
-    pub from: Option<NaiveDate>,
-    pub until: Option<NaiveDate>,
-    pub except: Vec<NaiveDate>,
-    pub desc: Vec<String>,
-}
-
-#[derive(Debug)]
-pub struct BirthdaySpec {
-    pub date: NaiveDate,
-    pub year_known: bool, // If year is unknown, use NaiveDate of year 0
-}
-
-#[derive(Debug)]
-pub struct Birthday {
-    pub title: String,
-    pub when: BirthdaySpec,
-    // pub until: Option<NaiveDate>, // TODO Add UNTIL to birthday
+    pub statements: Vec<Statement>,
     pub desc: Vec<String>,
 }
 
@@ -442,7 +438,6 @@ pub struct Birthday {
 pub enum Command {
     Task(Task),
     Note(Note),
-    Birthday(Birthday),
 }
 
 #[derive(Debug)]

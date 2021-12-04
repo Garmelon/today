@@ -10,8 +10,8 @@ use pest::{Parser, Span};
 use crate::files::commands::{Repeat, Spanned};
 
 use super::commands::{
-    Birthday, BirthdaySpec, Command, DateSpec, Delta, DeltaStep, Done, DoneDate, Expr, File,
-    FormulaSpec, Note, Spec, Task, Time, Var, Weekday, WeekdaySpec,
+    BirthdaySpec, Command, DateSpec, Delta, DeltaStep, Done, DoneDate, Expr, File, FormulaSpec,
+    Note, Spec, Statement, Task, Time, Var, Weekday, WeekdaySpec,
 };
 
 #[derive(pest_derive::Parser)]
@@ -532,33 +532,101 @@ fn parse_date_weekday(p: Pair<'_, Rule>) -> Result<WeekdaySpec> {
     Ok(spec)
 }
 
-fn parse_date(p: Pair<'_, Rule>) -> Result<Spec> {
-    assert_eq!(p.as_rule(), Rule::date);
+fn parse_stmt_date(p: Pair<'_, Rule>) -> Result<Statement> {
+    assert_eq!(p.as_rule(), Rule::stmt_date);
     let p = p.into_inner().next().unwrap();
-    match p.as_rule() {
-        Rule::date_fixed => parse_date_fixed(p).map(Spec::Date),
-        Rule::date_expr => parse_date_expr(p).map(Spec::Formula),
-        Rule::date_weekday => parse_date_weekday(p).map(Spec::Weekday),
+    let spec = match p.as_rule() {
+        Rule::date_fixed => Spec::Date(parse_date_fixed(p)?),
+        Rule::date_expr => Spec::Formula(parse_date_expr(p)?),
+        Rule::date_weekday => Spec::Weekday(parse_date_weekday(p)?),
         _ => unreachable!(),
+    };
+    Ok(Statement::Date(spec))
+}
+
+fn parse_bdatum(p: Pair<'_, Rule>) -> Result<BirthdaySpec> {
+    assert_eq!(p.as_rule(), Rule::bdatum);
+    let span = p.as_span();
+    let p = p.into_inner().collect::<Vec<_>>();
+    assert!(p.len() == 2 || p.len() == 3);
+
+    let (y, m, d, year_known) = if p.len() == 3 {
+        let y = p[0].as_str().parse().unwrap();
+        let m = p[1].as_str().parse().unwrap();
+        let d = p[2].as_str().parse().unwrap();
+        (y, m, d, true)
+    } else {
+        let m = p[0].as_str().parse().unwrap();
+        let d = p[1].as_str().parse().unwrap();
+        (0, m, d, false)
+    };
+
+    let date = match NaiveDate::from_ymd_opt(y, m, d) {
+        Some(date) => Ok(date),
+        None => fail(span, "invalid date"),
+    }?;
+
+    Ok(BirthdaySpec { date, year_known })
+}
+
+fn parse_stmt_bdate(p: Pair<'_, Rule>) -> Result<Statement> {
+    assert_eq!(p.as_rule(), Rule::stmt_bdate);
+    let spec = parse_bdatum(p.into_inner().next().unwrap())?;
+    Ok(Statement::BDate(spec))
+}
+
+fn parse_stmt_from(p: Pair<'_, Rule>) -> Result<Statement> {
+    assert_eq!(p.as_rule(), Rule::stmt_from);
+    let mut p = p.into_inner();
+    let datum = match p.next() {
+        Some(p) => Some(parse_datum(p)?.value),
+        None => None,
+    };
+    assert_eq!(p.next(), None);
+    Ok(Statement::From(datum))
+}
+
+fn parse_stmt_until(p: Pair<'_, Rule>) -> Result<Statement> {
+    assert_eq!(p.as_rule(), Rule::stmt_until);
+    let mut p = p.into_inner();
+    let datum = match p.next() {
+        Some(p) => Some(parse_datum(p)?.value),
+        None => None,
+    };
+    assert_eq!(p.next(), None);
+    Ok(Statement::Until(datum))
+}
+
+fn parse_stmt_except(p: Pair<'_, Rule>) -> Result<Statement> {
+    assert_eq!(p.as_rule(), Rule::stmt_except);
+    let datum = parse_datum(p.into_inner().next().unwrap())?.value;
+    Ok(Statement::Except(datum))
+}
+
+fn parse_stmt_move(p: Pair<'_, Rule>) -> Result<Statement> {
+    assert_eq!(p.as_rule(), Rule::stmt_move);
+    let mut p = p.into_inner();
+    let from = parse_datum(p.next().unwrap())?.value;
+    let to = parse_datum(p.next().unwrap())?.value;
+    assert_eq!(p.next(), None);
+    Ok(Statement::Move(from, to))
+}
+
+fn parse_statements(p: Pair<'_, Rule>) -> Result<Vec<Statement>> {
+    assert_eq!(p.as_rule(), Rule::statements);
+    let mut statements = vec![];
+    for p in p.into_inner() {
+        statements.push(match p.as_rule() {
+            Rule::stmt_date => parse_stmt_date(p)?,
+            Rule::stmt_bdate => parse_stmt_bdate(p)?,
+            Rule::stmt_from => parse_stmt_from(p)?,
+            Rule::stmt_until => parse_stmt_until(p)?,
+            Rule::stmt_except => parse_stmt_except(p)?,
+            Rule::stmt_move => parse_stmt_move(p)?,
+            _ => unreachable!(),
+        });
     }
-}
-
-fn parse_from(p: Pair<'_, Rule>) -> Result<NaiveDate> {
-    assert_eq!(p.as_rule(), Rule::from);
-    let datum = parse_datum(p.into_inner().next().unwrap())?;
-    Ok(datum.value)
-}
-
-fn parse_until(p: Pair<'_, Rule>) -> Result<NaiveDate> {
-    assert_eq!(p.as_rule(), Rule::until);
-    let datum = parse_datum(p.into_inner().next().unwrap())?;
-    Ok(datum.value)
-}
-
-fn parse_except(p: Pair<'_, Rule>) -> Result<NaiveDate> {
-    assert_eq!(p.as_rule(), Rule::except);
-    let datum = parse_datum(p.into_inner().next().unwrap())?;
-    Ok(datum.value)
+    Ok(statements)
 }
 
 fn parse_donedate(p: Pair<'_, Rule>) -> Result<DoneDate> {
@@ -609,36 +677,13 @@ fn parse_done(p: Pair<'_, Rule>) -> Result<Done> {
     Ok(Done { date, done_at })
 }
 
-#[derive(Default)]
-struct Options {
-    when: Vec<Spec>,
-    from: Option<NaiveDate>,
-    until: Option<NaiveDate>,
-    except: Vec<NaiveDate>,
-    done: Vec<Done>,
-}
-
-fn parse_options(p: Pair<'_, Rule>) -> Result<Options> {
-    assert!(matches!(
-        p.as_rule(),
-        Rule::task_options | Rule::note_options
-    ));
-
-    let mut opts = Options::default();
-    for opt in p.into_inner() {
-        match opt.as_rule() {
-            Rule::date => opts.when.push(parse_date(opt)?),
-            Rule::from if opts.from.is_none() => opts.from = Some(parse_from(opt)?),
-            Rule::from => fail(opt.as_span(), "FROM already defined earlier")?,
-            Rule::until if opts.until.is_none() => opts.until = Some(parse_until(opt)?),
-            Rule::until => fail(opt.as_span(), "UNTIL already defined earlier")?,
-            Rule::except => opts.except.push(parse_except(opt)?),
-            Rule::done => opts.done.push(parse_done(opt)?),
-            _ => unreachable!(),
-        }
+fn parse_dones(p: Pair<'_, Rule>) -> Result<Vec<Done>> {
+    assert_eq!(p.as_rule(), Rule::dones);
+    let mut dones = vec![];
+    for p in p.into_inner() {
+        dones.push(parse_done(p)?);
     }
-
-    Ok(opts)
+    Ok(dones)
 }
 
 fn parse_desc_line(p: Pair<'_, Rule>) -> Result<String> {
@@ -662,18 +707,16 @@ fn parse_task(p: Pair<'_, Rule>) -> Result<Task> {
     let mut p = p.into_inner();
 
     let title = parse_title(p.next().unwrap());
-    let opts = parse_options(p.next().unwrap())?;
+    let statements = parse_statements(p.next().unwrap())?;
+    let done = parse_dones(p.next().unwrap())?;
     let desc = parse_description(p.next().unwrap())?;
 
     assert_eq!(p.next(), None);
 
     Ok(Task {
         title,
-        when: opts.when,
-        from: opts.from,
-        until: opts.until,
-        except: opts.except,
-        done: opts.done,
+        statements,
+        done,
         desc,
     })
 }
@@ -683,61 +726,16 @@ fn parse_note(p: Pair<'_, Rule>) -> Result<Note> {
     let mut p = p.into_inner();
 
     let title = parse_title(p.next().unwrap());
-    let opts = parse_options(p.next().unwrap())?;
+    let statements = parse_statements(p.next().unwrap())?;
     let desc = parse_description(p.next().unwrap())?;
 
     assert_eq!(p.next(), None);
-    assert!(opts.done.is_empty());
 
     Ok(Note {
         title,
-        when: opts.when,
-        from: opts.from,
-        until: opts.until,
-        except: opts.except,
+        statements,
         desc,
     })
-}
-
-fn parse_bdatum(p: Pair<'_, Rule>) -> Result<BirthdaySpec> {
-    assert_eq!(p.as_rule(), Rule::bdatum);
-    let span = p.as_span();
-    let p = p.into_inner().collect::<Vec<_>>();
-    assert!(p.len() == 2 || p.len() == 3);
-
-    let (y, m, d, year_known) = if p.len() == 3 {
-        let y = p[0].as_str().parse().unwrap();
-        let m = p[1].as_str().parse().unwrap();
-        let d = p[2].as_str().parse().unwrap();
-        (y, m, d, true)
-    } else {
-        let m = p[0].as_str().parse().unwrap();
-        let d = p[1].as_str().parse().unwrap();
-        (0, m, d, false)
-    };
-
-    let date = match NaiveDate::from_ymd_opt(y, m, d) {
-        Some(date) => Ok(date),
-        None => fail(span, "invalid date"),
-    }?;
-
-    Ok(BirthdaySpec { date, year_known })
-}
-
-fn parse_bdate(p: Pair<'_, Rule>) -> Result<BirthdaySpec> {
-    assert_eq!(p.as_rule(), Rule::bdate);
-    parse_bdatum(p.into_inner().next().unwrap())
-}
-
-fn parse_birthday(p: Pair<'_, Rule>) -> Result<Birthday> {
-    assert_eq!(p.as_rule(), Rule::birthday);
-    let mut p = p.into_inner();
-
-    let title = parse_title(p.next().unwrap());
-    let when = parse_bdate(p.next().unwrap())?;
-    let desc = parse_description(p.next().unwrap())?;
-
-    Ok(Birthday { title, when, desc })
 }
 
 fn parse_command(p: Pair<'_, Rule>, file: &mut File) -> Result<()> {
@@ -752,7 +750,6 @@ fn parse_command(p: Pair<'_, Rule>, file: &mut File) -> Result<()> {
         },
         Rule::task => file.commands.push(Command::Task(parse_task(p)?)),
         Rule::note => file.commands.push(Command::Note(parse_note(p)?)),
-        Rule::birthday => file.commands.push(Command::Birthday(parse_birthday(p)?)),
         _ => unreachable!(),
     }
 

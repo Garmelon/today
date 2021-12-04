@@ -3,8 +3,8 @@ use std::fmt;
 use chrono::Datelike;
 
 use super::commands::{
-    Birthday, BirthdaySpec, Command, DateSpec, Delta, DeltaStep, Done, DoneDate, Expr, File,
-    FormulaSpec, Note, Repeat, Spanned, Spec, Task, Time, Var, Weekday, WeekdaySpec,
+    BirthdaySpec, Command, DateSpec, Delta, DeltaStep, Done, DoneDate, Expr, File, FormulaSpec,
+    Note, Repeat, Spanned, Spec, Statement, Task, Time, Var, Weekday, WeekdaySpec,
 };
 
 impl<T: fmt::Display> fmt::Display for Spanned<T> {
@@ -191,13 +191,36 @@ impl fmt::Display for FormulaSpec {
 
 impl fmt::Display for Spec {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "DATE ")?;
         match self {
-            Spec::Date(spec) => write!(f, "{}", spec)?,
-            Spec::Weekday(spec) => write!(f, "{}", spec)?,
-            Spec::Formula(spec) => write!(f, "{}", spec)?,
+            Spec::Date(spec) => write!(f, "{}", spec),
+            Spec::Weekday(spec) => write!(f, "{}", spec),
+            Spec::Formula(spec) => write!(f, "{}", spec),
         }
-        writeln!(f)
+    }
+}
+
+impl fmt::Display for BirthdaySpec {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.year_known {
+            write!(f, "{}", self.date)
+        } else {
+            write!(f, "?-{:02}-{:02}", self.date.month(), self.date.day())
+        }
+    }
+}
+
+impl fmt::Display for Statement {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Statement::Date(spec) => writeln!(f, "DATE {}", spec),
+            Statement::BDate(spec) => writeln!(f, "BDATE {}", spec),
+            Statement::From(Some(date)) => writeln!(f, "FROM {}", date),
+            Statement::From(None) => writeln!(f, "FROM *"),
+            Statement::Until(Some(date)) => writeln!(f, "UNTIL {}", date),
+            Statement::Until(None) => writeln!(f, "UNTIL *"),
+            Statement::Except(date) => writeln!(f, "EXCEPT {}", date),
+            Statement::Move(from, to) => writeln!(f, "MOVE {} TO {}", from, to),
+        }
     }
 }
 
@@ -230,17 +253,8 @@ impl fmt::Display for Done {
 impl fmt::Display for Task {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "TASK {}", self.title)?;
-        for spec in &self.when {
-            write!(f, "{}", spec)?;
-        }
-        if let Some(date) = self.from {
-            writeln!(f, "FROM {}", date)?;
-        }
-        if let Some(date) = self.until {
-            writeln!(f, "UNTIL {}", date)?;
-        }
-        for date in &self.except {
-            writeln!(f, "EXCEPT {}", date)?;
+        for statement in &self.statements {
+            write!(f, "{}", statement)?;
         }
         for done in &self.done {
             write!(f, "{}", done)?;
@@ -253,37 +267,9 @@ impl fmt::Display for Task {
 impl fmt::Display for Note {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "NOTE {}", self.title)?;
-        for spec in &self.when {
-            write!(f, "{}", spec)?;
+        for statement in &self.statements {
+            write!(f, "{}", statement)?;
         }
-        if let Some(date) = self.from {
-            writeln!(f, "FROM {}", date)?;
-        }
-        if let Some(date) = self.until {
-            writeln!(f, "UNTIL {}", date)?;
-        }
-        for date in &self.except {
-            writeln!(f, "EXCEPT {}", date)?;
-        }
-        format_desc(f, &self.desc)?;
-        Ok(())
-    }
-}
-
-impl fmt::Display for BirthdaySpec {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.year_known {
-            writeln!(f, "BDATE {}", self.date)
-        } else {
-            writeln!(f, "BDATE ?-{:02}-{:02}", self.date.month(), self.date.day())
-        }
-    }
-}
-
-impl fmt::Display for Birthday {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "BIRTHDAY {}", self.title)?;
-        write!(f, "{}", self.when)?;
         format_desc(f, &self.desc)?;
         Ok(())
     }
@@ -294,7 +280,6 @@ impl fmt::Display for Command {
         match self {
             Command::Task(task) => write!(f, "{}", task),
             Command::Note(note) => write!(f, "{}", note),
-            Command::Birthday(birthday) => write!(f, "{}", birthday),
         }
     }
 }

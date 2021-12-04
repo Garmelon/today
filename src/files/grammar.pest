@@ -101,12 +101,14 @@ date_weekday_start = { weekday ~ time? }
 date_weekday_end = { weekday ~ time? | delta ~ time? | time }
 date_weekday = { date_weekday_start ~ ("--" ~ date_weekday_end)? }
 
-date = !{ "DATE" ~ (date_fixed | date_expr | date_weekday) ~ eol }
+stmt_date = !{ "DATE" ~ (date_fixed | date_expr | date_weekday) ~ eol }
+stmt_bdate = !{ "BDATE" ~ bdatum ~ eol }
+stmt_from = !{ "FROM" ~ (datum | "*") ~ eol }
+stmt_until = !{ "UNTIL" ~ (datum | "*") ~ eol }
+stmt_except = !{ "EXCEPT" ~ datum ~ eol }
+stmt_move = !{ "MOVE" ~ datum ~ "TO" ~ datum ~ eol }
 
-bdate = !{ "BDATE" ~ bdatum ~ eol }
-from = !{ "FROM" ~ datum ~ eol }
-until = !{ "UNTIL" ~ datum ~ eol }
-except = !{ "EXCEPT" ~ datum ~ eol }
+statements = { (stmt_date | stmt_bdate | stmt_from | stmt_until | stmt_except | stmt_move)* }
 
 donedate = {
     datum ~ time ~ "--" ~ datum ~ time
@@ -115,36 +117,27 @@ donedate = {
     | datum
 }
 done = !{ "DONE" ~ "[" ~ datum ~ "]" ~ donedate? ~ eol }
+dones = { done* }
 
 desc_line = { "#" ~ (" " ~ rest_any)? ~ eol }
 description = { desc_line* }
 
-task_options = { (date | from | until | except | done)* }
-
 task = {
     "TASK"
     ~ title
-    ~ task_options
+    ~ statements
+    ~ dones
     ~ description
 }
-
-note_options = { (date | from | until | except)* }
 
 note = {
     "NOTE"
     ~ title
-    ~ note_options
-    ~ description
-}
-
-birthday = {
-    "BIRTHDAY"
-    ~ title
-    ~ bdate
+    ~ statements
     ~ description
 }
 
 empty_line = _{ WHITESPACE* ~ NEWLINE }
-command = { include | timezone | task | note | birthday }
+command = { include | timezone | task | note }
 
 file = ${ SOI ~ (empty_line* ~ command)* ~ empty_line* ~ WHITESPACE* ~ EOI }

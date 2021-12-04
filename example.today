@@ -58,18 +58,17 @@ DATE 0016-04-09 +dsun; +19y
 DATE 0017-03-29 +dsun; +19y
 DATE 0018-04-17 +dsun; +19y
 
-BIRTHDAY Max
+NOTE Max
 BDATE 1987-05-14
 
-BIRTHDAY Martha
+NOTE Martha
 BDATE ?-09-21
 
 NOTE Physics lecture
-DATE wed 14:00 -- 15:30
-DATE 2021-05-07 14:00 -- 15:30
 FROM 2021-04-14
 UNTIL 2021-07-28
-EXCEPT 2021-05-06
+DATE wed 14:00 -- 15:30
+MOVE 2021-05-06 TO 2021-05-07
 # This is a description of the event. It might mention further information that
 # doesn't fit into the title.
 #
