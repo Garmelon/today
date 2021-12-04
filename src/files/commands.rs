@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{cmp, fmt};
 
 use chrono::NaiveDate;
 
@@ -370,6 +370,29 @@ impl DoneDate {
             DoneDate::DateWithTime { root, .. } => *root,
             DoneDate::DateToDate { root, .. } => *root,
             DoneDate::DateToDateWithTime { root, .. } => *root,
+        }
+    }
+
+    pub fn other(&self) -> Option<NaiveDate> {
+        match self {
+            DoneDate::Date { .. } => None,
+            DoneDate::DateWithTime { .. } => None,
+            DoneDate::DateToDate { other, .. } => Some(*other),
+            DoneDate::DateToDateWithTime { other, .. } => Some(*other),
+        }
+    }
+
+    pub fn first(&self) -> NaiveDate {
+        match self.other() {
+            None => self.root(),
+            Some(other) => cmp::min(self.root(), other),
+        }
+    }
+
+    pub fn last(&self) -> NaiveDate {
+        match self.other() {
+            None => self.root(),
+            Some(other) => cmp::max(self.root(), other),
         }
     }
 }

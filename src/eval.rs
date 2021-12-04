@@ -60,7 +60,7 @@ impl Eval {
                 title: task.title.clone(),
                 desc: task.desc.clone(),
                 source: self.source,
-                date: done.date,
+                root: done.date,
             };
             self.map.insert(entry);
         }
@@ -109,7 +109,7 @@ impl Eval {
                 title: task.title.clone(),
                 desc: task.desc.clone(),
                 source: self.source,
-                date: None,
+                root: None,
             });
         } else {
             let last_done = Self::determine_last_done(task);
@@ -130,7 +130,7 @@ impl Eval {
                     title: task.title.clone(),
                     desc: task.desc.clone(),
                     source,
-                    date,
+                    root: date,
                 })?;
             }
         }
@@ -162,7 +162,7 @@ impl Eval {
                 title: note.title.clone(),
                 desc: note.desc.clone(),
                 source: self.source,
-                date: None,
+                root: None,
             });
         } else {
             if let Some(range) = self.determine_note_range(note) {
@@ -181,7 +181,7 @@ impl Eval {
                     title: note.title.clone(),
                     desc: note.desc.clone(),
                     source,
-                    date,
+                    root: date,
                 })?;
             }
         }
@@ -207,7 +207,7 @@ impl Eval {
                     title: title.clone(),
                     desc: birthday.desc.clone(),
                     source: self.source,
-                    date: Some(DoneDate::Date { root: date }),
+                    root: Some(DoneDate::Date { root: date }),
                 };
                 self.map.insert(entry);
             } else {
@@ -220,7 +220,7 @@ impl Eval {
                     title: format!("{} (first half)", title),
                     desc: birthday.desc.clone(),
                     source: self.source,
-                    date: Some(DoneDate::Date { root: date }),
+                    root: Some(DoneDate::Date { root: date }),
                 };
                 self.map.insert(entry);
 
@@ -230,7 +230,7 @@ impl Eval {
                     title: format!("{} (second half)", title),
                     desc: birthday.desc.clone(),
                     source: self.source,
-                    date: Some(DoneDate::Date { root: date }),
+                    root: Some(DoneDate::Date { root: date }),
                 };
                 self.map.insert(entry);
             }
