@@ -2,7 +2,8 @@ use std::collections::HashMap;
 
 use chrono::NaiveDate;
 
-use crate::files::commands::{BirthdaySpec, Command, Done, Note, Span, Spec, Statement, Task};
+use crate::files::commands::{BirthdaySpec, Command, Done, Note, Spec, Statement, Task};
+use crate::files::primitives::Span;
 use crate::files::SourcedCommand;
 
 use super::date::Dates;

@@ -1,6 +1,7 @@
 use chrono::NaiveDate;
 
-use crate::files::commands::{self, Command, Spanned, Time};
+use crate::files::commands::{self, Command};
+use crate::files::primitives::{Spanned, Time};
 
 use super::super::command::CommandState;
 use super::super::date::Dates;

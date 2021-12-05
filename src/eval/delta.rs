@@ -2,7 +2,8 @@ use std::cmp::Ordering;
 
 use chrono::{Datelike, Duration, NaiveDate};
 
-use crate::files::commands::{self, Span, Spanned, Time, Weekday};
+use crate::files::commands;
+use crate::files::primitives::{Span, Spanned, Time, Weekday};
 
 use super::{util, Error, Result};
 

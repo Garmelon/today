@@ -1,4 +1,5 @@
-use crate::files::commands::{self, Expr, Spanned, Time, Var};
+use crate::files::commands::{self, Expr, Var};
+use crate::files::primitives::{Spanned, Time};
 
 use super::super::command::CommandState;
 use super::super::delta::{Delta, DeltaStep};

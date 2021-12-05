@@ -4,8 +4,9 @@ use chrono::Datelike;
 
 use super::commands::{
     BirthdaySpec, Command, DateSpec, Delta, DeltaStep, Done, DoneDate, Expr, File, FormulaSpec,
-    Note, Repeat, Spanned, Spec, Statement, Task, Time, Var, Weekday, WeekdaySpec,
+    Note, Repeat, Spec, Statement, Task, Var, WeekdaySpec,
 };
+use super::primitives::{Spanned, Time, Weekday};
 
 impl<T: fmt::Display> fmt::Display for Spanned<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

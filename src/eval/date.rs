@@ -1,6 +1,7 @@
 use chrono::NaiveDate;
 
-use crate::files::commands::{DoneDate, Time};
+use crate::files::commands::DoneDate;
+use crate::files::primitives::Time;
 
 #[derive(Debug, Clone, Copy)]
 struct Times {

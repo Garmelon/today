@@ -10,6 +10,7 @@ use self::commands::{Command, File};
 pub mod commands;
 mod format;
 mod parse;
+pub mod primitives;
 
 #[derive(Debug)]
 struct LoadedFile {

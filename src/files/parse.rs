@@ -7,12 +7,11 @@ use pest::iterators::Pair;
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::{Parser, Span};
 
-use crate::files::commands::{Repeat, Spanned};
-
 use super::commands::{
     BirthdaySpec, Command, DateSpec, Delta, DeltaStep, Done, DoneDate, Expr, File, FormulaSpec,
-    Note, Spec, Statement, Task, Time, Var, Weekday, WeekdaySpec,
+    Note, Repeat, Spec, Statement, Task, Var, WeekdaySpec,
 };
+use super::primitives::{Spanned, Time, Weekday};
 
 #[derive(pest_derive::Parser)]
 #[grammar = "files/grammar.pest"]

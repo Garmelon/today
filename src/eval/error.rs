@@ -2,7 +2,7 @@ use std::result;
 
 use chrono::NaiveDate;
 
-use crate::files::commands::{Span, Time};
+use crate::files::primitives::{Span, Time};
 
 #[derive(Debug)]
 pub enum Error {
