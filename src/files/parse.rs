@@ -202,8 +202,9 @@ fn parse_delta_step(
     Ok(Spanned::new(span, f(value)))
 }
 
-fn parse_delta(p: Pair<'_, Rule>) -> Result<Delta> {
+fn parse_delta(p: Pair<'_, Rule>) -> Result<Spanned<Delta>> {
     assert_eq!(p.as_rule(), Rule::delta);
+    let span = (&p.as_span()).into();
 
     let mut sign = None;
     let mut steps = vec![];
@@ -224,7 +225,7 @@ fn parse_delta(p: Pair<'_, Rule>) -> Result<Delta> {
         }
     }
 
-    Ok(Delta(steps))
+    Ok(Spanned::new(span, Delta(steps)))
 }
 
 fn parse_date_fixed_start(p: Pair<'_, Rule>, spec: &mut DateSpec) -> Result<()> {
@@ -233,7 +234,7 @@ fn parse_date_fixed_start(p: Pair<'_, Rule>, spec: &mut DateSpec) -> Result<()> 
     for p in p.into_inner() {
         match p.as_rule() {
             Rule::datum => spec.start = parse_datum(p)?.value,
-            Rule::delta => spec.start_delta = Some(parse_delta(p)?),
+            Rule::delta => spec.start_delta = Some(parse_delta(p)?.value),
             Rule::time => spec.start_time = Some(parse_time(p)?.value),
             _ => unreachable!(),
         }
@@ -248,7 +249,7 @@ fn parse_date_fixed_end(p: Pair<'_, Rule>, spec: &mut DateSpec) -> Result<()> {
     for p in p.into_inner() {
         match p.as_rule() {
             Rule::datum => spec.end = Some(parse_datum(p)?),
-            Rule::delta => spec.end_delta = Some(parse_delta(p)?),
+            Rule::delta => spec.end_delta = Some(parse_delta(p)?.value),
             Rule::time => spec.end_time = Some(parse_time(p)?),
             _ => unreachable!(),
         }
@@ -436,7 +437,7 @@ fn parse_date_expr_start(p: Pair<'_, Rule>, spec: &mut FormulaSpec) -> Result<()
     for p in p.into_inner() {
         match p.as_rule() {
             Rule::paren_expr => spec.start = Some(parse_expr(p.into_inner().next().unwrap())),
-            Rule::delta => spec.start_delta = Some(parse_delta(p)?),
+            Rule::delta => spec.start_delta = Some(parse_delta(p)?.value),
             Rule::time => spec.start_time = Some(parse_time(p)?.value),
             _ => unreachable!(),
         }
@@ -450,7 +451,7 @@ fn parse_date_expr_end(p: Pair<'_, Rule>, spec: &mut FormulaSpec) -> Result<()> 
 
     for p in p.into_inner() {
         match p.as_rule() {
-            Rule::delta => spec.end_delta = Some(parse_delta(p)?),
+            Rule::delta => spec.end_delta = Some(parse_delta(p)?.value),
             Rule::time => spec.end_time = Some(parse_time(p)?),
             _ => unreachable!(),
         }
@@ -501,7 +502,7 @@ fn parse_date_weekday_end(p: Pair<'_, Rule>, spec: &mut WeekdaySpec) -> Result<(
     for p in p.into_inner() {
         match p.as_rule() {
             Rule::weekday => spec.end = Some(parse_weekday(p)),
-            Rule::delta => spec.end_delta = Some(parse_delta(p)?),
+            Rule::delta => spec.end_delta = Some(parse_delta(p)?.value),
             Rule::time => spec.end_time = Some(parse_time(p)?),
             _ => unreachable!(),
         }

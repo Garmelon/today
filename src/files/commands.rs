@@ -151,7 +151,7 @@ pub struct Repeat {
     /// Start at the date when the latest `DONE` was created instead of the
     /// task's previous occurrence.
     pub start_at_done: bool,
-    pub delta: Delta,
+    pub delta: Spanned<Delta>,
 }
 
 #[derive(Debug)]

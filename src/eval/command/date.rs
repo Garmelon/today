@@ -12,7 +12,7 @@ pub struct DateSpec {
     pub start_delta: Delta,
     pub start_time: Option<Time>,
     pub end_delta: Delta,
-    pub repeat: Option<Delta>,
+    pub repeat: Option<Spanned<Delta>>,
     pub start_at_done: bool,
 }
 
@@ -35,7 +35,10 @@ impl From<&commands::DateSpec> for DateSpec {
                 .push(Spanned::new(time.span, DeltaStep::Time(time.value)));
         }
 
-        let repeat: Option<Delta> = spec.repeat.as_ref().map(|repeat| (&repeat.delta).into());
+        let repeat: Option<Spanned<Delta>> = spec
+            .repeat
+            .as_ref()
+            .map(|repeat| Spanned::new(repeat.delta.span, (&repeat.delta.value).into()));
         let start_at_done = spec
             .repeat
             .as_ref()
@@ -82,13 +85,13 @@ impl DateSpec {
         Some((start, range))
     }
 
-    fn step(from: NaiveDate, repeat: &Delta) -> Result<NaiveDate> {
-        let to = repeat.apply_date(from)?;
+    fn step(from: NaiveDate, repeat: &Spanned<Delta>) -> Result<NaiveDate> {
+        let to = repeat.value.apply_date(from)?;
         if to > from {
             Ok(to)
         } else {
             Err(Error::RepeatDidNotMoveForwards {
-                span: todo!(),
+                span: repeat.span,
                 from,
                 to,
             })
