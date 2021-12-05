@@ -43,10 +43,16 @@ impl<T> Spanned<T> {
 //     }
 // }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Time {
     pub hour: u8,
     pub min: u8,
+}
+
+impl fmt::Debug for Time {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:02}:{:02}", self.hour, self.min)
+    }
 }
 
 impl Time {
