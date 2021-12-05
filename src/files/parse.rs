@@ -613,6 +613,7 @@ fn parse_stmt_move(p: Pair<'_, Rule>) -> Result<Statement> {
     Ok(Statement::Move { span, from, to })
 }
 
+// TODO Don't allow BDATE in TASKs
 fn parse_statements(p: Pair<'_, Rule>) -> Result<Vec<Statement>> {
     assert_eq!(p.as_rule(), Rule::statements);
     let mut statements = vec![];

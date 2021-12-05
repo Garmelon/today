@@ -10,7 +10,7 @@ pub enum EntryKind {
     Task,
     TaskDone(NaiveDate),
     Note,
-    Birthday,
+    Birthday, // TODO Add age gere instead of in title
 }
 
 /// A single instance of a command.
