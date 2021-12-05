@@ -7,6 +7,8 @@ use crate::files::primitives::{Span, Spanned, Time, Weekday};
 
 use super::{util, Error, Result};
 
+// TODO Test all these delta steps
+
 /// Like [`commands::DeltaStep`] but includes a new constructor,
 /// [`DeltaStep::Time`].
 #[derive(Debug, Clone, Copy)]
@@ -239,11 +241,27 @@ impl DeltaEval {
     }
 
     fn step_hour(&mut self, span: Span, amount: i32) -> Result<()> {
-        todo!()
+        let time = match self.curr_time {
+            Some(time) => time,
+            None => return Err(self.err_time(span)),
+        };
+
+        let (days, time) = time.add_hours(amount);
+        self.curr += Duration::days(days.into());
+        self.curr_time = Some(time);
+        Ok(())
     }
 
     fn step_minute(&mut self, span: Span, amount: i32) -> Result<()> {
-        todo!()
+        let time = match self.curr_time {
+            Some(time) => time,
+            None => return Err(self.err_time(span)),
+        };
+
+        let (days, time) = time.add_minutes(amount);
+        self.curr += Duration::days(days.into());
+        self.curr_time = Some(time);
+        Ok(())
     }
 
     fn step_weekday(&mut self, amount: i32, weekday: Weekday) {
@@ -261,7 +279,16 @@ impl DeltaEval {
     }
 
     fn step_time(&mut self, span: Span, time: Time) -> Result<()> {
-        todo!()
+        let curr_time = match self.curr_time {
+            Some(time) => time,
+            None => return Err(self.err_time(span)),
+        };
+
+        if time < curr_time {
+            self.curr = self.curr.succ();
+        }
+        self.curr_time = Some(time);
+        Ok(())
     }
 }
 

@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::fmt;
 
 #[derive(Debug, Clone, Copy)]
@@ -63,6 +64,42 @@ impl Time {
         } else {
             None
         }
+    }
+
+    pub fn add_minutes(&self, amount: i32) -> (i32, Self) {
+        match amount.cmp(&0) {
+            Ordering::Less => {
+                let mut mins = (self.hour as i32) * 60 + (self.min as i32) + amount;
+
+                let days = mins.div_euclid(60 * 24);
+                mins = mins.rem_euclid(60 * 24);
+
+                let hour = mins.div_euclid(60) as u32;
+                let min = mins.rem_euclid(60) as u32;
+                (days, Self::new(hour, min).unwrap())
+            }
+            Ordering::Greater => {
+                let mut mins = (self.hour as i32) * 60 + (self.min as i32) + amount;
+
+                let mut days = mins.div_euclid(60 * 24);
+                mins = mins.rem_euclid(60 * 24);
+
+                // Correct days and minutes so we get 24:00 instead of 00:00
+                if mins == 0 {
+                    days -= 1;
+                    mins = 60 * 24;
+                }
+
+                let hour = mins.div_euclid(60) as u32;
+                let min = mins.rem_euclid(60) as u32;
+                (days, Self::new(hour, min).unwrap())
+            }
+            Ordering::Equal => (0, *self),
+        }
+    }
+
+    pub fn add_hours(&self, amount: i32) -> (i32, Self) {
+        self.add_minutes(amount * 60)
     }
 }
 
