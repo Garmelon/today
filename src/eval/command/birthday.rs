@@ -1,9 +1,9 @@
 use chrono::{Datelike, NaiveDate};
 
-use crate::eval::date::Dates;
 use crate::files::commands::BirthdaySpec;
 
 use super::super::command::CommandState;
+use super::super::date::Dates;
 use super::super::EntryKind;
 
 impl<'a> CommandState<'a> {
