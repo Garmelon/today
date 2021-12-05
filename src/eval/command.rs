@@ -66,6 +66,22 @@ impl<'a> CommandState<'a> {
         }
     }
 
+    fn limit_from_until(&self, range: DateRange) -> Option<DateRange> {
+        let range_from = range.from();
+        let from = self
+            .from
+            .filter(|&from| from > range_from)
+            .unwrap_or(range_from);
+
+        let range_until = range.until();
+        let until = self
+            .until
+            .filter(|&until| until < range_until)
+            .unwrap_or(range_until);
+
+        DateRange::new(from, until)
+    }
+
     /// Add an entry, respecting [`Self::from`] and [`Self::until`]. Does not
     /// overwrite existing entries if a root date is specified.
     fn add(&mut self, kind: EntryKind, dates: Option<Dates>) {

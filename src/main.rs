@@ -29,7 +29,8 @@ fn main() -> anyhow::Result<()> {
     let range = DateRange::new(
         NaiveDate::from_ymd(2021, 1, 1),
         NaiveDate::from_ymd(2021, 12, 31),
-    );
+    )
+    .unwrap();
     println!("{:#?}", files.eval(EntryMode::Relevant, range));
 
     files.mark_all_dirty();

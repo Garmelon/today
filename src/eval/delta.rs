@@ -266,11 +266,20 @@ impl Delta {
         self.steps.iter().map(|step| step.value.upper_bound()).sum()
     }
 
-    pub fn apply(&self, start: (NaiveDate, Option<Time>)) -> Result<(NaiveDate, Option<Time>)> {
+    fn apply(&self, start: (NaiveDate, Option<Time>)) -> Result<(NaiveDate, Option<Time>)> {
         let mut eval = DeltaEval::new(start.0, start.1);
         for step in &self.steps {
             eval.apply(step)?;
         }
         Ok((eval.curr, eval.curr_time))
+    }
+
+    pub fn apply_date(&self, date: NaiveDate) -> Result<NaiveDate> {
+        Ok(self.apply((date, None))?.0)
+    }
+
+    pub fn apply_date_time(&self, date: NaiveDate, time: Time) -> Result<(NaiveDate, Time)> {
+        let (date, time) = self.apply((date, Some(time)))?;
+        Ok((date, time.expect("time was not preserved")))
     }
 }
