@@ -5,6 +5,7 @@ use chrono::NaiveDate;
 use crate::files::commands::{BirthdaySpec, Command, Done, Note, Span, Spec, Statement, Task};
 use crate::files::{Source, SourcedCommand};
 
+use super::date::Dates;
 use super::{DateRange, Entry, EntryKind, Error, Result};
 
 mod birthday;
@@ -51,22 +52,26 @@ impl<'a> CommandState<'a> {
 
     // Helper functions
 
-    fn title(&self) -> String {
-        self.command.command.title().to_string()
+    fn kind(&self) -> EntryKind {
+        match self.command.command {
+            Command::Task(_) => EntryKind::Task,
+            Command::Note(_) => EntryKind::Note,
+        }
     }
 
-    fn desc(&self) -> Vec<String> {
-        self.command.command.desc().to_vec()
-    }
-
-    fn source(&self) -> Source {
-        self.command.source
+    fn last_done(&self) -> Option<NaiveDate> {
+        match self.command.command {
+            Command::Task(task) => task.done.iter().map(|done| done.done_at).max(),
+            Command::Note(_) => None,
+        }
     }
 
     /// Add an entry, respecting [`Self::from`] and [`Self::until`]. Does not
     /// overwrite existing entries if a root date is specified.
-    fn add(&mut self, entry: Entry) {
-        if let Some(root) = entry.root {
+    fn add(&mut self, kind: EntryKind, dates: Option<Dates>) {
+        let entry = Entry::new(self.command.source, kind, dates);
+        if let Some(dates) = dates {
+            let root = dates.root();
             if let Some(from) = self.from {
                 if root < from {
                     return;
@@ -85,9 +90,10 @@ impl<'a> CommandState<'a> {
 
     /// Add an entry, ignoring [`Self::from`] and [`Self::until`]. Always
     /// overwrites existing entries if a root date is specified.
-    fn add_forced(&mut self, entry: Entry) {
-        if let Some(root) = entry.root {
-            self.dated.insert(root, entry);
+    fn add_forced(&mut self, kind: EntryKind, dates: Option<Dates>) {
+        let entry = Entry::new(self.command.source, kind, dates);
+        if let Some(dates) = dates {
+            self.dated.insert(dates.root(), entry);
         } else {
             self.undated.push(entry);
         }
@@ -95,20 +101,37 @@ impl<'a> CommandState<'a> {
 
     // Actual evaluation
 
+    fn has_date_stmt(statements: &[Statement]) -> bool {
+        statements
+            .iter()
+            .any(|s| matches!(s, Statement::Date(_) | Statement::BDate(_)))
+    }
+
     fn eval_task(&mut self, task: &Task) -> Result<()> {
-        for statement in &task.statements {
-            self.eval_statement(statement)?;
+        if Self::has_date_stmt(&task.statements) {
+            for statement in &task.statements {
+                self.eval_statement(statement)?;
+            }
+        } else {
+            self.add(self.kind(), None);
         }
+
         for done in &task.done {
             self.eval_done(done);
         }
+
         Ok(())
     }
 
     fn eval_note(&mut self, note: &Note) -> Result<()> {
-        for statement in &note.statements {
-            self.eval_statement(statement)?;
+        if Self::has_date_stmt(&note.statements) {
+            for statement in &note.statements {
+                self.eval_statement(statement)?;
+            }
+        } else {
+            self.add(self.kind(), None);
         }
+
         Ok(())
     }
 
@@ -150,13 +173,9 @@ impl<'a> CommandState<'a> {
     }
 
     fn eval_done(&mut self, done: &Done) {
-        self.add_forced(Entry {
-            kind: EntryKind::TaskDone(done.done_at),
-            title: self.title(),
-            desc: self.desc(),
-            source: self.source(),
-            dates: done.date.map(|date| date.into()),
-            root: done.date.map(|date| date.root()),
-        });
+        self.add_forced(
+            EntryKind::TaskDone(done.done_at),
+            done.date.map(|date| date.into()),
+        );
     }
 }

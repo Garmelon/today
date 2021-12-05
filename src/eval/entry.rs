@@ -10,19 +10,29 @@ pub enum EntryKind {
     Task,
     TaskDone(NaiveDate),
     Note,
-    Birthday, // TODO Add age gere instead of in title
+    Birthday(Option<i32>),
 }
 
 /// A single instance of a command.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Entry {
-    pub kind: EntryKind,
-    pub title: String,
-    pub desc: Vec<String>,
-
     pub source: Source,
+    pub kind: EntryKind,
     pub dates: Option<Dates>,
-    pub root: Option<NaiveDate>,
+}
+
+impl Entry {
+    pub fn new(source: Source, kind: EntryKind, dates: Option<Dates>) -> Self {
+        Self {
+            source,
+            kind,
+            dates,
+        }
+    }
+
+    pub fn root(&self) -> Option<NaiveDate> {
+        self.dates.map(|dates| dates.root())
+    }
 }
 
 /// Mode that determines how entries are filtered when they are added to
@@ -57,7 +67,7 @@ impl Entries {
     }
 
     fn is_rooted(&self, entry: &Entry) -> bool {
-        match entry.root {
+        match entry.root() {
             Some(date) => self.range.contains(date),
             None => false,
         }

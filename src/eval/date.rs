@@ -3,76 +3,93 @@ use chrono::NaiveDate;
 use crate::files::commands::{DoneDate, Time};
 
 #[derive(Debug, Clone, Copy)]
-pub struct Times {
-    start: Time,
-    end: Time,
-}
-
-impl Times {
-    pub fn start(&self) -> Time {
-        self.start
-    }
-
-    pub fn end(&self) -> Time {
-        self.end
-    }
+struct Times {
+    root: Time,
+    other: Time,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct Dates {
-    start: NaiveDate,
-    end: NaiveDate,
+    root: NaiveDate,
+    other: NaiveDate,
     times: Option<Times>,
 }
 
 impl Dates {
-    pub fn new(start: NaiveDate, end: NaiveDate) -> Self {
-        assert!(start <= end);
+    pub fn new(root: NaiveDate, other: NaiveDate) -> Self {
         Self {
-            start,
-            end,
+            root,
+            other,
             times: None,
         }
     }
 
     pub fn new_with_time(
-        start: NaiveDate,
-        start_time: Time,
-        end: NaiveDate,
-        end_time: Time,
+        root: NaiveDate,
+        root_time: Time,
+        other: NaiveDate,
+        other_time: Time,
     ) -> Self {
-        assert!(start <= end);
-        if start == end {
-            assert!(start_time <= end_time);
-        }
         Self {
-            start,
-            end,
+            root,
+            other,
             times: Some(Times {
-                start: start_time,
-                end: end_time,
+                root: root_time,
+                other: other_time,
             }),
         }
     }
 
+    pub fn root(&self) -> NaiveDate {
+        self.root
+    }
+
+    pub fn other(&self) -> NaiveDate {
+        self.other
+    }
+
+    pub fn root_time(&self) -> Option<Time> {
+        self.times.map(|times| times.root)
+    }
+
+    pub fn other_time(&self) -> Option<Time> {
+        self.times.map(|times| times.other)
+    }
+
+    fn start_end(&self) -> (NaiveDate, NaiveDate) {
+        if self.root <= self.other {
+            (self.root, self.other)
+        } else {
+            (self.other, self.root)
+        }
+    }
+
     pub fn start(&self) -> NaiveDate {
-        self.start
+        self.start_end().0
     }
 
     pub fn end(&self) -> NaiveDate {
-        self.start
+        self.start_end().1
     }
 
-    pub fn times(&self) -> Option<Times> {
-        self.times
+    pub fn start_end_time(&self) -> Option<(Time, Time)> {
+        if let Some(times) = self.times {
+            if self.root < self.other || (self.root == self.other && times.root <= times.other) {
+                Some((times.root, times.other))
+            } else {
+                Some((times.other, times.root))
+            }
+        } else {
+            None
+        }
     }
 
     pub fn start_time(&self) -> Option<Time> {
-        self.times.as_ref().map(Times::start)
+        self.start_end_time().map(|times| times.0)
     }
 
     pub fn end_time(&self) -> Option<Time> {
-        self.times.as_ref().map(Times::end)
+        self.start_end_time().map(|times| times.1)
     }
 }
 
