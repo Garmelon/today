@@ -12,6 +12,7 @@ mod delta;
 mod entry;
 mod error;
 mod range;
+mod util;
 
 impl Files {
     pub fn eval(&self, mode: EntryMode, range: DateRange) -> Result<Vec<Entry>> {

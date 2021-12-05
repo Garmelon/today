@@ -4,7 +4,7 @@ use chrono::{Datelike, Duration, NaiveDate};
 
 use crate::files::commands::{self, Span, Spanned, Time, Weekday};
 
-use super::{Error, Result};
+use super::{util, Error, Result};
 
 /// Like [`commands::DeltaStep`] but includes a new constructor,
 /// [`DeltaStep::Time`].
@@ -178,21 +178,22 @@ impl DeltaEval {
 
     fn apply(&mut self, step: &Spanned<DeltaStep>) -> Result<()> {
         match step.value {
-            DeltaStep::Year(n) => self.step_year(step.span, n),
-            DeltaStep::Month(n) => self.step_month(step.span, n),
-            DeltaStep::MonthReverse(n) => self.step_month_reverse(step.span, n),
-            DeltaStep::Day(n) => self.step_day(step.span, n),
-            DeltaStep::Week(n) => self.step_week(step.span, n),
-            DeltaStep::Hour(n) => self.step_hour(step.span, n),
-            DeltaStep::Minute(n) => self.step_minute(step.span, n),
-            DeltaStep::Weekday(n, wd) => self.step_weekday(step.span, n, wd),
-            DeltaStep::Time(time) => self.step_time(step.span, time),
+            DeltaStep::Year(n) => self.step_year(step.span, n)?,
+            DeltaStep::Month(n) => self.step_month(step.span, n)?,
+            DeltaStep::MonthReverse(n) => self.step_month_reverse(step.span, n)?,
+            DeltaStep::Day(n) => self.step_day(n),
+            DeltaStep::Week(n) => self.step_week(n),
+            DeltaStep::Hour(n) => self.step_hour(step.span, n)?,
+            DeltaStep::Minute(n) => self.step_minute(step.span, n)?,
+            DeltaStep::Weekday(n, wd) => self.step_weekday(n, wd),
+            DeltaStep::Time(time) => self.step_time(step.span, time)?,
         }
+        Ok(())
     }
 
     fn step_year(&mut self, span: Span, amount: i32) -> Result<()> {
-        let curr = self.curr;
-        match NaiveDate::from_ymd_opt(curr.year() + amount, curr.month(), curr.day()) {
+        let year = self.curr.year() + amount;
+        match NaiveDate::from_ymd_opt(year, self.curr.month(), self.curr.day()) {
             None => Err(self.err_step(span)),
             Some(next) => {
                 self.curr = next;
@@ -202,10 +203,8 @@ impl DeltaEval {
     }
 
     fn step_month(&mut self, span: Span, amount: i32) -> Result<()> {
-        let month0 = self.curr.month0() as i32 + amount;
-        let year = self.curr.year() + month0.div_euclid(12);
-        let month0 = month0.rem_euclid(12) as u32;
-        match NaiveDate::from_ymd_opt(year, month0 + 1, self.curr.day()) {
+        let (year, month) = util::add_months(self.curr.year(), self.curr.month(), amount);
+        match NaiveDate::from_ymd_opt(year, month, self.curr.day()) {
             None => Err(self.err_step(span)),
             Some(next) => {
                 self.curr = next;
@@ -215,29 +214,27 @@ impl DeltaEval {
     }
 
     fn step_month_reverse(&mut self, span: Span, amount: i32) -> Result<()> {
-        todo!()
+        // Offset from the last day of the month
+        let end_offset = self.curr.day() - util::month_length(self.curr.year(), self.curr.month());
+        let (year, month) = util::add_months(self.curr.year(), self.curr.month(), amount);
+        let day = end_offset + util::month_length(year, month);
+        match NaiveDate::from_ymd_opt(year, month, day) {
+            None => Err(self.err_step(span)),
+            Some(next) => {
+                self.curr = next;
+                Ok(())
+            }
+        }
     }
 
-    fn step_day(&mut self, span: Span, amount: i32) -> Result<()> {
+    fn step_day(&mut self, amount: i32) {
         let delta = Duration::days(amount.into());
-        match self.curr.checked_add_signed(delta) {
-            None => Err(self.err_step(span)),
-            Some(next) => {
-                self.curr = next;
-                Ok(())
-            }
-        }
+        self.curr += delta;
     }
 
-    fn step_week(&mut self, span: Span, amount: i32) -> Result<()> {
+    fn step_week(&mut self, amount: i32) {
         let delta = Duration::days((7 * amount).into());
-        match self.curr.checked_add_signed(delta) {
-            None => Err(self.err_step(span)),
-            Some(next) => {
-                self.curr = next;
-                Ok(())
-            }
-        }
+        self.curr += delta;
     }
 
     fn step_hour(&mut self, span: Span, amount: i32) -> Result<()> {
@@ -248,8 +245,18 @@ impl DeltaEval {
         todo!()
     }
 
-    fn step_weekday(&mut self, span: Span, amount: i32, weekday: Weekday) -> Result<()> {
-        todo!()
+    fn step_weekday(&mut self, amount: i32, weekday: Weekday) {
+        let curr_wd: Weekday = self.curr.weekday().into();
+        #[allow(clippy::comparison_chain)] // The if looks better in this case
+        if amount > 0 {
+            let rest: i32 = curr_wd.until(weekday).into();
+            let days = rest + (amount - 1) * 7;
+            self.curr += Duration::days(days.into());
+        } else if amount < 0 {
+            let rest: i32 = weekday.until(curr_wd).into();
+            let days = rest + (amount - 1) * 7;
+            self.curr -= Duration::days(days.into());
+        }
     }
 
     fn step_time(&mut self, span: Span, time: Time) -> Result<()> {

@@ -79,6 +79,20 @@ pub enum Weekday {
     Sunday,
 }
 
+impl From<chrono::Weekday> for Weekday {
+    fn from(wd: chrono::Weekday) -> Self {
+        match wd {
+            chrono::Weekday::Mon => Self::Monday,
+            chrono::Weekday::Tue => Self::Tuesday,
+            chrono::Weekday::Wed => Self::Wednesday,
+            chrono::Weekday::Thu => Self::Thursday,
+            chrono::Weekday::Fri => Self::Friday,
+            chrono::Weekday::Sat => Self::Saturday,
+            chrono::Weekday::Sun => Self::Sunday,
+        }
+    }
+}
+
 impl Weekday {
     pub fn name(&self) -> &'static str {
         match self {
@@ -89,6 +103,29 @@ impl Weekday {
             Weekday::Friday => "fri",
             Weekday::Saturday => "sat",
             Weekday::Sunday => "sun",
+        }
+    }
+
+    pub fn num(&self) -> u8 {
+        match self {
+            Weekday::Monday => 1,
+            Weekday::Tuesday => 2,
+            Weekday::Wednesday => 3,
+            Weekday::Thursday => 4,
+            Weekday::Friday => 5,
+            Weekday::Saturday => 6,
+            Weekday::Sunday => 7,
+        }
+    }
+
+    /// How many days from now until the other weekday.
+    pub fn until(&self, other: Weekday) -> u8 {
+        let num_self = self.num();
+        let num_other = other.num();
+        if num_self <= num_other {
+            num_other - num_self
+        } else {
+            num_other + 7 - num_self
         }
     }
 }
