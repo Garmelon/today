@@ -1,4 +1,4 @@
-use std::{cmp, fmt};
+use std::fmt;
 
 use chrono::NaiveDate;
 
@@ -389,40 +389,6 @@ pub enum DoneDate {
     },
 }
 
-impl DoneDate {
-    pub fn root(&self) -> NaiveDate {
-        match self {
-            DoneDate::Date { root } => *root,
-            DoneDate::DateWithTime { root, .. } => *root,
-            DoneDate::DateToDate { root, .. } => *root,
-            DoneDate::DateToDateWithTime { root, .. } => *root,
-        }
-    }
-
-    pub fn other(&self) -> Option<NaiveDate> {
-        match self {
-            DoneDate::Date { .. } => None,
-            DoneDate::DateWithTime { .. } => None,
-            DoneDate::DateToDate { other, .. } => Some(*other),
-            DoneDate::DateToDateWithTime { other, .. } => Some(*other),
-        }
-    }
-
-    pub fn first(&self) -> NaiveDate {
-        match self.other() {
-            None => self.root(),
-            Some(other) => cmp::min(self.root(), other),
-        }
-    }
-
-    pub fn last(&self) -> NaiveDate {
-        match self.other() {
-            None => self.root(),
-            Some(other) => cmp::max(self.root(), other),
-        }
-    }
-}
-
 #[derive(Debug)]
 pub struct Done {
     pub date: Option<DoneDate>,
@@ -448,22 +414,6 @@ pub struct Note {
 pub enum Command {
     Task(Task),
     Note(Note),
-}
-
-impl Command {
-    pub fn title(&self) -> &str {
-        match self {
-            Command::Task(task) => &task.title,
-            Command::Note(note) => &note.title,
-        }
-    }
-
-    pub fn desc(&self) -> &[String] {
-        match self {
-            Command::Task(task) => &task.desc,
-            Command::Note(note) => &note.desc,
-        }
-    }
 }
 
 #[derive(Debug)]

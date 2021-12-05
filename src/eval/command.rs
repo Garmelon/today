@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use chrono::NaiveDate;
 
 use crate::files::commands::{BirthdaySpec, Command, Done, Note, Span, Spec, Statement, Task};
-use crate::files::{Source, SourcedCommand};
+use crate::files::SourcedCommand;
 
 use super::date::Dates;
 use super::{DateRange, Entry, EntryKind, Error, Result};
