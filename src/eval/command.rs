@@ -44,16 +44,11 @@ impl<'a> CommandState<'a> {
         Ok(self)
     }
 
-    pub fn entries(mut self) -> Vec<Entry> {
-        let mut keys = self.dated.keys().copied().collect::<Vec<_>>();
-        keys.sort();
-
-        let mut entries = self.undated;
-        for key in keys {
-            entries.push(self.dated.remove(&key).unwrap());
-        }
-
-        entries
+    pub fn entries(self) -> Vec<Entry> {
+        self.undated
+            .into_iter()
+            .chain(self.dated.into_values())
+            .collect()
     }
 
     // Helper functions

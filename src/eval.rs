@@ -1,6 +1,7 @@
 use crate::files::Files;
 
 use self::command::CommandState;
+use self::date::Dates;
 use self::entry::Entries;
 pub use self::entry::{Entry, EntryKind, EntryMode};
 pub use self::error::{Error, Result};
@@ -22,6 +23,17 @@ impl Files {
                 entries.add(entry);
             }
         }
-        Ok(entries.entries())
+        let mut entries = entries.entries();
+        entries.sort_by_key(|e| {
+            e.dates.map(|d| {
+                let (start, end) = d.start_end();
+                if let Some((start_time, end_time)) = d.start_end_time() {
+                    (start, Some(start_time), end, Some(end_time))
+                } else {
+                    (start, None, end, None)
+                }
+            })
+        });
+        Ok(entries)
     }
 }

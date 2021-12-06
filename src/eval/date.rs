@@ -78,7 +78,7 @@ impl Dates {
         self.times.map(|times| times.other)
     }
 
-    fn start_end(&self) -> (NaiveDate, NaiveDate) {
+    pub fn start_end(&self) -> (NaiveDate, NaiveDate) {
         if self.root <= self.other {
             (self.root, self.other)
         } else {
