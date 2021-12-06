@@ -1,4 +1,4 @@
-use std::cmp::Ordering;
+use std::cmp::{self, Ordering};
 use std::fmt;
 
 #[derive(Debug, Clone, Copy)]
@@ -12,6 +12,15 @@ impl<'a> From<&pest::Span<'a>> for Span {
         Self {
             start: pspan.start(),
             end: pspan.end(),
+        }
+    }
+}
+
+impl Span {
+    pub fn join(self, other: Self) -> Self {
+        Self {
+            start: cmp::min(self.start, other.start),
+            end: cmp::max(self.end, other.end),
         }
     }
 }

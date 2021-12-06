@@ -350,42 +350,48 @@ fn parse_variable(p: Pair<'_, Rule>) -> Var {
     }
 }
 
-fn parse_unop_expr(p: Pair<'_, Rule>) -> Expr {
+fn parse_unop_expr(p: Pair<'_, Rule>) -> Spanned<Expr> {
     assert_eq!(p.as_rule(), Rule::unop_expr);
+    let span = (&p.as_span()).into();
+
     let mut p = p.into_inner();
     let p_op = p.next().unwrap();
     let p_expr = p.next().unwrap();
     assert_eq!(p.next(), None);
 
-    let expr = parse_expr(p_expr);
-    match p_op.as_rule() {
-        Rule::unop_neg => Expr::Neg(Box::new(expr)),
-        Rule::unop_not => Expr::Not(Box::new(expr)),
+    let inner = parse_expr(p_expr);
+    let expr = match p_op.as_rule() {
+        Rule::unop_neg => Expr::Neg(Box::new(inner)),
+        Rule::unop_not => Expr::Not(Box::new(inner)),
         _ => unreachable!(),
-    }
+    };
+    Spanned::new(span, expr)
 }
 
-fn parse_paren_expr(p: Pair<'_, Rule>) -> Expr {
+fn parse_paren_expr(p: Pair<'_, Rule>) -> Spanned<Expr> {
     assert_eq!(p.as_rule(), Rule::paren_expr);
+    let span = (&p.as_span()).into();
     let inner = parse_expr(p.into_inner().next().unwrap());
-    Expr::Paren(Box::new(inner))
+    Spanned::new(span, Expr::Paren(Box::new(inner)))
 }
 
-fn parse_term(p: Pair<'_, Rule>) -> Expr {
+fn parse_term(p: Pair<'_, Rule>) -> Spanned<Expr> {
     assert_eq!(p.as_rule(), Rule::term);
+    let span = (&p.as_span()).into();
     let p = p.into_inner().next().unwrap();
     match p.as_rule() {
-        Rule::number => Expr::Lit(parse_number(p).into()),
-        Rule::boolean => Expr::Var(parse_boolean(p)),
-        Rule::variable => Expr::Var(parse_variable(p)),
+        Rule::number => Spanned::new(span, Expr::Lit(parse_number(p).into())),
+        Rule::boolean => Spanned::new(span, Expr::Var(parse_boolean(p))),
+        Rule::variable => Spanned::new(span, Expr::Var(parse_variable(p))),
         Rule::unop_expr => parse_unop_expr(p),
         Rule::paren_expr => parse_paren_expr(p),
         _ => unreachable!(),
     }
 }
 
-fn parse_op(l: Expr, p: Pair<'_, Rule>, r: Expr) -> Expr {
-    match p.as_rule() {
+fn parse_op(l: Spanned<Expr>, p: Pair<'_, Rule>, r: Spanned<Expr>) -> Spanned<Expr> {
+    let span = l.span.join(r.span);
+    let expr = match p.as_rule() {
         // Integer-y operations
         Rule::op_add => Expr::Add(Box::new(l), Box::new(r)),
         Rule::op_sub => Expr::Sub(Box::new(l), Box::new(r)),
@@ -407,10 +413,11 @@ fn parse_op(l: Expr, p: Pair<'_, Rule>, r: Expr) -> Expr {
         Rule::op_xor => Expr::Xor(Box::new(l), Box::new(r)),
 
         _ => unreachable!(),
-    }
+    };
+    Spanned::new(span, expr)
 }
 
-fn parse_expr(p: Pair<'_, Rule>) -> Expr {
+fn parse_expr(p: Pair<'_, Rule>) -> Spanned<Expr> {
     assert_eq!(p.as_rule(), Rule::expr);
 
     fn op(rule: Rule) -> Operator<Rule> {
