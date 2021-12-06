@@ -1,18 +1,5 @@
 TASK foo
 
-NOTE Spielerunde
-DATE sun 22:00 -- 24:00
-DATE sun 22:00 -- 00:00
-DATE sun 22:00 -- +2h
-DATE (wd = sun) 22:00 -- 24:00
-DATE 2021-11-07 22:00 -- 24:00; +w
-DATE 2021-11-07 22:00 -- +2h; +w
-DONE [2021-11-07] 2021-11-07 22:00 -- 24:00
-DONE [2021-11-14] 2021-11-14 22:00 -- 24:00
-DONE [2021-11-21] 2021-11-21 22:00 -- 24:00
-DONE [2021-11-28] 2021-11-28 22:00 -- 24:00
-DONE [2021-11-30]
-
 NOTE daily
 DATE *
 DATE (true)
@@ -71,7 +58,7 @@ NOTE Physics lecture
 FROM 2021-04-14
 UNTIL 2021-07-28
 DATE wed 14:00 -- 15:30
-MOVE 2021-05-06 TO 2021-05-07
+MOVE 2021-05-05 TO 2021-05-07
 # This is a description of the event. It might mention further information that
 # doesn't fit into the title.
 #
