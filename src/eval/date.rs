@@ -1,4 +1,6 @@
-use chrono::NaiveDate;
+use std::fmt;
+
+use chrono::{Duration, NaiveDate};
 
 use crate::files::commands::DoneDate;
 use crate::files::primitives::Time;
@@ -14,6 +16,25 @@ pub struct Dates {
     root: NaiveDate,
     other: NaiveDate,
     times: Option<Times>,
+}
+
+impl fmt::Display for Dates {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let (start, end) = self.start_end();
+        match self.start_end_time() {
+            Some((start_time, end_time)) if start == end && start_time == end_time => {
+                write!(f, "{} {}", start, start_time)
+            }
+            Some((start_time, end_time)) if start == end => {
+                write!(f, "{} {} -- {}", start, start_time, end_time)
+            }
+            Some((start_time, end_time)) => {
+                write!(f, "{} {} -- {} {}", start, start_time, end, end_time)
+            }
+            None if start == end => write!(f, "{}", start),
+            None => write!(f, "{} -- {}", start, end),
+        }
+    }
 }
 
 impl Dates {
@@ -91,6 +112,14 @@ impl Dates {
 
     pub fn end_time(&self) -> Option<Time> {
         self.start_end_time().map(|times| times.1)
+    }
+
+    pub fn move_by(&self, delta: Duration) -> Self {
+        Self {
+            root: self.root + delta,
+            other: self.other + delta,
+            times: self.times,
+        }
     }
 }
 

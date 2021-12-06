@@ -154,6 +154,10 @@ impl Files {
         }
     }
 
+    pub fn command(&self, source: Source) -> &Command {
+        &self.files[source.file].file.commands[source.command]
+    }
+
     pub fn commands(&self) -> Vec<SourcedCommand<'_>> {
         let mut result = vec![];
         for (file_index, file) in self.files.iter().enumerate() {

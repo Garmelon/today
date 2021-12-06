@@ -325,6 +325,22 @@ pub enum Command {
     Note(Note),
 }
 
+impl Command {
+    pub fn title(&self) -> &str {
+        match self {
+            Self::Task(task) => &task.title,
+            Self::Note(note) => &note.title,
+        }
+    }
+
+    pub fn desc(&self) -> &[String] {
+        match self {
+            Self::Task(task) => &task.desc,
+            Self::Note(note) => &note.desc,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct File {
     pub contents: String,
