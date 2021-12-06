@@ -186,7 +186,11 @@ impl<'a> CommandState<'a> {
     }
 
     fn eval_move(&mut self, span: Span, from: NaiveDate, to: NaiveDate) -> Result<()> {
-        if let Some(entry) = self.dated.remove(&from) {
+        if let Some(mut entry) = self.dated.remove(&from) {
+            if let Some(dates) = entry.dates {
+                let delta = to - from;
+                entry.dates = Some(dates.move_by(delta));
+            }
             self.dated.insert(to, entry);
             Ok(())
         } else {
