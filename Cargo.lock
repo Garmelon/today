@@ -102,6 +102,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "computus"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d9eaa21df489b1e50af464db43c1fc69f60492060ac7baae3996fe8a5f476790"
+
+[[package]]
 name = "digest"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -370,6 +376,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
+ "computus",
  "pest",
  "pest_derive",
  "structopt",

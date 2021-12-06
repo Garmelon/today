@@ -129,32 +129,36 @@ impl From<chrono::Weekday> for Weekday {
 }
 
 impl Weekday {
-    pub fn name(&self) -> &'static str {
+    pub fn name(self) -> &'static str {
         match self {
-            Weekday::Monday => "mon",
-            Weekday::Tuesday => "tue",
-            Weekday::Wednesday => "wed",
-            Weekday::Thursday => "thu",
-            Weekday::Friday => "fri",
-            Weekday::Saturday => "sat",
-            Weekday::Sunday => "sun",
+            Self::Monday => "mon",
+            Self::Tuesday => "tue",
+            Self::Wednesday => "wed",
+            Self::Thursday => "thu",
+            Self::Friday => "fri",
+            Self::Saturday => "sat",
+            Self::Sunday => "sun",
         }
     }
 
-    pub fn num(&self) -> u8 {
+    pub fn num(self) -> u8 {
         match self {
-            Weekday::Monday => 1,
-            Weekday::Tuesday => 2,
-            Weekday::Wednesday => 3,
-            Weekday::Thursday => 4,
-            Weekday::Friday => 5,
-            Weekday::Saturday => 6,
-            Weekday::Sunday => 7,
+            Self::Monday => 1,
+            Self::Tuesday => 2,
+            Self::Wednesday => 3,
+            Self::Thursday => 4,
+            Self::Friday => 5,
+            Self::Saturday => 6,
+            Self::Sunday => 7,
         }
+    }
+
+    pub fn is_weekend(self) -> bool {
+        matches!(self, Self::Saturday | Self::Sunday)
     }
 
     /// How many days from now until the other weekday.
-    pub fn until(&self, other: Self) -> u8 {
+    pub fn until(self, other: Self) -> u8 {
         let num_self = self.num();
         let num_other = other.num();
         if num_self <= num_other {
