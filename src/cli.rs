@@ -20,8 +20,7 @@ pub fn run() -> anyhow::Result<()> {
     let opt = Opt::from_args();
 
     let files = Files::load(&opt.file)?;
-    let now = files.now();
-    let today = now.date().naive_local();
+    let now = files.now().naive_local();
 
     let range = DateRange::new(
         NaiveDate::from_ymd(2021, 1, 1),
@@ -32,7 +31,7 @@ pub fn run() -> anyhow::Result<()> {
     let entries = files.eval(EntryMode::Relevant, range)?;
     println!("{:#?}", entries);
 
-    let mut layout = Layout::new(range, today);
+    let mut layout = Layout::new(range, now);
     layout.layout(&files, &entries);
     println!("{:#?}", layout);
 
