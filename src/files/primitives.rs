@@ -1,6 +1,8 @@
 use std::cmp::{self, Ordering};
 use std::fmt;
 
+use chrono::{NaiveTime, Timelike};
+
 #[derive(Debug, Clone, Copy)]
 pub struct Span {
     pub start: usize,
@@ -63,16 +65,37 @@ impl fmt::Debug for Time {
     }
 }
 
+impl From<NaiveTime> for Time {
+    fn from(t: NaiveTime) -> Self {
+        Self::new(t.hour(), t.minute())
+    }
+}
+
 impl Time {
-    pub fn new(hour: u32, min: u32) -> Option<Self> {
-        if hour < 24 && min < 60 || hour == 24 && min == 0 {
-            Some(Self {
-                hour: hour as u8,
-                min: min as u8,
-            })
-        } else {
-            None
+    pub fn new(hour: u32, min: u32) -> Self {
+        Self {
+            hour: hour as u8,
+            min: min as u8,
         }
+    }
+
+    /// Whether this time is within the normal range for times. This means that
+    /// the minutes are always smaller than 60 and the whole time is between
+    /// `00:00` and `24:00` (inclusive).
+    ///
+    /// In cases like leap seconds or daylight savings time, it is possible that
+    /// times outside of this range occur.
+    pub fn in_normal_range(&self) -> bool {
+        if self.min >= 60 {
+            return false;
+        }
+        if self.hour > 24 {
+            return false;
+        }
+        if self.hour == 24 && self.min != 0 {
+            return false;
+        }
+        true
     }
 
     pub fn add_minutes(&self, amount: i32) -> (i32, Self) {
@@ -85,7 +108,7 @@ impl Time {
 
                 let hour = mins.div_euclid(60) as u32;
                 let min = mins.rem_euclid(60) as u32;
-                (days, Self::new(hour, min).unwrap())
+                (days, Self::new(hour, min))
             }
             Ordering::Greater => {
                 let mut mins = (self.hour as i32) * 60 + (self.min as i32) + amount;
@@ -101,7 +124,7 @@ impl Time {
 
                 let hour = mins.div_euclid(60) as u32;
                 let min = mins.rem_euclid(60) as u32;
-                (days, Self::new(hour, min).unwrap())
+                (days, Self::new(hour, min))
             }
             Ordering::Equal => (0, *self),
         }

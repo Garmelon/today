@@ -84,9 +84,11 @@ fn parse_time(p: Pair<'_, Rule>) -> Result<Spanned<Time>> {
 
     assert_eq!(p.next(), None);
 
-    match Time::new(hour, min) {
-        Some(time) => Ok(Spanned::new(span, time)),
-        None => fail(pspan, "invalid time"),
+    let time = Time::new(hour, min);
+    if time.in_normal_range() {
+        Ok(Spanned::new(span, time))
+    } else {
+        fail(pspan, "invalid time")
     }
 }
 

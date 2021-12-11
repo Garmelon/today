@@ -358,7 +358,7 @@ mod tests {
     fn apply_dt(step: Step, from: (i32, u32, u32, u32, u32)) -> Result<(NaiveDate, Time)> {
         delta(step).apply_date_time(
             NaiveDate::from_ymd(from.0, from.1, from.2),
-            Time::new(from.3, from.4).unwrap(),
+            Time::new(from.3, from.4),
         )
     }
 
@@ -368,7 +368,7 @@ mod tests {
             apply_dt(step, from).unwrap(),
             (
                 NaiveDate::from_ymd(expected.0, expected.1, expected.2),
-                Time::new(expected.3, expected.4).unwrap()
+                Time::new(expected.3, expected.4)
             )
         );
     }
@@ -552,34 +552,34 @@ mod tests {
     #[test]
     fn delta_time() {
         test_dt(
-            Step::Time(Time::new(12, 33).unwrap()),
+            Step::Time(Time::new(12, 33)),
             (2021, 7, 3, 12, 34),
             (2021, 7, 4, 12, 33),
         );
         test_dt(
-            Step::Time(Time::new(12, 34).unwrap()),
+            Step::Time(Time::new(12, 34)),
             (2021, 7, 3, 12, 34),
             (2021, 7, 3, 12, 34),
         );
         test_dt(
-            Step::Time(Time::new(12, 35).unwrap()),
+            Step::Time(Time::new(12, 35)),
             (2021, 7, 3, 12, 34),
             (2021, 7, 3, 12, 35),
         );
 
         // 24:00 != 00:00
         test_dt(
-            Step::Time(Time::new(24, 0).unwrap()),
+            Step::Time(Time::new(24, 0)),
             (2021, 7, 3, 12, 0),
             (2021, 7, 3, 24, 0),
         );
         test_dt(
-            Step::Time(Time::new(0, 0).unwrap()),
+            Step::Time(Time::new(0, 0)),
             (2021, 7, 3, 12, 0),
             (2021, 7, 4, 0, 0),
         );
 
         // Requires time
-        assert!(apply_d(Step::Time(Time::new(12, 34).unwrap()), (2021, 7, 3)).is_err());
+        assert!(apply_d(Step::Time(Time::new(12, 34)), (2021, 7, 3)).is_err());
     }
 }
