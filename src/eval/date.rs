@@ -114,6 +114,17 @@ impl Dates {
         self.start_end_time().map(|times| times.1)
     }
 
+    pub fn point_in_time(&self) -> Option<(NaiveDate, Option<Time>)> {
+        if self.root != self.other {
+            return None;
+        }
+        match self.times {
+            Some(times) if times.root == times.other => Some((self.root, Some(times.root))),
+            Some(_) => None,
+            None => Some((self.root, None)),
+        }
+    }
+
     pub fn move_by(&self, delta: Duration) -> Self {
         Self {
             root: self.root + delta,

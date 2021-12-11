@@ -51,7 +51,7 @@ impl<T> Spanned<T> {
 //     }
 // }
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Time {
     pub hour: u8,
     pub min: u8,
