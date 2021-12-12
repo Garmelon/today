@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use chrono::NaiveDate;
+use directories::ProjectDirs;
 use structopt::StructOpt;
 
 use crate::eval::{DateRange, EntryMode};
@@ -14,14 +15,23 @@ mod render;
 
 #[derive(Debug, StructOpt)]
 pub struct Opt {
-    #[structopt(parse(from_os_str))]
-    file: PathBuf,
+    /// File to load
+    #[structopt(short, long, parse(from_os_str))]
+    file: Option<PathBuf>,
+}
+
+fn default_file() -> PathBuf {
+    ProjectDirs::from("", "", "today")
+        .expect("could not determine config dir")
+        .config_dir()
+        .join("main.today")
 }
 
 pub fn run() -> anyhow::Result<()> {
     let opt = Opt::from_args();
 
-    let files = Files::load(&opt.file)?;
+    let file = opt.file.unwrap_or_else(default_file);
+    let files = Files::load(&file)?;
     let now = files.now().naive_local();
 
     let range = DateRange::new(
