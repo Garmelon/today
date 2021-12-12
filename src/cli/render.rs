@@ -251,7 +251,7 @@ impl DisplayContext {
         let weekday: Weekday = date.weekday().into();
         let weekday = weekday.full_name();
         self.push(&format!(
-            "{:=>nw$}={:sw$}===  {:9}  {}  ==={:=>sw$}={:=>nw$}\n",
+            "{:=>nw$}={:=<sw$}===  {:9}  {}  ==={:=<sw$}={:=>nw$}\n",
             "",
             Self::display_spans(spans, '='),
             weekday,
