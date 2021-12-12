@@ -7,8 +7,10 @@ use crate::eval::{DateRange, EntryMode};
 use crate::files::Files;
 
 use self::layout::Layout;
+use self::render::Render;
 
 mod layout;
+mod render;
 
 #[derive(Debug, StructOpt)]
 pub struct Opt {
@@ -29,11 +31,13 @@ pub fn run() -> anyhow::Result<()> {
     .unwrap();
 
     let entries = files.eval(EntryMode::Relevant, range)?;
-    println!("{:#?}", entries);
 
     let mut layout = Layout::new(range, now);
     layout.layout(&files, &entries);
-    println!("{:#?}", layout);
+
+    let mut render = Render::new();
+    render.render(&files, &entries, &layout);
+    print!("{}", render.display());
 
     files.save()?;
     Ok(())
