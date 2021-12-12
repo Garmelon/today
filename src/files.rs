@@ -54,8 +54,16 @@ pub struct Files {
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("{0}")]
-    Io(#[from] io::Error),
+    #[error("Could not resolve {path}: {error}")]
+    ResolvePath { path: PathBuf, error: io::Error },
+    #[error("Could not load {file}: {error}")]
+    ReadFile { file: PathBuf, error: io::Error },
+    #[error("Could not write {file}: {error}")]
+    WriteFile { file: PathBuf, error: io::Error },
+    #[error("Could not resolve timezone {timezone}: {error}")]
+    ResolveTz { timezone: String, error: io::Error },
+    #[error("Could not determine local timezone: {error}")]
+    LocalTz { error: io::Error },
     #[error("{0}")]
     Parse(#[from] parse::Error),
     #[error("{file1} has time zone {tz1} but {file2} has time zone {tz2}")]
@@ -83,13 +91,20 @@ impl Files {
         files: &mut Vec<LoadedFile>,
         name: &Path,
     ) -> Result<()> {
-        let path = name.canonicalize()?;
+        let path = name.canonicalize().map_err(|e| Error::ResolvePath {
+            path: name.to_path_buf(),
+            error: e,
+        })?;
         if paths.contains_key(&path) {
             // We've already loaded this exact file.
             return Ok(());
         }
 
-        let content = fs::read_to_string(name)?;
+        let content = fs::read_to_string(name).map_err(|e| Error::ReadFile {
+            file: path.clone(),
+            error: e,
+        })?;
+
         // Using `name` instead of `path` for the unwrap below.
         let file = parse::parse(name, &content)?;
         let includes = file.includes.clone();
@@ -128,9 +143,12 @@ impl Files {
         }
 
         Ok(if let Some((_, tz)) = found {
-            Tz::named(&tz)?
+            Tz::named(&tz).map_err(|e| Error::ResolveTz {
+                timezone: tz,
+                error: e,
+            })?
         } else {
-            Tz::local()?
+            Tz::local().map_err(|e| Error::LocalTz { error: e })?
         })
     }
 
@@ -144,7 +162,10 @@ impl Files {
     }
 
     fn save_file(path: &Path, file: &File) -> Result<()> {
-        fs::write(path, &format!("{}", file))?;
+        fs::write(path, &format!("{}", file)).map_err(|e| Error::WriteFile {
+            file: path.to_path_buf(),
+            error: e,
+        })?;
         Ok(())
     }
 
