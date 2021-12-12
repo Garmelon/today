@@ -265,7 +265,7 @@ impl DisplayContext {
 
     fn display_line_now(&mut self, spans: &[Option<SpanSegment>], time: Time) {
         self.push(&format!(
-            "{:>nw$} {:sw$} {}\n",
+            "{:<nw$} {:sw$} {}\n",
             "now",
             Self::display_spans(spans, ' '),
             time,
