@@ -40,6 +40,12 @@ pub struct Source {
     command: usize,
 }
 
+impl Source {
+    pub fn file(&self) -> usize {
+        self.file
+    }
+}
+
 #[derive(Debug)]
 pub struct SourcedCommand<'a> {
     pub source: Source,

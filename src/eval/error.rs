@@ -9,6 +9,7 @@ pub enum Error {
     /// A delta step resulted in an invalid date.
     #[error("delta step resulted in invalid date")]
     DeltaInvalidStep {
+        file: usize,
         span: Span,
         start: NaiveDate,
         start_time: Option<Time>,
@@ -18,6 +19,7 @@ pub enum Error {
     /// A time-based delta step was applied to a date without time.
     #[error("time-based delta step applied to date without time")]
     DeltaNoTime {
+        file: usize,
         span: Span,
         start: NaiveDate,
         prev: NaiveDate,
@@ -27,6 +29,7 @@ pub enum Error {
     /// in time (`to < from`).
     #[error("repeat delta did not move forwards")]
     RepeatDidNotMoveForwards {
+        file: usize,
         span: Span,
         from: NaiveDate,
         to: NaiveDate,
@@ -34,16 +37,25 @@ pub enum Error {
     /// A `MOVE a TO b` statement was executed, but there was no entry at the
     /// date `a`.
     #[error("tried to move nonexisting entry")]
-    MoveWithoutSource { span: Span },
+    MoveWithoutSource { file: usize, span: Span },
     /// A division by zero has occurred.
     #[error("tried to divide by zero")]
-    DivByZero { span: Span, date: NaiveDate },
+    DivByZero {
+        file: usize,
+        span: Span,
+        date: NaiveDate,
+    },
     /// A modulo operation by zero has occurred.
     #[error("tried to modulo by zero")]
-    ModByZero { span: Span, date: NaiveDate },
+    ModByZero {
+        file: usize,
+        span: Span,
+        date: NaiveDate,
+    },
     /// Easter calculation failed.
     #[error("easter calculation failed")]
     Easter {
+        file: usize,
         span: Span,
         date: NaiveDate,
         msg: &'static str,

@@ -202,7 +202,10 @@ impl<'a> CommandState<'a> {
             self.dated.insert(to, entry);
             Ok(())
         } else {
-            Err(Error::MoveWithoutSource { span })
+            Err(Error::MoveWithoutSource {
+                file: self.command.source.file(),
+                span,
+            })
         }
     }
 

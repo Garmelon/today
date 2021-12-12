@@ -143,6 +143,7 @@ impl From<&commands::Delta> for Delta {
 }
 
 struct DeltaEval {
+    file: usize,
     start: NaiveDate,
     start_time: Option<Time>,
     curr: NaiveDate,
@@ -150,8 +151,9 @@ struct DeltaEval {
 }
 
 impl DeltaEval {
-    fn new(start: NaiveDate, start_time: Option<Time>) -> Self {
+    fn new(file: usize, start: NaiveDate, start_time: Option<Time>) -> Self {
         Self {
+            file,
             start,
             start_time,
             curr: start,
@@ -161,6 +163,7 @@ impl DeltaEval {
 
     fn err_step(&self, span: Span) -> Error {
         Error::DeltaInvalidStep {
+            file: self.file,
             span,
             start: self.start,
             start_time: self.start_time,
@@ -171,6 +174,7 @@ impl DeltaEval {
 
     fn err_time(&self, span: Span) -> Error {
         Error::DeltaNoTime {
+            file: self.file,
             span,
             start: self.start,
             prev: self.curr,
@@ -309,20 +313,29 @@ impl Delta {
         self.steps.iter().map(|step| step.value.upper_bound()).sum()
     }
 
-    fn apply(&self, start: (NaiveDate, Option<Time>)) -> Result<(NaiveDate, Option<Time>)> {
-        let mut eval = DeltaEval::new(start.0, start.1);
+    fn apply(
+        &self,
+        file: usize,
+        start: (NaiveDate, Option<Time>),
+    ) -> Result<(NaiveDate, Option<Time>)> {
+        let mut eval = DeltaEval::new(file, start.0, start.1);
         for step in &self.steps {
             eval.apply(step)?;
         }
         Ok((eval.curr, eval.curr_time))
     }
 
-    pub fn apply_date(&self, date: NaiveDate) -> Result<NaiveDate> {
-        Ok(self.apply((date, None))?.0)
+    pub fn apply_date(&self, file: usize, date: NaiveDate) -> Result<NaiveDate> {
+        Ok(self.apply(file, (date, None))?.0)
     }
 
-    pub fn apply_date_time(&self, date: NaiveDate, time: Time) -> Result<(NaiveDate, Time)> {
-        let (date, time) = self.apply((date, Some(time)))?;
+    pub fn apply_date_time(
+        &self,
+        file: usize,
+        date: NaiveDate,
+        time: Time,
+    ) -> Result<(NaiveDate, Time)> {
+        let (date, time) = self.apply(file, (date, Some(time)))?;
         Ok((date, time.expect("time was not preserved")))
     }
 }
@@ -345,7 +358,7 @@ mod tests {
     }
 
     fn apply_d(step: Step, from: (i32, u32, u32)) -> Result<NaiveDate> {
-        delta(step).apply_date(NaiveDate::from_ymd(from.0, from.1, from.2))
+        delta(step).apply_date(0, NaiveDate::from_ymd(from.0, from.1, from.2))
     }
 
     fn test_d(step: Step, from: (i32, u32, u32), expected: (i32, u32, u32)) {
@@ -357,6 +370,7 @@ mod tests {
 
     fn apply_dt(step: Step, from: (i32, u32, u32, u32, u32)) -> Result<(NaiveDate, Time)> {
         delta(step).apply_date_time(
+            0,
             NaiveDate::from_ymd(from.0, from.1, from.2),
             Time::new(from.3, from.4),
         )
