@@ -73,7 +73,7 @@ impl Layout {
     fn layout_task(&mut self, index: usize, entry: &Entry) {
         if let Some(dates) = entry.dates {
             let (start, end) = dates.start_end();
-            if (start - self.today).num_days() < 7 {
+            if self.today < start && (start - self.today).num_days() < 7 {
                 // TODO Make this adjustable, maybe even per-command
                 let days = (start - self.today).num_days();
                 self.insert(self.today, LayoutEntry::ReminderUntil(index, days));
