@@ -18,6 +18,12 @@ pub struct Opt {
     /// File to load
     #[structopt(short, long, parse(from_os_str))]
     file: Option<PathBuf>,
+    /// Reformat the file
+    #[structopt(short, long)]
+    reformat: bool,
+    /// Reformat the file and all imports
+    #[structopt(short = "R", long)]
+    reformat_all: bool,
 }
 
 fn default_file() -> PathBuf {
@@ -31,7 +37,7 @@ pub fn run() -> anyhow::Result<()> {
     let opt = Opt::from_args();
 
     let file = opt.file.unwrap_or_else(default_file);
-    let files = Files::load(&file)?;
+    let mut files = Files::load(&file)?;
     let now = files.now().naive_local();
 
     let range = DateRange::new(
@@ -49,6 +55,11 @@ pub fn run() -> anyhow::Result<()> {
     render.render(&files, &entries, &layout);
     print!("{}", render.display());
 
+    if opt.reformat_all {
+        files.mark_all_dirty();
+    } else if opt.reformat {
+        files.mark_main_dirty();
+    }
     files.save()?;
     Ok(())
 }
