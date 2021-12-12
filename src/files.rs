@@ -175,12 +175,6 @@ impl Files {
         Ok(())
     }
 
-    pub fn mark_main_dirty(&mut self) {
-        if let Some(file) = self.files.get_mut(0) {
-            file.dirty = true;
-        }
-    }
-
     pub fn mark_all_dirty(&mut self) {
         for file in self.files.iter_mut() {
             file.dirty = true;
