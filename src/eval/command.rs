@@ -25,7 +25,20 @@ pub struct CommandState<'a> {
 }
 
 impl<'a> CommandState<'a> {
-    pub fn new(command: SourcedCommand<'a>, range: DateRange) -> Self {
+    pub fn new(command: SourcedCommand<'a>, mut range: DateRange) -> Self {
+        // If we don't calculate entries for the source of the move command, it
+        // fails even though the user did nothing wrong. Also, move commands (or
+        // chains thereof) may move an initially out-of-range entry into range.
+        //
+        // To fix this, we just expand the range to contain all move command
+        // sources. This is a quick fix, but until it becomes a performance
+        // issue (if ever), it's probably fine.
+        for statement in command.command.statements() {
+            if let Statement::Move { from, .. } = statement {
+                range = range.containing(*from)
+            }
+        }
+
         Self {
             range,
             command,

@@ -25,8 +25,8 @@ pub fn run() -> anyhow::Result<()> {
     let now = files.now().naive_local();
 
     let range = DateRange::new(
-        NaiveDate::from_ymd(2021, 1, 1),
-        NaiveDate::from_ymd(2022, 12, 31),
+        NaiveDate::from_ymd(2021, 12, 12 - 3),
+        NaiveDate::from_ymd(2021, 12, 12 + 13),
     )
     .unwrap();
 

@@ -325,6 +325,13 @@ impl Command {
             Self::Note(note) => &note.desc,
         }
     }
+
+    pub fn statements(&self) -> &[Statement] {
+        match self {
+            Self::Task(task) => &task.statements,
+            Self::Note(note) => &note.statements,
+        }
+    }
 }
 
 #[derive(Debug)]

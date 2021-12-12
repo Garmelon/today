@@ -28,6 +28,22 @@ impl DateRange {
         Self::new(self.from, until)
     }
 
+    pub fn containing(&self, date: NaiveDate) -> Self {
+        if date < self.from {
+            Self {
+                from: date,
+                until: self.until,
+            }
+        } else if self.until < date {
+            Self {
+                from: self.from,
+                until: date,
+            }
+        } else {
+            *self
+        }
+    }
+
     pub fn contains(&self, date: NaiveDate) -> bool {
         self.from <= date && date <= self.until
     }
