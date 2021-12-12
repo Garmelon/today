@@ -60,6 +60,8 @@ impl Layout {
         for (_, day) in self.days.iter_mut() {
             Self::sort_day(day);
         }
+
+        // TODO Combine TimedStart and TimedEnd if there is nothing in-between
     }
 
     fn layout_entry(&mut self, index: usize, entry: &Entry) {

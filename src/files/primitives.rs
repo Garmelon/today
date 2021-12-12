@@ -161,6 +161,7 @@ impl From<chrono::Weekday> for Weekday {
 }
 
 impl Weekday {
+    /// Short name (`mon`, `tue`, `wed`, `fri`, `sat`, `sun`).
     pub fn name(self) -> &'static str {
         match self {
             Self::Monday => "mon",
@@ -170,6 +171,20 @@ impl Weekday {
             Self::Friday => "fri",
             Self::Saturday => "sat",
             Self::Sunday => "sun",
+        }
+    }
+
+    /// Full name (`Monday`, `Tuesday`, `Wednesday`, `Thursday`, `Friday`,
+    /// `Saturday`, `Sunday`).
+    pub fn full_name(self) -> &'static str {
+        match self {
+            Weekday::Monday => "Monday",
+            Weekday::Tuesday => "Tuesday",
+            Weekday::Wednesday => "Wednesday",
+            Weekday::Thursday => "Thursday",
+            Weekday::Friday => "Friday",
+            Weekday::Saturday => "Saturday",
+            Weekday::Sunday => "Sunday",
         }
     }
 

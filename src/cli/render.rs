@@ -1,8 +1,10 @@
+use std::cmp;
 use std::collections::HashMap;
 
+use chrono::{Datelike, NaiveDate};
+
 use crate::eval::{Entry, EntryKind};
-use crate::files::commands::Command;
-use crate::files::primitives::Time;
+use crate::files::primitives::{Time, Weekday};
 use crate::files::Files;
 
 use super::layout::{Layout, LayoutEntry};
@@ -14,11 +16,21 @@ enum SpanSegment {
     End,
 }
 
-struct Line {
-    number: Option<usize>,
-    spans: Vec<Option<SpanSegment>>,
-    time: Option<Time>,
-    text: String,
+enum Line {
+    Day {
+        spans: Vec<Option<SpanSegment>>,
+        date: NaiveDate,
+    },
+    Now {
+        spans: Vec<Option<SpanSegment>>,
+        time: Time,
+    },
+    Entry {
+        number: Option<usize>,
+        spans: Vec<Option<SpanSegment>>,
+        time: Option<Time>,
+        text: String,
+    },
 }
 
 pub struct Render {
@@ -49,7 +61,8 @@ impl Render {
         self.step_spans();
 
         for day in layout.range.days() {
-            self.line(None, None, format!("{}", day));
+            let spans = self.spans_for_line();
+            self.line(Line::Day { spans, date: day });
 
             let layout_entries = layout.days.get(&day).expect("got nonexisting day");
             for layout_entry in layout_entries {
@@ -59,63 +72,38 @@ impl Render {
     }
 
     pub fn display(&self) -> String {
-        let mut result = String::new();
-
         let num_width = format!("{}", self.last_number).len();
+        let num_width = cmp::max(num_width, 3); // for a "now" in the first column
         let span_width = self.spans.len();
 
+        let mut ctx = DisplayContext::new(num_width, span_width);
         for line in &self.lines {
-            let num = match line.number {
-                Some(n) => format!("{}", n),
-                None => "".to_string(),
-            };
-
-            let mut span = String::new();
-            for s in &line.spans {
-                span.push(match s {
-                    Some(SpanSegment::Start) => '┏',
-                    Some(SpanSegment::Middle) => '┃',
-                    Some(SpanSegment::End) => '┗',
-                    None => ' ',
-                })
-            }
-
-            let time = match line.time {
-                Some(t) => format!(" {}", t),
-                None => "".to_string(),
-            };
-
-            result.push_str(&format!(
-                "{:nw$} {:sw$}{} {}\n",
-                num,
-                span,
-                time,
-                line.text,
-                nw = num_width,
-                sw = span_width
-            ))
+            ctx.display_line(line);
         }
 
-        result
+        ctx.result()
     }
 
     fn render_layout_entry(&mut self, files: &Files, entries: &[Entry], l_entry: &LayoutEntry) {
         match l_entry {
             LayoutEntry::End(i) => {
                 self.stop_span(*i);
-                self.line(Some(*i), None, Self::format_entry(files, entries, *i));
+                self.line_entry(Some(*i), None, Self::format_entry(files, entries, *i));
             }
-            LayoutEntry::Now(t) => self.line(None, Some(*t), "now".to_string()),
+            LayoutEntry::Now(t) => self.line(Line::Now {
+                spans: self.spans_for_line(),
+                time: *t,
+            }),
             LayoutEntry::TimedEnd(i, t) => {
                 self.stop_span(*i);
-                self.line(Some(*i), Some(*t), Self::format_entry(files, entries, *i));
+                self.line_entry(Some(*i), Some(*t), Self::format_entry(files, entries, *i));
             }
             LayoutEntry::TimedAt(i, t) => {
-                self.line(Some(*i), Some(*t), Self::format_entry(files, entries, *i));
+                self.line_entry(Some(*i), Some(*t), Self::format_entry(files, entries, *i));
             }
             LayoutEntry::TimedStart(i, t) => {
                 self.start_span(*i);
-                self.line(Some(*i), Some(*t), Self::format_entry(files, entries, *i));
+                self.line_entry(Some(*i), Some(*t), Self::format_entry(files, entries, *i));
             }
             LayoutEntry::ReminderSince(i, d) => {
                 let text = Self::format_entry(files, entries, *i);
@@ -124,21 +112,23 @@ impl Render {
                 } else {
                     format!("{} ({} days ago)", text, d)
                 };
-                self.line(Some(*i), None, text);
+                self.line_entry(Some(*i), None, text);
             }
-            LayoutEntry::At(i) => self.line(Some(*i), None, Self::format_entry(files, entries, *i)),
+            LayoutEntry::At(i) => {
+                self.line_entry(Some(*i), None, Self::format_entry(files, entries, *i))
+            }
             LayoutEntry::ReminderWhile(i, d) => {
                 let text = Self::format_entry(files, entries, *i);
                 let plural = if *d == 1 { "" } else { "s" };
                 let text = format!("{} ({} day{} left)", text, i, plural);
-                self.line(Some(*i), None, text);
+                self.line_entry(Some(*i), None, text);
             }
             LayoutEntry::Undated(i) => {
-                self.line(Some(*i), None, Self::format_entry(files, entries, *i));
+                self.line_entry(Some(*i), None, Self::format_entry(files, entries, *i));
             }
             LayoutEntry::Start(i) => {
                 self.start_span(*i);
-                self.line(Some(*i), None, Self::format_entry(files, entries, *i));
+                self.line_entry(Some(*i), None, Self::format_entry(files, entries, *i));
             }
             LayoutEntry::ReminderUntil(i, d) => {
                 let text = Self::format_entry(files, entries, *i);
@@ -147,7 +137,7 @@ impl Render {
                 } else {
                     format!("{} (in {} days)", text, d)
                 };
-                self.line(Some(*i), None, text);
+                self.line_entry(Some(*i), None, text);
             }
         }
     }
@@ -195,7 +185,19 @@ impl Render {
         }
     }
 
-    fn line(&mut self, index: Option<usize>, time: Option<Time>, text: String) {
+    fn spans_for_line(&self) -> Vec<Option<SpanSegment>> {
+        self.spans
+            .iter()
+            .map(|span| span.as_ref().map(|(_, s)| *s))
+            .collect()
+    }
+
+    fn line(&mut self, line: Line) {
+        self.lines.push(line);
+        self.step_spans();
+    }
+
+    fn line_entry(&mut self, index: Option<usize>, time: Option<Time>, text: String) {
         let number = match index {
             Some(index) => Some(match self.numbers.get(&index) {
                 Some(number) => *number,
@@ -208,19 +210,116 @@ impl Render {
             None => None,
         };
 
-        let spans = self
-            .spans
-            .iter()
-            .map(|span| span.as_ref().map(|(_, s)| *s))
-            .collect();
-
-        self.lines.push(Line {
+        self.line(Line::Entry {
             number,
-            spans,
+            spans: self.spans_for_line(),
             time,
             text,
         });
+    }
+}
 
-        self.step_spans();
+struct DisplayContext {
+    num_width: usize,
+    span_width: usize,
+    result: String,
+}
+
+impl DisplayContext {
+    fn new(num_width: usize, span_width: usize) -> Self {
+        Self {
+            num_width,
+            span_width,
+            result: String::new(),
+        }
+    }
+
+    fn display_line(&mut self, line: &Line) {
+        match line {
+            Line::Day { spans, date } => self.display_line_date(spans, *date),
+            Line::Now { spans, time } => self.display_line_now(spans, *time),
+            Line::Entry {
+                number,
+                spans,
+                time,
+                text,
+            } => self.display_line_entry(*number, spans, *time, text),
+        }
+    }
+
+    fn display_line_date(&mut self, spans: &[Option<SpanSegment>], date: NaiveDate) {
+        let weekday: Weekday = date.weekday().into();
+        let weekday = weekday.full_name();
+        self.push(&format!(
+            "{:=>nw$}={:sw$}===  {:9}  {}  ==={:=>sw$}={:=>nw$}\n",
+            "",
+            Self::display_spans(spans, '='),
+            weekday,
+            date,
+            "",
+            "",
+            nw = self.num_width,
+            sw = self.span_width
+        ));
+    }
+
+    fn display_line_now(&mut self, spans: &[Option<SpanSegment>], time: Time) {
+        self.push(&format!(
+            "{:>nw$} {:sw$} {}\n",
+            "now",
+            Self::display_spans(spans, ' '),
+            time,
+            nw = self.num_width,
+            sw = self.span_width
+        ));
+    }
+
+    fn display_line_entry(
+        &mut self,
+        number: Option<usize>,
+        spans: &[Option<SpanSegment>],
+        time: Option<Time>,
+        text: &str,
+    ) {
+        let num = match number {
+            Some(n) => format!("{}", n),
+            None => "".to_string(),
+        };
+
+        let time = match time {
+            Some(t) => format!("{} ", t),
+            None => "".to_string(),
+        };
+
+        self.push(&format!(
+            "{:>nw$} {:sw$} {}{}\n",
+            num,
+            Self::display_spans(spans, ' '),
+            time,
+            text,
+            nw = self.num_width,
+            sw = self.span_width
+        ))
+    }
+
+    fn display_spans(spans: &[Option<SpanSegment>], empty: char) -> String {
+        let mut result = String::new();
+        for segment in spans {
+            result.push(match segment {
+                Some(SpanSegment::Start) => '┌',
+                Some(SpanSegment::Middle) => '│',
+                Some(SpanSegment::End) => '└',
+                None => empty,
+            });
+        }
+        result
+    }
+
+    fn push(&mut self, line: &str) {
+        self.result.push_str(line);
+    }
+
+    fn result(self) -> String {
+        self.result
     }
 }
