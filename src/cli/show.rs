@@ -1,3 +1,5 @@
+use std::cmp;
+
 use chrono::{Datelike, NaiveDate};
 
 use crate::files::primitives::{Time, Weekday};
@@ -110,7 +112,8 @@ impl ShowLines {
 }
 
 pub fn show_all(layout: &LineLayout) -> String {
-    let mut show_lines = ShowLines::new(layout.num_width(), layout.span_width());
+    let num_width = cmp::max(layout.num_width(), 3); // `now` is 3 chars wide
+    let mut show_lines = ShowLines::new(num_width, layout.span_width());
     for line in layout.lines() {
         show_lines.display_line(line);
     }
