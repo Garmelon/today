@@ -8,5 +8,6 @@ mod eval;
 mod files;
 
 fn main() -> anyhow::Result<()> {
-    cli::run()
+    cli::run()?;
+    Ok(())
 }

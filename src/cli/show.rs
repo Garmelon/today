@@ -2,8 +2,11 @@ use std::cmp;
 
 use chrono::{Datelike, NaiveDate};
 
+use crate::eval::{Entry, EntryKind};
 use crate::files::primitives::{Time, Weekday};
+use crate::files::Files;
 
+use super::error::{Error, Result};
 use super::layout::line::{LineEntry, LineLayout, SpanSegment};
 
 struct ShowLines {
@@ -118,4 +121,56 @@ pub fn show_all(layout: &LineLayout) -> String {
         show_lines.display_line(line);
     }
     show_lines.result()
+}
+
+pub fn show_entry(
+    files: &Files,
+    entries: &[Entry],
+    layout: &LineLayout,
+    number: usize,
+) -> Result<()> {
+    let index = layout.look_up_number(number)?;
+    let entry = &entries[index];
+    let command = files.command(entry.source);
+
+    match entry.kind {
+        EntryKind::Task => println!("TASK {}", command.title()),
+        EntryKind::TaskDone(when) => {
+            println!("DONE {}", command.title());
+            println!("DONE AT {}", when);
+        }
+        EntryKind::Note => println!("NOTE {}", command.title()),
+        EntryKind::Birthday(Some(age)) => {
+            println!("BIRTHDAY {}", command.title());
+            println!("AGE {}", age);
+        }
+        EntryKind::Birthday(None) => {
+            println!("BIRTHDAY {}", command.title());
+            println!("AGE UNKNOWN");
+        }
+    }
+
+    if let Some(dates) = entry.dates {
+        let (start, end) = dates.start_end();
+        if start == end {
+            match dates.start_end_time() {
+                Some((s, e)) if s == e => println!("DATE {} {}", start, s),
+                Some((s, e)) => println!("DATE {} {} -- {}", start, s, e),
+                None => println!("DATE {}", start),
+            }
+        } else {
+            match dates.start_end_time() {
+                Some((s, e)) => println!("DATE {} {} -- {} {}", start, s, end, e),
+                None => println!("DATE {} -- {}", start, end),
+            }
+        }
+    } else {
+        println!("NO DATE");
+    };
+
+    for line in command.desc() {
+        println!("# {}", line);
+    }
+
+    Ok(())
 }

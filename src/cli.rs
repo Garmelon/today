@@ -8,6 +8,9 @@ use structopt::StructOpt;
 use crate::eval::{DateRange, EntryMode};
 use crate::files::Files;
 
+use self::error::Result;
+
+mod error;
 mod layout;
 mod show;
 
@@ -26,6 +29,7 @@ pub struct Opt {
     #[structopt(short, long, default_value = "13")]
     after: u32,
     /// Number of the entry to view or edit
+    // TODO Select multiple entries at once
     entry: Option<usize>,
     #[structopt(subcommand)]
     command: Option<Command>,
@@ -49,7 +53,7 @@ fn default_file() -> PathBuf {
         .join("main.today")
 }
 
-pub fn run() -> anyhow::Result<()> {
+pub fn run() -> Result<()> {
     let opt = Opt::from_args();
 
     let file = opt.file.unwrap_or_else(default_file);
@@ -69,8 +73,7 @@ pub fn run() -> anyhow::Result<()> {
     match opt.command {
         None | Some(Command::Show) => match opt.entry {
             None => print!("{}", show::show_all(&layout)),
-            // Some(i) => print!("{}", render::render_entry(&files, &entries, &layout, i)),
-            Some(i) => todo!(),
+            Some(n) => show::show_entry(&files, &entries, &layout, n)?,
         },
         Some(Command::Done) => match opt.entry {
             None => {

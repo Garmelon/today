@@ -11,6 +11,7 @@ use crate::eval::{Entry, EntryKind};
 use crate::files::primitives::Time;
 use crate::files::Files;
 
+use super::super::error::{Error, Result};
 use super::day::{DayEntry, DayLayout};
 
 #[derive(Debug, Clone, Copy)]
@@ -101,12 +102,13 @@ impl LineLayout {
         &self.numbers
     }
 
-    pub fn look_up_number(&self, number: usize) -> Option<usize> {
+    pub fn look_up_number(&self, number: usize) -> Result<usize> {
         self.numbers
             .iter()
             .filter(|(_, n)| **n == number)
             .map(|(i, _)| *i)
             .next()
+            .ok_or_else(|| Error::NoSuchEntry(number))
     }
 
     fn render_layout_entry(&mut self, files: &Files, entries: &[Entry], l_entry: &DayEntry) {
