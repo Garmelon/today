@@ -30,6 +30,14 @@ impl From<&commands::DateSpec> for DateSpec {
             .as_ref()
             .map(|delta| delta.into())
             .unwrap_or_default();
+        if let Some(date) = spec.end {
+            // Strictly speaking, this could be out of range, but that would
+            // require a delta of about 6 million years. I'm not too worried...
+            let days = (date.value - spec.start).num_days() as i32;
+            end_delta
+                .steps
+                .insert(0, Spanned::new(date.span, DeltaStep::Day(days)));
+        }
         if let Some(time) = spec.end_time {
             end_delta
                 .steps
