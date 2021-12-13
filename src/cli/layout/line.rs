@@ -104,7 +104,7 @@ impl LineLayout {
     /// Return a map from entry indices to their corresponding display numbers.
     ///
     /// If you need to resolve a display number into an entry index, use
-    /// [`look_up_number`] instead.
+    /// [`Self::look_up_number`] instead.
     pub fn numbers(&self) -> &HashMap<usize, usize> {
         &self.numbers
     }

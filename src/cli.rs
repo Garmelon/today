@@ -37,6 +37,7 @@ pub struct Opt {
 
 #[derive(Debug, StructOpt)]
 pub enum Command {
+    #[allow(rustdoc::broken_intra_doc_links)]
     /// Shows entries in a range, or a single entry if one is specified
     /// [default]
     Show,
