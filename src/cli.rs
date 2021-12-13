@@ -8,11 +8,8 @@ use structopt::StructOpt;
 use crate::eval::{DateRange, EntryMode};
 use crate::files::Files;
 
-use self::layout::Layout;
-use self::render::Render;
-
 mod layout;
-mod render;
+mod show;
 
 #[derive(Debug, StructOpt)]
 pub struct Opt {
@@ -67,16 +64,11 @@ pub fn run() -> anyhow::Result<()> {
     .expect("determine range");
 
     let entries = files.eval(EntryMode::Relevant, range)?;
-
-    let mut layout = Layout::new(range, now);
-    layout.layout(&files, &entries);
-
-    let mut render = Render::new();
-    render.render(&files, &entries, &layout);
+    let layout = layout::layout(&files, &entries, range, now);
 
     match opt.command {
         None | Some(Command::Show) => match opt.entry {
-            None => print!("{}", render.display()),
+            None => print!("{}", show::show_all(&layout)),
             // Some(i) => print!("{}", render::render_entry(&files, &entries, &layout, i)),
             Some(i) => todo!(),
         },
