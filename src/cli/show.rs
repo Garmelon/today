@@ -6,8 +6,8 @@ use crate::eval::{Entry, EntryKind};
 use crate::files::primitives::{Time, Weekday};
 use crate::files::Files;
 
-use super::error::{Error, Result};
-use super::layout::line::{LineEntry, LineLayout, SpanSegment};
+use super::error::Result;
+use super::layout::line::{LineEntry, LineLayout, SpanSegment, Times};
 
 struct ShowLines {
     num_width: usize,
@@ -68,7 +68,7 @@ impl ShowLines {
         &mut self,
         number: Option<usize>,
         spans: &[Option<SpanSegment>],
-        time: Option<Time>,
+        time: Times,
         text: &str,
     ) {
         let num = match number {
@@ -77,8 +77,9 @@ impl ShowLines {
         };
 
         let time = match time {
-            Some(t) => format!("{} ", t),
-            None => "".to_string(),
+            Times::Untimed => "".to_string(),
+            Times::At(t) => format!("{} ", t),
+            Times::FromTo(t1, t2) => format!("{}--{} ", t1, t2),
         };
 
         self.push(&format!(

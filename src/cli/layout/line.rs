@@ -21,6 +21,13 @@ pub enum SpanSegment {
     End,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum Times {
+    Untimed,
+    At(Time),
+    FromTo(Time, Time),
+}
+
 pub enum LineEntry {
     Day {
         spans: Vec<Option<SpanSegment>>,
@@ -33,7 +40,7 @@ pub enum LineEntry {
     Entry {
         number: Option<usize>,
         spans: Vec<Option<SpanSegment>>,
-        time: Option<Time>,
+        time: Times,
         text: String,
     },
 }
@@ -115,7 +122,8 @@ impl LineLayout {
         match l_entry {
             DayEntry::End(i) => {
                 self.stop_span(*i);
-                self.line_entry(Some(*i), None, Self::format_entry(files, entries, *i));
+                let text = Self::format_entry(files, entries, *i);
+                self.line_entry(Some(*i), Times::Untimed, text);
             }
             DayEntry::Now(t) => self.line(LineEntry::Now {
                 spans: self.spans_for_line(),
@@ -123,14 +131,20 @@ impl LineLayout {
             }),
             DayEntry::TimedEnd(i, t) => {
                 self.stop_span(*i);
-                self.line_entry(Some(*i), Some(*t), Self::format_entry(files, entries, *i));
+                let text = Self::format_entry(files, entries, *i);
+                self.line_entry(Some(*i), Times::At(*t), text);
             }
-            DayEntry::TimedAt(i, t) => {
-                self.line_entry(Some(*i), Some(*t), Self::format_entry(files, entries, *i));
+            DayEntry::TimedAt(i, t, t2) => {
+                let time = t2
+                    .map(|t2| Times::FromTo(*t, t2))
+                    .unwrap_or_else(|| Times::At(*t));
+                let text = Self::format_entry(files, entries, *i);
+                self.line_entry(Some(*i), time, text);
             }
             DayEntry::TimedStart(i, t) => {
                 self.start_span(*i);
-                self.line_entry(Some(*i), Some(*t), Self::format_entry(files, entries, *i));
+                let text = Self::format_entry(files, entries, *i);
+                self.line_entry(Some(*i), Times::At(*t), text);
             }
             DayEntry::ReminderSince(i, d) => {
                 let text = Self::format_entry(files, entries, *i);
@@ -139,23 +153,26 @@ impl LineLayout {
                 } else {
                     format!("{} ({} days ago)", text, d)
                 };
-                self.line_entry(Some(*i), None, text);
+                self.line_entry(Some(*i), Times::Untimed, text);
             }
             DayEntry::At(i) => {
-                self.line_entry(Some(*i), None, Self::format_entry(files, entries, *i))
+                let text = Self::format_entry(files, entries, *i);
+                self.line_entry(Some(*i), Times::Untimed, text);
             }
             DayEntry::ReminderWhile(i, d) => {
                 let text = Self::format_entry(files, entries, *i);
                 let plural = if *d == 1 { "" } else { "s" };
                 let text = format!("{} ({} day{} left)", text, i, plural);
-                self.line_entry(Some(*i), None, text);
+                self.line_entry(Some(*i), Times::Untimed, text);
             }
             DayEntry::Undated(i) => {
-                self.line_entry(Some(*i), None, Self::format_entry(files, entries, *i));
+                let text = Self::format_entry(files, entries, *i);
+                self.line_entry(Some(*i), Times::Untimed, text);
             }
             DayEntry::Start(i) => {
                 self.start_span(*i);
-                self.line_entry(Some(*i), None, Self::format_entry(files, entries, *i));
+                let text = Self::format_entry(files, entries, *i);
+                self.line_entry(Some(*i), Times::Untimed, text);
             }
             DayEntry::ReminderUntil(i, d) => {
                 let text = Self::format_entry(files, entries, *i);
@@ -164,7 +181,7 @@ impl LineLayout {
                 } else {
                     format!("{} (in {} days)", text, d)
                 };
-                self.line_entry(Some(*i), None, text);
+                self.line_entry(Some(*i), Times::Untimed, text);
             }
         }
     }
@@ -224,7 +241,7 @@ impl LineLayout {
         self.step_spans();
     }
 
-    fn line_entry(&mut self, index: Option<usize>, time: Option<Time>, text: String) {
+    fn line_entry(&mut self, index: Option<usize>, time: Times, text: String) {
         let number = match index {
             Some(index) => Some(match self.numbers.get(&index) {
                 Some(number) => *number,

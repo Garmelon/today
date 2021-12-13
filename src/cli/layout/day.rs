@@ -17,7 +17,7 @@ pub enum DayEntry {
     End(usize),
     Now(Time),
     TimedEnd(usize, Time),
-    TimedAt(usize, Time),
+    TimedAt(usize, Time, Option<Time>),
     TimedStart(usize, Time),
     ReminderSince(usize, i64),
     At(usize),
@@ -66,7 +66,7 @@ impl DayLayout {
             Self::sort_day(day);
         }
 
-        // TODO Combine TimedStart and TimedEnd if there is nothing in-between
+        self.combine_times();
     }
 
     fn layout_entry(&mut self, index: usize, entry: &Entry) {
@@ -133,7 +133,7 @@ impl DayLayout {
         let (start, end) = dates.start_end();
         if let Some((date, time)) = dates.point_in_time() {
             let entry = match time {
-                Some(time) => DayEntry::TimedAt(index, time),
+                Some(time) => DayEntry::TimedAt(index, time, None),
                 None => DayEntry::At(index),
             };
             self.insert(date, entry);
@@ -211,7 +211,7 @@ impl DayLayout {
         day.sort_by_key(|e| match e {
             DayEntry::Now(_) => 1,
             DayEntry::TimedEnd(_, _) => 2,
-            DayEntry::TimedAt(_, _) => 3,
+            DayEntry::TimedAt(_, _, _) => 3,
             DayEntry::TimedStart(_, _) => 4,
             _ => 0,
         });
@@ -220,7 +220,7 @@ impl DayLayout {
         day.sort_by_key(|e| match e {
             DayEntry::Now(t) => Some(*t),
             DayEntry::TimedEnd(_, t) => Some(*t),
-            DayEntry::TimedAt(_, t) => Some(*t),
+            DayEntry::TimedAt(_, t, _) => Some(*t),
             DayEntry::TimedStart(_, t) => Some(*t),
             _ => None,
         });
@@ -230,7 +230,7 @@ impl DayLayout {
             DayEntry::End(_) => 0,
             DayEntry::Now(_) => 1,
             DayEntry::TimedEnd(_, _) => 1,
-            DayEntry::TimedAt(_, _) => 1,
+            DayEntry::TimedAt(_, _, _) => 1,
             DayEntry::TimedStart(_, _) => 1,
             DayEntry::ReminderSince(_, _) => 2,
             DayEntry::At(_) => 3,
@@ -239,5 +239,23 @@ impl DayLayout {
             DayEntry::Start(_) => 6,
             DayEntry::ReminderUntil(_, _) => 7,
         })
+    }
+
+    /// Combine matching [`DayEntry::TimedStart`]s and [`DayEntry::TimedEnd`]s
+    /// with nothing in-between into [`DayEntry::TimedAt`]s.
+    fn combine_times(&mut self) {
+        for day in self.days.values_mut() {
+            let mut i = 0;
+            while i + 1 < day.len() {
+                match (&day[i], &day[i + 1]) {
+                    (DayEntry::TimedStart(i1, t1), DayEntry::TimedEnd(i2, t2)) if i1 == i2 => {
+                        day[i] = DayEntry::TimedAt(*i1, *t1, Some(*t2));
+                        day.remove(i + 1);
+                    }
+                    _ => {}
+                }
+                i += 1;
+            }
+        }
     }
 }
