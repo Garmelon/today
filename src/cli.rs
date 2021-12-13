@@ -22,6 +22,8 @@ pub struct Opt {
     /// Overwrite the current date
     #[structopt(short, long)]
     date: Option<NaiveDate>,
+    // TODO Allow negative numbers for `before` and `after`
+    // TODO Or just allow any Delta
     /// How many days to include before the current date
     #[structopt(short, long, default_value = "3")]
     before: u32,

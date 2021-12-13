@@ -329,6 +329,7 @@ impl FormulaSpec {
             if let Some(last_done) = s.last_done() {
                 range = range.with_from(last_done.succ())?;
             }
+            // TODO Otherwise, go back one year or so if no FROM is specified
         }
 
         s.limit_from_until(range)
