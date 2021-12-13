@@ -58,7 +58,7 @@ impl DateRange {
 
     pub fn days(&self) -> impl Iterator<Item = NaiveDate> {
         (self.from.num_days_from_ce()..=self.until.num_days_from_ce())
-            .map(|n| NaiveDate::from_num_days_from_ce(n))
+            .map(NaiveDate::from_num_days_from_ce)
     }
 
     pub fn years(&self) -> RangeInclusive<i32> {

@@ -115,7 +115,7 @@ impl LineLayout {
             .filter(|(_, n)| **n == number)
             .map(|(i, _)| *i)
             .next()
-            .ok_or_else(|| Error::NoSuchEntry(number))
+            .ok_or(Error::NoSuchEntry(number))
     }
 
     fn render_layout_entry(&mut self, files: &Files, entries: &[Entry], l_entry: &DayEntry) {
