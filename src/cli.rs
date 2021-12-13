@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::process;
 
-use chrono::NaiveDate;
+use chrono::{Duration, NaiveDate};
 use directories::ProjectDirs;
 use structopt::StructOpt;
 
@@ -19,6 +19,15 @@ pub struct Opt {
     /// File to load
     #[structopt(short, long, parse(from_os_str))]
     file: Option<PathBuf>,
+    /// Overwrite the current date
+    #[structopt(short, long)]
+    date: Option<NaiveDate>,
+    /// How many days to include before the current date
+    #[structopt(short, long, default_value = "3")]
+    before: u32,
+    /// How many days to include after the current date
+    #[structopt(short, long, default_value = "13")]
+    after: u32,
     /// Number of the entry to view or edit
     entry: Option<usize>,
     #[structopt(subcommand)]
@@ -28,7 +37,7 @@ pub struct Opt {
 #[derive(Debug, StructOpt)]
 pub enum Command {
     /// Shows entries in a range, or a single entry if one is specified
-    /// (default)
+    /// [default]
     Show,
     /// Marks an entry as done (requires entry)
     Done,
@@ -50,11 +59,12 @@ pub fn run() -> anyhow::Result<()> {
     let mut files = Files::load(&file)?;
     let now = files.now().naive_local();
 
+    let range_date = opt.date.unwrap_or_else(|| now.date());
     let range = DateRange::new(
-        NaiveDate::from_ymd(2021, 12, 12 - 3),
-        NaiveDate::from_ymd(2021, 12, 12 + 13),
+        range_date - Duration::days(opt.before.into()),
+        range_date + Duration::days(opt.after.into()),
     )
-    .unwrap();
+    .expect("determine range");
 
     let entries = files.eval(EntryMode::Relevant, range)?;
 
