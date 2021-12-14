@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use chrono::NaiveDate;
 
-use crate::files::commands::{BirthdaySpec, Command, Done, Note, Spec, Statement, Task};
+use crate::files::commands::{BirthdaySpec, Command, Done, DoneDate, Note, Spec, Statement, Task};
 use crate::files::primitives::Span;
 use crate::files::SourcedCommand;
 
@@ -73,7 +73,20 @@ impl<'a> CommandState<'a> {
         }
     }
 
-    fn last_done(&self) -> Option<NaiveDate> {
+    /// Last root date mentioned in any `DONE`.
+    fn last_done_root(&self) -> Option<NaiveDate> {
+        match self.command.command {
+            Command::Task(task) => task
+                .done
+                .iter()
+                .filter_map(|done| done.date.map(DoneDate::root))
+                .max(),
+            Command::Note(_) => None,
+        }
+    }
+
+    /// Last completion date mentioned in any `DONE`.
+    fn last_done_completion(&self) -> Option<NaiveDate> {
         match self.command.command {
             Command::Task(task) => task.done.iter().map(|done| done.done_at).max(),
             Command::Note(_) => None,

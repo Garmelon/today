@@ -69,11 +69,14 @@ impl DateSpec {
     fn start_and_range(&self, s: &CommandState<'_>) -> Option<(NaiveDate, DateRange)> {
         let (start, range) = match s.command.command {
             Command::Task(_) => {
-                let last_done = s.last_done();
-                let start = last_done
+                let start = s
+                    .last_done_completion()
                     .filter(|_| self.start_at_done)
                     .unwrap_or(self.start);
-                let range_from = last_done.map(|date| date.succ()).unwrap_or(self.start);
+                let range_from = s
+                    .last_done_root()
+                    .map(|date| date.succ())
+                    .unwrap_or(self.start);
                 let range = s
                     .range
                     .expand_by(&self.end_delta)

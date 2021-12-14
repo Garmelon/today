@@ -289,6 +289,18 @@ pub enum DoneDate {
     },
 }
 
+impl DoneDate {
+    pub fn root(self) -> NaiveDate {
+        match self {
+            DoneDate::Date { root } => root,
+            DoneDate::DateTime { root, .. } => root,
+            DoneDate::DateToDate { root, .. } => root,
+            DoneDate::DateTimeToTime { root, .. } => root,
+            DoneDate::DateTimeToDateTime { root, .. } => root,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Done {
     pub date: Option<DoneDate>,

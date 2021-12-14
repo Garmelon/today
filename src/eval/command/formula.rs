@@ -326,8 +326,8 @@ impl FormulaSpec {
             .move_by(&self.start_delta);
 
         if let Command::Task(_) = s.command.command {
-            if let Some(last_done) = s.last_done() {
-                range = range.with_from(last_done.succ())?;
+            if let Some(last_done_root) = s.last_done_root() {
+                range = range.with_from(last_done_root.succ())?;
             }
             // TODO Otherwise, go back one year or so if no FROM is specified
         }
