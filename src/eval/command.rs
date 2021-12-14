@@ -155,7 +155,7 @@ impl<'a> CommandState<'a> {
             for statement in &task.statements {
                 self.eval_statement(statement)?;
             }
-        } else {
+        } else if task.done.is_empty() {
             self.add(self.kind(), None);
         }
 
