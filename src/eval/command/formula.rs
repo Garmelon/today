@@ -1,4 +1,4 @@
-use chrono::{Datelike, NaiveDate};
+use chrono::{Datelike, Duration, NaiveDate};
 
 use crate::files::commands::{self, Command};
 use crate::files::primitives::{Span, Spanned, Time, Weekday};
@@ -328,8 +328,14 @@ impl FormulaSpec {
         if let Command::Task(_) = s.command.command {
             if let Some(last_done_root) = s.last_done_root() {
                 range = range.with_from(last_done_root.succ())?;
+            } else if let Some(from) = s.from {
+                range = range.with_from(from)?;
+            } else if matches!(s.command.command, Command::Task(_)) {
+                // We have no idea if we missed any tasks since the user hasn't
+                // specified a `FROM`, so we just just look back one year. Any
+                // task older than a year is probably not important anyways...
+                range = range.with_from(range.from() - Duration::days(365))?;
             }
-            // TODO Otherwise, go back one year or so if no FROM is specified
         }
 
         s.limit_from_until(range)
