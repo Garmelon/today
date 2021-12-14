@@ -1,6 +1,5 @@
 use std::result;
 
-use crate::files::Source;
 use crate::{eval, files};
 
 #[derive(Debug, thiserror::Error)]
