@@ -32,6 +32,7 @@ pub struct DayLayout {
     pub range: DateRange,
     pub today: NaiveDate,
     pub time: Time,
+    /// Entries that are required to draw brackets correctly.
     pub earlier: Vec<DayEntry>,
     pub days: HashMap<NaiveDate, Vec<DayEntry>>,
 }
@@ -131,18 +132,22 @@ impl DayLayout {
 
     fn layout_dated_entry(&mut self, index: usize, dates: Dates) {
         let (start, end) = dates.start_end();
+        #[allow(clippy::if_same_then_else)] // Makes the code easier to read
         if let Some((date, time)) = dates.point_in_time() {
             let entry = match time {
                 Some(time) => DayEntry::TimedAt(index, time, None),
                 None => DayEntry::At(index),
             };
             self.insert(date, entry);
+        } else if end < self.range.from() || self.range.until() < start {
+            // Since the entry is entirely outside the range, there is no point
+            // in adding the start or end entry anywhere. If the entry was
+            // entirely before the range and we didn't filter it out, we would
+            // get a bracket without any visible start or end.
         } else if start < self.range.from() && self.range.until() < end {
-            // Neither the start nor end layout entries would be visible
-            // directly. However, the start layout entry would be added to
-            // [`self.earlier`]. Since [`self.earlier`] only exists so that
-            // every end entry has a corresponding start entry (for rendering),
-            // this would be pointless, so we don't add any entries.
+            // Since neither the start nor end entries are visible directly, we
+            // omit them both. Otherwise, we would get a bracket without any
+            // visible start or end.
         } else {
             let (start_entry, end_entry) = match dates.start_end_time() {
                 Some((start_time, end_time)) => (
