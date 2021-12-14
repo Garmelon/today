@@ -80,7 +80,7 @@ impl DayLayout {
 
     fn layout_task(&mut self, index: usize, entry: &Entry) {
         if let Some(dates) = entry.dates {
-            let (start, end) = dates.start_end();
+            let (start, end) = dates.sorted().dates();
             if self.today < start && (start - self.today).num_days() < 7 {
                 // TODO Make this adjustable, maybe even per-command
                 let days = (start - self.today).num_days();
@@ -100,8 +100,9 @@ impl DayLayout {
 
     fn layout_task_done(&mut self, index: usize, entry: &Entry, at: NaiveDate) {
         if let Some(dates) = entry.dates {
-            if at > dates.end() {
-                let days = (at - dates.end()).num_days();
+            let (_, end) = dates.sorted().dates();
+            if at > end {
+                let days = (at - end).num_days();
                 self.insert(at, DayEntry::ReminderSince(index, days));
             }
             self.layout_dated_entry(index, dates);
@@ -113,7 +114,7 @@ impl DayLayout {
 
     fn layout_note(&mut self, index: usize, entry: &Entry) {
         if let Some(dates) = entry.dates {
-            let (start, end) = dates.start_end();
+            let (start, end) = dates.sorted().dates();
             if start < self.range.from() && self.range.until() < end {
                 // This note applies to the current day, but it won't appear if
                 // we just layout it as a dated entry, so instead we add it as a
@@ -131,9 +132,10 @@ impl DayLayout {
     }
 
     fn layout_dated_entry(&mut self, index: usize, dates: Dates) {
-        let (start, end) = dates.start_end();
+        let sorted_dates = dates.sorted();
+        let (start, end) = sorted_dates.dates();
         #[allow(clippy::if_same_then_else)] // Makes the code easier to read
-        if let Some((date, time)) = dates.point_in_time() {
+        if let Some((date, time)) = sorted_dates.point_in_time() {
             let entry = match time {
                 Some(time) => DayEntry::TimedAt(index, time, None),
                 None => DayEntry::At(index),
@@ -149,7 +151,7 @@ impl DayLayout {
             // omit them both. Otherwise, we would get a bracket without any
             // visible start or end.
         } else {
-            let (start_entry, end_entry) = match dates.start_end_time() {
+            let (start_entry, end_entry) = match sorted_dates.times() {
                 Some((start_time, end_time)) => (
                     DayEntry::TimedStart(index, start_time),
                     DayEntry::TimedEnd(index, end_time),
@@ -196,13 +198,13 @@ impl DayLayout {
 
         // 2.
         entries.sort_by(|(_, e1, _), (_, e2, _)| {
-            let d1 = e1.dates.map(|d| (d.end(), d.end_time()));
-            let d2 = e2.dates.map(|d| (d.end(), d.end_time()));
-            d2.cmp(&d1)
+            let d1 = e1.dates.map(|d| d.sorted().other_with_time());
+            let d2 = e2.dates.map(|d| d.sorted().other_with_time());
+            d2.cmp(&d1) // Inverse comparison
         });
 
         // 1.
-        entries.sort_by_key(|(_, e, _)| e.dates.map(|d| (d.start(), d.start_time())));
+        entries.sort_by_key(|(_, e, _)| e.dates.map(|d| d.sorted().root_with_time()));
     }
 
     fn sort_day(day: &mut Vec<DayEntry>) {

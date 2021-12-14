@@ -268,7 +268,7 @@ pub enum DoneDate {
     Date {
         root: NaiveDate,
     },
-    DateWithTime {
+    DateTime {
         root: NaiveDate,
         root_time: Time,
     },
@@ -276,7 +276,12 @@ pub enum DoneDate {
         root: NaiveDate,
         other: NaiveDate,
     },
-    DateToDateWithTime {
+    DateTimeToTime {
+        root: NaiveDate,
+        root_time: Time,
+        other_time: Time,
+    },
+    DateTimeToDateTime {
         root: NaiveDate,
         root_time: Time,
         other: NaiveDate,

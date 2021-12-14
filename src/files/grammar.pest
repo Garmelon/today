@@ -112,6 +112,7 @@ statements = { (stmt_date | stmt_bdate | stmt_from | stmt_until | stmt_except | 
 
 donedate = {
     datum ~ time ~ "--" ~ datum ~ time
+    | datum ~ time ~ "--" ~ time
     | datum ~ time
     | datum ~ "--" ~ datum
     | datum

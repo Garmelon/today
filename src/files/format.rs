@@ -229,9 +229,14 @@ impl fmt::Display for DoneDate {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             DoneDate::Date { root } => write!(f, "{}", root),
-            DoneDate::DateWithTime { root, root_time } => write!(f, "{} {}", root, root_time),
+            DoneDate::DateTime { root, root_time } => write!(f, "{} {}", root, root_time),
             DoneDate::DateToDate { root, other } => write!(f, "{} -- {}", root, other),
-            DoneDate::DateToDateWithTime {
+            DoneDate::DateTimeToTime {
+                root,
+                root_time,
+                other_time,
+            } => write!(f, "{} {} -- {}", root, root_time, other_time),
+            DoneDate::DateTimeToDateTime {
                 root,
                 root_time,
                 other,

@@ -75,8 +75,9 @@ impl Entries {
 
     fn is_touching(&self, entry: &Entry) -> bool {
         if let Some(dates) = entry.dates {
+            let (start, end) = dates.sorted().dates();
             // Inside the range or overlapping it
-            dates.start() <= self.range.until() && self.range.from() <= dates.end()
+            start <= self.range.until() && self.range.from() <= end
         } else {
             false
         }
@@ -102,7 +103,8 @@ impl Entries {
         // Unfinished tasks before or inside the range
         if let EntryKind::Task = entry.kind {
             if let Some(dates) = entry.dates {
-                if dates.start() <= self.range.until() {
+                let (start, _) = dates.sorted().dates();
+                if start <= self.range.until() {
                     return true;
                 }
             }

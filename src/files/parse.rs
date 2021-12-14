@@ -652,7 +652,7 @@ fn parse_donedate(p: Pair<'_, Rule>) -> Result<DoneDate> {
             root: parse_datum(ps.pop().unwrap())?.value,
         },
         2 => match ps[1].as_rule() {
-            Rule::time => DoneDate::DateWithTime {
+            Rule::time => DoneDate::DateTime {
                 root_time: parse_time(ps.pop().unwrap())?.value,
                 root: parse_datum(ps.pop().unwrap())?.value,
             },
@@ -662,7 +662,12 @@ fn parse_donedate(p: Pair<'_, Rule>) -> Result<DoneDate> {
             },
             _ => unreachable!(),
         },
-        4 => DoneDate::DateToDateWithTime {
+        3 => DoneDate::DateTimeToTime {
+            other_time: parse_time(ps.pop().unwrap())?.value,
+            root_time: parse_time(ps.pop().unwrap())?.value,
+            root: parse_datum(ps.pop().unwrap())?.value,
+        },
+        4 => DoneDate::DateTimeToDateTime {
             other_time: parse_time(ps.pop().unwrap())?.value,
             other: parse_datum(ps.pop().unwrap())?.value,
             root_time: parse_time(ps.pop().unwrap())?.value,

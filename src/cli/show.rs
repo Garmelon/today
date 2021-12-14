@@ -145,22 +145,10 @@ pub fn show_entry(files: &Files, entry: &Entry) -> Result<()> {
     }
 
     if let Some(dates) = entry.dates {
-        let (start, end) = dates.start_end();
-        if start == end {
-            match dates.start_end_time() {
-                Some((s, e)) if s == e => println!("DATE {} {}", start, s),
-                Some((s, e)) => println!("DATE {} {} -- {}", start, s, e),
-                None => println!("DATE {}", start),
-            }
-        } else {
-            match dates.start_end_time() {
-                Some((s, e)) => println!("DATE {} {} -- {} {}", start, s, end, e),
-                None => println!("DATE {} -- {}", start, end),
-            }
-        }
+        println!("DATE {}", dates.sorted());
     } else {
         println!("NO DATE");
-    };
+    }
 
     for line in command.desc() {
         println!("# {}", line);
