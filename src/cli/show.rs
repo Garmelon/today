@@ -115,23 +115,16 @@ impl ShowLines {
     }
 }
 
-pub fn show_all(layout: &LineLayout) -> String {
+pub fn show_all(layout: &LineLayout) {
     let num_width = cmp::max(layout.num_width(), 3); // `now` is 3 chars wide
     let mut show_lines = ShowLines::new(num_width, layout.span_width());
     for line in layout.lines() {
         show_lines.display_line(line);
     }
-    show_lines.result()
+    print!("{}", show_lines.result());
 }
 
-pub fn show_entry(
-    files: &Files,
-    entries: &[Entry],
-    layout: &LineLayout,
-    number: usize,
-) -> Result<()> {
-    let index = layout.look_up_number(number)?;
-    let entry = &entries[index];
+pub fn show_entry(files: &Files, entry: &Entry) -> Result<()> {
     let command = files.command(entry.source);
 
     match entry.kind {

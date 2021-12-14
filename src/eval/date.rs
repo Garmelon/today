@@ -37,6 +37,30 @@ impl fmt::Display for Dates {
     }
 }
 
+impl From<Dates> for DoneDate {
+    fn from(dates: Dates) -> Self {
+        match dates.times {
+            Some(times) if dates.root == dates.other && times.root == times.other => {
+                DoneDate::DateWithTime {
+                    root: dates.root,
+                    root_time: times.root,
+                }
+            }
+            Some(times) => DoneDate::DateToDateWithTime {
+                root: dates.root,
+                root_time: times.root,
+                other: dates.other,
+                other_time: times.other,
+            },
+            None if dates.root == dates.other => DoneDate::Date { root: dates.root },
+            None => DoneDate::DateToDate {
+                root: dates.root,
+                other: dates.other,
+            },
+        }
+    }
+}
+
 impl Dates {
     pub fn new(root: NaiveDate, other: NaiveDate) -> Self {
         Self {

@@ -1,5 +1,4 @@
 use std::path::PathBuf;
-use std::process;
 
 use chrono::{Duration, NaiveDate};
 use directories::ProjectDirs;
@@ -8,8 +7,9 @@ use structopt::StructOpt;
 use crate::eval::{DateRange, EntryMode};
 use crate::files::Files;
 
-use self::error::Result;
+use self::error::{Error, Result};
 
+mod done;
 mod error;
 mod layout;
 mod show;
@@ -75,15 +75,12 @@ pub fn run() -> Result<()> {
 
     match opt.command {
         None | Some(Command::Show) => match opt.entry {
-            None => print!("{}", show::show_all(&layout)),
-            Some(n) => show::show_entry(&files, &entries, &layout, n)?,
+            None => show::show_all(&layout),
+            Some(n) => show::show_entry(&files, &entries[layout.look_up_number(n)?])?,
         },
         Some(Command::Done) => match opt.entry {
-            None => {
-                println!("Please specify an entry. See `today --help` for more details.");
-                process::exit(1);
-            }
-            Some(i) => todo!(),
+            None => return Err(Error::NoNumber),
+            Some(n) => done::mark_done(&mut files, &entries[layout.look_up_number(n)?], now)?,
         },
         Some(Command::Fmt) => files.mark_all_dirty(),
     }

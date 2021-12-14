@@ -5,7 +5,7 @@ use std::{fs, io, result};
 use chrono::{DateTime, Utc};
 use tzfile::Tz;
 
-use self::commands::{Command, File};
+use self::commands::{Command, Done, File};
 
 pub mod commands;
 mod format;
@@ -79,6 +79,9 @@ pub enum Error {
         file2: PathBuf,
         tz2: String,
     },
+    // TODO Add span or something similar for a nicer error message
+    #[error("Not a task")]
+    NotATask,
 }
 
 pub type Result<T> = result::Result<T, Error>;
@@ -161,6 +164,7 @@ impl Files {
     pub fn save(&self) -> Result<()> {
         for file in &self.files {
             if file.dirty {
+                println!("Saving file {:?}", file.path);
                 Self::save_file(&file.path, &file.file)?;
             }
         }
@@ -183,6 +187,16 @@ impl Files {
 
     pub fn command(&self, source: Source) -> &Command {
         &self.files[source.file].file.commands[source.command]
+    }
+
+    pub fn add_done(&mut self, source: Source, done: Done) -> Result<()> {
+        let file = &mut self.files[source.file];
+        match &mut file.file.commands[source.command] {
+            Command::Task(t) => t.done.push(done),
+            Command::Note(_) => return Err(Error::NotATask),
+        }
+        file.dirty = true;
+        Ok(())
     }
 
     pub fn commands(&self) -> Vec<SourcedCommand<'_>> {
