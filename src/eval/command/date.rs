@@ -66,13 +66,19 @@ impl From<&commands::DateSpec> for DateSpec {
 }
 
 impl DateSpec {
-    fn start_and_range(&self, s: &CommandState<'_>) -> Option<(NaiveDate, DateRange)> {
-        let (start, range) = match s.command.command {
+    /// Find the start date and range for the date spec calculation.
+    ///
+    /// Returns a tuple `(start, skip, range)` where `skip` is `true` if the
+    /// `start` date itself should be skipped (and thus not result in an entry).
+    /// This may be necessary if [`Self::start_at_done`] is set.
+    fn start_and_range(&self, s: &CommandState<'_>) -> Option<(NaiveDate, bool, DateRange)> {
+        let (start, skip, range) = match s.command.command {
             Command::Task(_) => {
-                let start = s
+                let (start, skip) = s
                     .last_done_completion()
+                    .map(|start| (start, true))
                     .filter(|_| self.start_at_done)
-                    .unwrap_or(self.start);
+                    .unwrap_or((self.start, false));
                 let range_from = s
                     .last_done_root()
                     .map(|date| date.succ())
@@ -82,7 +88,7 @@ impl DateSpec {
                     .expand_by(&self.end_delta)
                     .move_by(&self.start_delta)
                     .with_from(range_from)?;
-                (start, range)
+                (start, skip, range)
             }
             Command::Note(_) => {
                 let start = self.start;
@@ -90,11 +96,11 @@ impl DateSpec {
                     .range
                     .expand_by(&self.end_delta)
                     .move_by(&self.start_delta);
-                (start, range)
+                (start, false, range)
             }
         };
         let range = s.limit_from_until(range)?;
-        Some((start, range))
+        Some((start, skip, range))
     }
 
     fn step(file: usize, from: NaiveDate, repeat: &Spanned<Delta>) -> Result<NaiveDate> {
@@ -127,7 +133,10 @@ impl<'a> CommandState<'a> {
     pub fn eval_date_spec(&mut self, spec: DateSpec) -> Result<()> {
         let file = self.command.source.file();
         if let Some(repeat) = &spec.repeat {
-            if let Some((mut start, range)) = spec.start_and_range(self) {
+            if let Some((mut start, skip, range)) = spec.start_and_range(self) {
+                if skip {
+                    start = DateSpec::step(file, start, repeat)?;
+                }
                 while start < range.from() {
                     start = DateSpec::step(file, start, repeat)?;
                 }
