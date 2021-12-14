@@ -160,7 +160,13 @@ impl DayLayout {
         if date < self.range.from() {
             self.earlier.push(e);
         } else if let Some(es) = self.days.get_mut(&date) {
-            es.push(e);
+            match e {
+                // Insert end entries in reverse order so that the brackets
+                // connecting them to their start entry look nicer and less
+                // convoluted.
+                DayEntry::End(_) | DayEntry::TimedEnd(_, _) => es.insert(0, e),
+                _ => es.push(e),
+            }
         }
     }
 
@@ -168,7 +174,7 @@ impl DayLayout {
         // Entries should be sorted by these factors, in descending order of
         // significance:
         // 1. Their start date, if any
-        // 2. Their end date, if any
+        // 2. Their end date in reverse, if any
         // 3. Their kind
         // 4. Their title
 
@@ -184,7 +190,11 @@ impl DayLayout {
         });
 
         // 2.
-        entries.sort_by_key(|(_, e, _)| e.dates.map(|d| (d.end(), d.end_time())));
+        entries.sort_by(|(_, e1, _), (_, e2, _)| {
+            let d1 = e1.dates.map(|d| (d.end(), d.end_time()));
+            let d2 = e2.dates.map(|d| (d.end(), d.end_time()));
+            d2.cmp(&d1)
+        });
 
         // 1.
         entries.sort_by_key(|(_, e, _)| e.dates.map(|d| (d.start(), d.start_time())));
