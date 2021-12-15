@@ -1,11 +1,12 @@
 use std::path::PathBuf;
+use std::{process, result};
 
 use chrono::{Duration, NaiveDate};
 use directories::ProjectDirs;
 use structopt::StructOpt;
 
 use crate::eval::{DateRange, EntryMode};
-use crate::files::Files;
+use crate::files::{self, Files};
 
 use self::error::{Error, Result};
 
@@ -56,11 +57,22 @@ fn default_file() -> PathBuf {
         .join("main.today")
 }
 
+fn load_files(opt: &Opt) -> result::Result<Files, files::Error> {
+    let file = opt.file.clone().unwrap_or_else(default_file);
+    Files::load(&file)
+}
+
 pub fn run() -> Result<()> {
     let opt = Opt::from_args();
 
-    let file = opt.file.unwrap_or_else(default_file);
-    let mut files = Files::load(&file)?;
+    let mut files = match load_files(&opt) {
+        Ok(result) => result,
+        Err(e) => {
+            e.print();
+            process::exit(1);
+        }
+    };
+
     let now = files.now().naive_local();
 
     let range_date = opt.date.unwrap_or_else(|| now.date());
@@ -80,11 +92,15 @@ pub fn run() -> Result<()> {
         },
         Some(Command::Done) => match opt.entry {
             None => return Err(Error::NoNumber),
-            Some(n) => done::mark_done(&mut files, &entries[layout.look_up_number(n)?], now)?,
+            Some(n) => done::mark_done(&mut files, &entries, &layout, n, now)?,
         },
         Some(Command::Fmt) => files.mark_all_dirty(),
     }
 
-    files.save()?;
+    if let Err(e) = files.save() {
+        e.print();
+        process::exit(1);
+    }
+
     Ok(())
 }

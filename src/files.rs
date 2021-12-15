@@ -1,13 +1,15 @@
 use std::collections::HashMap;
+use std::fs;
 use std::path::{Path, PathBuf};
-use std::{fs, io, result};
 
 use chrono::{DateTime, Utc};
 use tzfile::Tz;
 
 use self::commands::{Command, Done, File};
+pub use self::error::{Error, Result};
 
 pub mod commands;
+mod error;
 mod format;
 mod parse;
 pub mod primitives;
@@ -57,34 +59,6 @@ pub struct Files {
     files: Vec<LoadedFile>,
     timezone: Tz,
 }
-
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("Could not resolve {path}: {error}")]
-    ResolvePath { path: PathBuf, error: io::Error },
-    #[error("Could not load {file}: {error}")]
-    ReadFile { file: PathBuf, error: io::Error },
-    #[error("Could not write {file}: {error}")]
-    WriteFile { file: PathBuf, error: io::Error },
-    #[error("Could not resolve timezone {timezone}: {error}")]
-    ResolveTz { timezone: String, error: io::Error },
-    #[error("Could not determine local timezone: {error}")]
-    LocalTz { error: io::Error },
-    #[error("{0}")]
-    Parse(#[from] parse::Error),
-    #[error("{file1} has time zone {tz1} but {file2} has time zone {tz2}")]
-    TzConflict {
-        file1: PathBuf,
-        tz1: String,
-        file2: PathBuf,
-        tz2: String,
-    },
-    // TODO Add span or something similar for a nicer error message
-    #[error("Not a task")]
-    NotATask,
-}
-
-pub type Result<T> = result::Result<T, Error>;
 
 impl Files {
     pub fn load(path: &Path) -> Result<Self> {
@@ -189,11 +163,11 @@ impl Files {
         &self.files[source.file].file.commands[source.command]
     }
 
-    pub fn add_done(&mut self, source: Source, done: Done) -> Result<()> {
+    pub fn add_done(&mut self, number: usize, source: Source, done: Done) -> Result<()> {
         let file = &mut self.files[source.file];
         match &mut file.file.commands[source.command] {
             Command::Task(t) => t.done.push(done),
-            Command::Note(_) => return Err(Error::NotATask),
+            Command::Note(_) => return Err(Error::NotATask(vec![number])),
         }
         file.dirty = true;
         Ok(())
