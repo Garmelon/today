@@ -12,6 +12,8 @@ pub enum Error {
     NoNumber,
     #[error("No entry with number {0}")]
     NoSuchEntry(usize),
+    #[error("Not a task")]
+    NotATask(Vec<usize>),
 }
 
 pub type Result<T> = result::Result<T, Error>;

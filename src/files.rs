@@ -163,14 +163,19 @@ impl Files {
         &self.files[source.file].file.commands[source.command]
     }
 
-    pub fn add_done(&mut self, number: usize, source: Source, done: Done) -> Result<()> {
+    /// Add a [`Done`] statement to the task identified by `source`.
+    ///
+    /// Returns whether the addition was successful. It can fail if the entry
+    /// identified by `source` is a note, not a task.
+    #[must_use]
+    pub fn add_done(&mut self, source: Source, done: Done) -> bool {
         let file = &mut self.files[source.file];
         match &mut file.file.commands[source.command] {
             Command::Task(t) => t.done.push(done),
-            Command::Note(_) => return Err(Error::NotATask(vec![number])),
+            Command::Note(_) => return false,
         }
         file.dirty = true;
-        Ok(())
+        true
     }
 
     pub fn commands(&self) -> Vec<SourcedCommand<'_>> {

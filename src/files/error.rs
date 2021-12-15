@@ -24,8 +24,6 @@ pub enum Error {
         file2: PathBuf,
         tz2: String,
     },
-    #[error("Not a task")]
-    NotATask(Vec<usize>),
 }
 
 impl Error {
@@ -61,16 +59,6 @@ impl Error {
                 eprintln!("Time zone conflict:");
                 eprintln!("  {:?} has time zone {}", file1, tz1);
                 eprintln!("  {:?} has time zone {}", file2, tz2);
-            }
-            Error::NotATask(numbers) => {
-                if numbers.is_empty() {
-                    eprintln!("Not a task.");
-                } else if numbers.len() == 1 {
-                    eprintln!("{} is not a task.", numbers[0]);
-                } else {
-                    let numbers = numbers.iter().map(|n| n.to_string()).collect::<Vec<_>>();
-                    eprintln!("{} are not tasks.", numbers.join(", "));
-                }
             }
         }
     }

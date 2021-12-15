@@ -92,7 +92,7 @@ pub fn run() -> Result<()> {
         },
         Some(Command::Done) => match opt.entry {
             None => return Err(Error::NoNumber),
-            Some(n) => done::mark_done(&mut files, &entries, &layout, n, now)?,
+            Some(n) => done::mark_done(&mut files, &entries, &layout, &[n], now)?,
         },
         Some(Command::Fmt) => files.mark_all_dirty(),
     }
