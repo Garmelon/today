@@ -8,11 +8,12 @@ use structopt::StructOpt;
 use crate::eval::{DateRange, EntryMode};
 use crate::files::{self, Files};
 
-use self::error::{Error, Result};
+use self::error::Result;
 
 mod done;
 mod error;
 mod layout;
+mod print;
 mod show;
 
 #[derive(Debug, StructOpt)]
@@ -31,9 +32,6 @@ pub struct Opt {
     /// How many days to include after the current date
     #[structopt(short, long, default_value = "13")]
     after: u32,
-    /// Number of the entry to view or edit
-    // TODO Select multiple entries at once
-    entry: Option<usize>,
     #[structopt(subcommand)]
     command: Option<Command>,
 }
@@ -41,11 +39,18 @@ pub struct Opt {
 #[derive(Debug, StructOpt)]
 pub enum Command {
     #[allow(rustdoc::broken_intra_doc_links)]
-    /// Shows entries in a range, or a single entry if one is specified
-    /// [default]
-    Show,
-    /// Marks an entry as done (requires entry)
-    Done,
+    /// Shows individual entries in detail
+    Show {
+        /// Entries to show
+        #[structopt(required = true)]
+        entries: Vec<usize>,
+    },
+    /// Marks one or more entries as done
+    Done {
+        /// Entries to mark as done
+        #[structopt(required = true)]
+        entries: Vec<usize>,
+    },
     /// Reformat all loaded files
     Fmt,
 }
@@ -86,14 +91,13 @@ pub fn run() -> Result<()> {
     let layout = layout::layout(&files, &entries, range, now);
 
     match opt.command {
-        None | Some(Command::Show) => match opt.entry {
-            None => show::show_all(&layout),
-            Some(n) => show::show_entry(&files, &entries[layout.look_up_number(n)?])?,
-        },
-        Some(Command::Done) => match opt.entry {
-            None => return Err(Error::NoNumber),
-            Some(n) => done::mark_done(&mut files, &entries, &layout, &[n], now)?,
-        },
+        None => print::print(&layout),
+        Some(Command::Show { entries: numbers }) => {
+            show::show(&files, &entries, &layout, &numbers)?
+        }
+        Some(Command::Done { entries: numbers }) => {
+            done::done(&mut files, &entries, &layout, &numbers, now)?
+        }
         Some(Command::Fmt) => files.mark_all_dirty(),
     }
 

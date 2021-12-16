@@ -9,7 +9,7 @@ use crate::files::Files;
 use super::error::{Error, Result};
 use super::layout::line::LineLayout;
 
-pub fn mark_done(
+pub fn done(
     files: &mut Files,
     entries: &[Entry],
     layout: &LineLayout,
