@@ -12,20 +12,37 @@ pub struct DateRange {
 }
 
 impl DateRange {
-    pub fn new(from: NaiveDate, until: NaiveDate) -> Option<Self> {
+    pub fn new(from: NaiveDate, until: NaiveDate) -> Self {
         if from <= until {
-            Some(Self { from, until })
+            Self { from, until }
+        } else {
+            Self {
+                from: until,
+                until: from,
+            }
+        }
+    }
+
+    /// Return a new range with its [`Self::from`] set to a new value.
+    ///
+    /// Returns [`None`] if the new value is later than [`Self::until`].
+    pub fn with_from(&self, from: NaiveDate) -> Option<Self> {
+        if from <= self.until {
+            Some(Self::new(from, self.until))
         } else {
             None
         }
     }
 
-    pub fn with_from(&self, from: NaiveDate) -> Option<Self> {
-        Self::new(from, self.until)
-    }
-
+    /// Return a new range with its [`Self::until`] set to a new value.
+    ///
+    /// Returns [`None`] if the new value is earlier than [`Self::from`].
     pub fn with_until(&self, until: NaiveDate) -> Option<Self> {
-        Self::new(self.from, until)
+        if self.from <= until {
+            Some(Self::new(self.from, until))
+        } else {
+            None
+        }
     }
 
     pub fn containing(&self, date: NaiveDate) -> Self {
@@ -75,8 +92,7 @@ impl DateRange {
             self.from + Duration::days(expand_lower.into()),
             self.until + Duration::days(expand_upper.into()),
         )
-        // The range is never shrunk, so the new range should always be valid.
-        .expect("expanded range shrunk")
+        // The range should never shrink.
     }
 
     /// Return a new range that contains at least all dates from which the
@@ -90,7 +106,6 @@ impl DateRange {
             self.until + Duration::days(move_upper.into()),
         )
         // The delta's upper bound is greater or equal than its lower bound, so
-        // the range should never become smaller. It can only move and expand.
-        .expect("moved range shrunk")
+        // the range should never shrink. It can only move and expand.
     }
 }

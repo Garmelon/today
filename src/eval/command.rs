@@ -106,7 +106,11 @@ impl<'a> CommandState<'a> {
             .filter(|&until| until < range_until)
             .unwrap_or(range_until);
 
-        DateRange::new(from, until)
+        if from <= until {
+            Some(DateRange::new(from, until))
+        } else {
+            None
+        }
     }
 
     /// Add an entry, respecting [`Self::from`] and [`Self::until`]. Does not
