@@ -163,6 +163,12 @@ impl Files {
         &self.files[source.file].file.commands[source.command]
     }
 
+    pub fn file(&self, file: usize) -> Option<(&Path, &str)> {
+        self.files
+            .get(file)
+            .map(|f| (&f.name as &Path, &f.file.contents as &str))
+    }
+
     /// Add a [`Done`] statement to the task identified by `source`.
     ///
     /// Returns whether the addition was successful. It can fail if the entry

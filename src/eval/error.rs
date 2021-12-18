@@ -3,6 +3,7 @@ use std::result;
 use chrono::NaiveDate;
 
 use crate::files::primitives::{Span, Time};
+use crate::files::Files;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -60,6 +61,107 @@ pub enum Error {
         date: NaiveDate,
         msg: &'static str,
     },
+}
+
+impl Error {
+    fn print_at(files: &Files, file: &usize, span: &Span, message: String) {
+        use pest::error as pe;
+        let (name, content) = files.file(*file).expect("file index is valid");
+        let span = pest::Span::new(content, span.start, span.end).expect("span is valid");
+        let variant = pe::ErrorVariant::<()>::CustomError { message };
+        let error = pe::Error::new_from_span(variant, span).with_path(&name.to_string_lossy());
+        eprintln!("{}", error);
+    }
+
+    fn fmt_date_time(date: NaiveDate, time: Option<Time>) -> String {
+        match time {
+            None => format!("{}", date),
+            Some(time) => format!("{} {}", date, time),
+        }
+    }
+
+    pub fn print(&self, files: &Files) {
+        match self {
+            Error::DeltaInvalidStep {
+                file,
+                span,
+                start,
+                start_time,
+                prev,
+                prev_time,
+            } => {
+                let msg = format!(
+                    "Delta step resulted in invalid date\
+                    \nInitial start: {}\
+                    \nPrevious step: {}",
+                    Self::fmt_date_time(*start, *start_time),
+                    Self::fmt_date_time(*prev, *prev_time),
+                );
+                Self::print_at(files, file, span, msg);
+            }
+            Error::DeltaNoTime {
+                file,
+                span,
+                start,
+                prev,
+            } => {
+                let msg = format!(
+                    "Time-based delta step applied to date without time\
+                    \nInitial start: {}\
+                    \nPrevious step: {}",
+                    start, prev
+                );
+                Self::print_at(files, file, span, msg);
+            }
+            Error::RepeatDidNotMoveForwards {
+                file,
+                span,
+                from,
+                to,
+            } => {
+                let msg = format!(
+                    "Repeat delta did not move forwards\
+                    \nMoved from {} to {}",
+                    from, to
+                );
+                Self::print_at(files, file, span, msg);
+            }
+            Error::MoveWithoutSource { file, span } => {
+                let msg = "Tried to move nonexisting entry".to_string();
+                Self::print_at(files, file, span, msg);
+            }
+            Error::DivByZero { file, span, date } => {
+                let msg = format!(
+                    "Tried to divide by zero\
+                    \nAt date: {}",
+                    date
+                );
+                Self::print_at(files, file, span, msg);
+            }
+            Error::ModByZero { file, span, date } => {
+                let msg = format!(
+                    "Tried to modulo by zero\
+                    \nAt date: {}",
+                    date
+                );
+                Self::print_at(files, file, span, msg);
+            }
+            Error::Easter {
+                file,
+                span,
+                date,
+                msg,
+            } => {
+                let msg = format!(
+                    "Failed to calculate easter\
+                    \nAt date: {}\
+                    \nReason: {}",
+                    date, msg
+                );
+                Self::print_at(files, file, span, msg);
+            }
+        }
+    }
 }
 
 pub type Result<T> = result::Result<T, Error>;

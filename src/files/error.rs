@@ -27,7 +27,7 @@ pub enum Error {
 }
 
 impl Error {
-    pub fn print(self) {
+    pub fn print(&self) {
         match self {
             Error::ResolvePath { path, error } => {
                 eprintln!("Could not resolve path {:?}:", path);

@@ -7,7 +7,6 @@ mod cli;
 mod eval;
 mod files;
 
-fn main() -> anyhow::Result<()> {
-    cli::run()?;
-    Ok(())
+fn main() {
+    cli::run();
 }
