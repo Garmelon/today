@@ -1,7 +1,6 @@
 use std::result;
 
-use crate::eval;
-use crate::files::Files;
+use crate::eval::{self, SourceInfo};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -14,9 +13,9 @@ pub enum Error {
 }
 
 impl Error {
-    pub fn print(&self, files: &Files) {
+    pub fn print<'a>(&self, sources: &[SourceInfo<'a>]) {
         match self {
-            Error::Eval(e) => e.print(files),
+            Error::Eval(e) => e.print(sources),
             Error::NoSuchEntry(n) => eprintln!("No entry with number {}", n),
             Error::NotATask(ns) => {
                 if ns.is_empty() {

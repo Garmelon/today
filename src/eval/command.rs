@@ -216,7 +216,7 @@ impl<'a> CommandState<'a> {
             Ok(())
         } else {
             Err(Error::MoveWithoutSource {
-                file: self.command.source.file(),
+                index: self.command.source.file(),
                 span,
             })
         }

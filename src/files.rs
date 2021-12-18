@@ -5,6 +5,8 @@ use std::path::{Path, PathBuf};
 use chrono::{DateTime, Utc};
 use tzfile::Tz;
 
+use crate::eval::SourceInfo;
+
 use self::commands::{Command, Done, File};
 pub use self::error::{Error, Result};
 
@@ -164,10 +166,14 @@ impl Files {
         &self.files[source.file].file.commands[source.command]
     }
 
-    pub fn file(&self, file: usize) -> Option<(&Path, &str)> {
+    pub fn sources(&self) -> Vec<SourceInfo<'_>> {
         self.files
-            .get(file)
-            .map(|f| (&f.name as &Path, &f.file.contents as &str))
+            .iter()
+            .map(|f| SourceInfo {
+                name: Some(f.name.to_string_lossy().to_string()),
+                content: &f.file.contents,
+            })
+            .collect()
     }
 
     /// Add a [`Done`] statement to the task identified by `source`.

@@ -103,13 +103,13 @@ impl DateSpec {
         Some((start, skip, range))
     }
 
-    fn step(file: usize, from: NaiveDate, repeat: &Spanned<Delta>) -> Result<NaiveDate> {
-        let to = repeat.value.apply_date(file, from)?;
+    fn step(index: usize, from: NaiveDate, repeat: &Spanned<Delta>) -> Result<NaiveDate> {
+        let to = repeat.value.apply_date(index, from)?;
         if to > from {
             Ok(to)
         } else {
             Err(Error::RepeatDidNotMoveForwards {
-                file,
+                index,
                 span: repeat.span,
                 from,
                 to,
@@ -117,13 +117,13 @@ impl DateSpec {
         }
     }
 
-    fn dates(&self, file: usize, start: NaiveDate) -> Result<Dates> {
-        let root = self.start_delta.apply_date(file, start)?;
+    fn dates(&self, index: usize, start: NaiveDate) -> Result<Dates> {
+        let root = self.start_delta.apply_date(index, start)?;
         Ok(if let Some(root_time) = self.start_time {
-            let (other, other_time) = self.end_delta.apply_date_time(file, root, root_time)?;
+            let (other, other_time) = self.end_delta.apply_date_time(index, root, root_time)?;
             Dates::new_with_time(root, root_time, other, other_time)
         } else {
-            let other = self.end_delta.apply_date(file, root)?;
+            let other = self.end_delta.apply_date(index, root)?;
             Dates::new(root, other)
         })
     }
@@ -131,23 +131,23 @@ impl DateSpec {
 
 impl<'a> CommandState<'a> {
     pub fn eval_date_spec(&mut self, spec: DateSpec) -> Result<()> {
-        let file = self.command.source.file();
+        let index = self.command.source.file();
         if let Some(repeat) = &spec.repeat {
             if let Some((mut start, skip, range)) = spec.start_and_range(self) {
                 if skip {
-                    start = DateSpec::step(file, start, repeat)?;
+                    start = DateSpec::step(index, start, repeat)?;
                 }
                 while start < range.from() {
-                    start = DateSpec::step(file, start, repeat)?;
+                    start = DateSpec::step(index, start, repeat)?;
                 }
                 while start <= range.until() {
-                    let dates = spec.dates(file, start)?;
+                    let dates = spec.dates(index, start)?;
                     self.add(self.kind(), Some(dates));
-                    start = DateSpec::step(file, start, repeat)?;
+                    start = DateSpec::step(index, start, repeat)?;
                 }
             }
         } else {
-            let dates = spec.dates(file, spec.start)?;
+            let dates = spec.dates(index, spec.start)?;
             self.add(self.kind(), Some(dates));
         }
         Ok(())

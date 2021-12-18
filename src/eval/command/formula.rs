@@ -46,7 +46,7 @@ pub enum Var {
 }
 
 impl Var {
-    fn eval(self, file: usize, date: NaiveDate) -> Result<i64> {
+    fn eval(self, index: usize, date: NaiveDate) -> Result<i64> {
         Ok(match self {
             Var::JulianDay => date.num_days_from_ce().into(),
             Var::Year => date.year().into(),
@@ -81,7 +81,7 @@ impl Var {
             }
             Var::Easter(span) => {
                 let e = computus::gregorian(date.year()).map_err(|e| Error::Easter {
-                    file,
+                    index,
                     span,
                     date,
                     msg: e,
@@ -199,46 +199,46 @@ impl From<Weekday> for Expr {
 }
 
 impl Expr {
-    fn eval(&self, file: usize, date: NaiveDate) -> Result<i64> {
+    fn eval(&self, index: usize, date: NaiveDate) -> Result<i64> {
         Ok(match self {
             Expr::Lit(l) => *l,
-            Expr::Var(v) => v.eval(file, date)?,
-            Expr::Neg(e) => -e.eval(file, date)?,
-            Expr::Add(a, b) => a.eval(file, date)? + b.eval(file, date)?,
-            Expr::Sub(a, b) => a.eval(file, date)? - b.eval(file, date)?,
-            Expr::Mul(a, b) => a.eval(file, date)? * b.eval(file, date)?,
+            Expr::Var(v) => v.eval(index, date)?,
+            Expr::Neg(e) => -e.eval(index, date)?,
+            Expr::Add(a, b) => a.eval(index, date)? + b.eval(index, date)?,
+            Expr::Sub(a, b) => a.eval(index, date)? - b.eval(index, date)?,
+            Expr::Mul(a, b) => a.eval(index, date)? * b.eval(index, date)?,
             Expr::Div(a, b, span) => {
-                let b = b.eval(file, date)?;
+                let b = b.eval(index, date)?;
                 if b == 0 {
                     return Err(Error::DivByZero {
-                        file,
+                        index,
                         span: *span,
                         date,
                     });
                 }
-                a.eval(file, date)?.div_euclid(b)
+                a.eval(index, date)?.div_euclid(b)
             }
             Expr::Mod(a, b, span) => {
-                let b = b.eval(file, date)?;
+                let b = b.eval(index, date)?;
                 if b == 0 {
                     return Err(Error::ModByZero {
-                        file,
+                        index,
                         span: *span,
                         date,
                     });
                 }
-                a.eval(file, date)?.rem_euclid(b)
+                a.eval(index, date)?.rem_euclid(b)
             }
-            Expr::Eq(a, b) => b2i(a.eval(file, date)? == b.eval(file, date)?),
-            Expr::Neq(a, b) => b2i(a.eval(file, date)? != b.eval(file, date)?),
-            Expr::Lt(a, b) => b2i(a.eval(file, date)? < b.eval(file, date)?),
-            Expr::Lte(a, b) => b2i(a.eval(file, date)? <= b.eval(file, date)?),
-            Expr::Gt(a, b) => b2i(a.eval(file, date)? > b.eval(file, date)?),
-            Expr::Gte(a, b) => b2i(a.eval(file, date)? >= b.eval(file, date)?),
-            Expr::Not(e) => b2i(!i2b(e.eval(file, date)?)),
-            Expr::And(a, b) => b2i(i2b(a.eval(file, date)?) && i2b(b.eval(file, date)?)),
-            Expr::Or(a, b) => b2i(i2b(a.eval(file, date)?) || i2b(b.eval(file, date)?)),
-            Expr::Xor(a, b) => b2i(i2b(a.eval(file, date)?) ^ i2b(b.eval(file, date)?)),
+            Expr::Eq(a, b) => b2i(a.eval(index, date)? == b.eval(index, date)?),
+            Expr::Neq(a, b) => b2i(a.eval(index, date)? != b.eval(index, date)?),
+            Expr::Lt(a, b) => b2i(a.eval(index, date)? < b.eval(index, date)?),
+            Expr::Lte(a, b) => b2i(a.eval(index, date)? <= b.eval(index, date)?),
+            Expr::Gt(a, b) => b2i(a.eval(index, date)? > b.eval(index, date)?),
+            Expr::Gte(a, b) => b2i(a.eval(index, date)? >= b.eval(index, date)?),
+            Expr::Not(e) => b2i(!i2b(e.eval(index, date)?)),
+            Expr::And(a, b) => b2i(i2b(a.eval(index, date)?) && i2b(b.eval(index, date)?)),
+            Expr::Or(a, b) => b2i(i2b(a.eval(index, date)?) || i2b(b.eval(index, date)?)),
+            Expr::Xor(a, b) => b2i(i2b(a.eval(index, date)?) ^ i2b(b.eval(index, date)?)),
         })
     }
 }
@@ -341,29 +341,29 @@ impl FormulaSpec {
         s.limit_from_until(range)
     }
 
-    fn dates(&self, file: usize, start: NaiveDate) -> Result<Dates> {
-        let root = self.start_delta.apply_date(file, start)?;
+    fn dates(&self, index: usize, start: NaiveDate) -> Result<Dates> {
+        let root = self.start_delta.apply_date(index, start)?;
         Ok(if let Some(root_time) = self.start_time {
-            let (other, other_time) = self.end_delta.apply_date_time(file, root, root_time)?;
+            let (other, other_time) = self.end_delta.apply_date_time(index, root, root_time)?;
             Dates::new_with_time(root, root_time, other, other_time)
         } else {
-            let other = self.end_delta.apply_date(file, root)?;
+            let other = self.end_delta.apply_date(index, root)?;
             Dates::new(root, other)
         })
     }
 
-    fn eval(&self, file: usize, date: NaiveDate) -> Result<bool> {
-        Ok(i2b(self.start.eval(file, date)?))
+    fn eval(&self, index: usize, date: NaiveDate) -> Result<bool> {
+        Ok(i2b(self.start.eval(index, date)?))
     }
 }
 
 impl<'a> CommandState<'a> {
     pub fn eval_formula_spec(&mut self, spec: FormulaSpec) -> Result<()> {
         if let Some(range) = spec.range(self) {
-            let file = self.command.source.file();
+            let index = self.command.source.file();
             for day in range.days() {
-                if spec.eval(file, day)? {
-                    let dates = spec.dates(file, day)?;
+                if spec.eval(index, day)? {
+                    let dates = spec.dates(index, day)?;
                     self.add(self.kind(), Some(dates));
                 }
             }

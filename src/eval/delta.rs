@@ -143,7 +143,7 @@ impl From<&commands::Delta> for Delta {
 }
 
 struct DeltaEval {
-    file: usize,
+    index: usize,
     start: NaiveDate,
     start_time: Option<Time>,
     curr: NaiveDate,
@@ -151,9 +151,9 @@ struct DeltaEval {
 }
 
 impl DeltaEval {
-    fn new(file: usize, start: NaiveDate, start_time: Option<Time>) -> Self {
+    fn new(index: usize, start: NaiveDate, start_time: Option<Time>) -> Self {
         Self {
-            file,
+            index,
             start,
             start_time,
             curr: start,
@@ -163,7 +163,7 @@ impl DeltaEval {
 
     fn err_step(&self, span: Span) -> Error {
         Error::DeltaInvalidStep {
-            file: self.file,
+            index: self.index,
             span,
             start: self.start,
             start_time: self.start_time,
@@ -174,7 +174,7 @@ impl DeltaEval {
 
     fn err_time(&self, span: Span) -> Error {
         Error::DeltaNoTime {
-            file: self.file,
+            index: self.index,
             span,
             start: self.start,
             prev: self.curr,
@@ -315,27 +315,27 @@ impl Delta {
 
     fn apply(
         &self,
-        file: usize,
+        index: usize,
         start: (NaiveDate, Option<Time>),
     ) -> Result<(NaiveDate, Option<Time>)> {
-        let mut eval = DeltaEval::new(file, start.0, start.1);
+        let mut eval = DeltaEval::new(index, start.0, start.1);
         for step in &self.steps {
             eval.apply(step)?;
         }
         Ok((eval.curr, eval.curr_time))
     }
 
-    pub fn apply_date(&self, file: usize, date: NaiveDate) -> Result<NaiveDate> {
-        Ok(self.apply(file, (date, None))?.0)
+    pub fn apply_date(&self, index: usize, date: NaiveDate) -> Result<NaiveDate> {
+        Ok(self.apply(index, (date, None))?.0)
     }
 
     pub fn apply_date_time(
         &self,
-        file: usize,
+        index: usize,
         date: NaiveDate,
         time: Time,
     ) -> Result<(NaiveDate, Time)> {
-        let (date, time) = self.apply(file, (date, Some(time)))?;
+        let (date, time) = self.apply(index, (date, Some(time)))?;
         Ok((date, time.expect("time was not preserved")))
     }
 }

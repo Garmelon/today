@@ -139,7 +139,7 @@ pub fn run() {
     let range = find_range(&opt, now);
 
     if let Err(e) = run_command(&opt, &mut files, range, now) {
-        e.print(&files);
+        e.print(&files.sources());
         process::exit(1);
     }
 

@@ -3,14 +3,13 @@ use std::result;
 use chrono::NaiveDate;
 
 use crate::files::primitives::{Span, Time};
-use crate::files::Files;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     /// A delta step resulted in an invalid date.
     #[error("delta step resulted in invalid date")]
     DeltaInvalidStep {
-        file: usize,
+        index: usize,
         span: Span,
         start: NaiveDate,
         start_time: Option<Time>,
@@ -20,7 +19,7 @@ pub enum Error {
     /// A time-based delta step was applied to a date without time.
     #[error("time-based delta step applied to date without time")]
     DeltaNoTime {
-        file: usize,
+        index: usize,
         span: Span,
         start: NaiveDate,
         prev: NaiveDate,
@@ -30,7 +29,7 @@ pub enum Error {
     /// in time (`to < from`).
     #[error("repeat delta did not move forwards")]
     RepeatDidNotMoveForwards {
-        file: usize,
+        index: usize,
         span: Span,
         from: NaiveDate,
         to: NaiveDate,
@@ -38,38 +37,48 @@ pub enum Error {
     /// A `MOVE a TO b` statement was executed, but there was no entry at the
     /// date `a`.
     #[error("tried to move nonexisting entry")]
-    MoveWithoutSource { file: usize, span: Span },
+    MoveWithoutSource { index: usize, span: Span },
     /// A division by zero has occurred.
     #[error("tried to divide by zero")]
     DivByZero {
-        file: usize,
+        index: usize,
         span: Span,
         date: NaiveDate,
     },
     /// A modulo operation by zero has occurred.
     #[error("tried to modulo by zero")]
     ModByZero {
-        file: usize,
+        index: usize,
         span: Span,
         date: NaiveDate,
     },
     /// Easter calculation failed.
     #[error("easter calculation failed")]
     Easter {
-        file: usize,
+        index: usize,
         span: Span,
         date: NaiveDate,
         msg: &'static str,
     },
 }
 
+pub struct SourceInfo<'a> {
+    pub name: Option<String>,
+    pub content: &'a str,
+}
+
 impl Error {
-    fn print_at(files: &Files, file: &usize, span: &Span, message: String) {
+    fn print_at<'a>(sources: &[SourceInfo<'a>], index: &usize, span: &Span, message: String) {
         use pest::error as pe;
-        let (name, content) = files.file(*file).expect("file index is valid");
-        let span = pest::Span::new(content, span.start, span.end).expect("span is valid");
+
+        let source = sources.get(*index).expect("index is valid");
+        let span = pest::Span::new(source.content, span.start, span.end).expect("span is valid");
         let variant = pe::ErrorVariant::<()>::CustomError { message };
-        let error = pe::Error::new_from_span(variant, span).with_path(&name.to_string_lossy());
+        let mut error = pe::Error::new_from_span(variant, span);
+        if let Some(name) = &source.name {
+            error = error.with_path(name);
+        }
+
         eprintln!("{}", error);
     }
 
@@ -80,10 +89,10 @@ impl Error {
         }
     }
 
-    pub fn print(&self, files: &Files) {
+    pub fn print<'a>(&self, sources: &[SourceInfo<'a>]) {
         match self {
             Error::DeltaInvalidStep {
-                file,
+                index,
                 span,
                 start,
                 start_time,
@@ -97,10 +106,10 @@ impl Error {
                     Self::fmt_date_time(*start, *start_time),
                     Self::fmt_date_time(*prev, *prev_time),
                 );
-                Self::print_at(files, file, span, msg);
+                Self::print_at(sources, index, span, msg);
             }
             Error::DeltaNoTime {
-                file,
+                index,
                 span,
                 start,
                 prev,
@@ -111,10 +120,10 @@ impl Error {
                     \nPrevious step: {}",
                     start, prev
                 );
-                Self::print_at(files, file, span, msg);
+                Self::print_at(sources, index, span, msg);
             }
             Error::RepeatDidNotMoveForwards {
-                file,
+                index,
                 span,
                 from,
                 to,
@@ -124,30 +133,30 @@ impl Error {
                     \nMoved from {} to {}",
                     from, to
                 );
-                Self::print_at(files, file, span, msg);
+                Self::print_at(sources, index, span, msg);
             }
-            Error::MoveWithoutSource { file, span } => {
+            Error::MoveWithoutSource { index, span } => {
                 let msg = "Tried to move nonexisting entry".to_string();
-                Self::print_at(files, file, span, msg);
+                Self::print_at(sources, index, span, msg);
             }
-            Error::DivByZero { file, span, date } => {
+            Error::DivByZero { index, span, date } => {
                 let msg = format!(
                     "Tried to divide by zero\
                     \nAt date: {}",
                     date
                 );
-                Self::print_at(files, file, span, msg);
+                Self::print_at(sources, index, span, msg);
             }
-            Error::ModByZero { file, span, date } => {
+            Error::ModByZero { index, span, date } => {
                 let msg = format!(
                     "Tried to modulo by zero\
                     \nAt date: {}",
                     date
                 );
-                Self::print_at(files, file, span, msg);
+                Self::print_at(sources, index, span, msg);
             }
             Error::Easter {
-                file,
+                index,
                 span,
                 date,
                 msg,
@@ -158,7 +167,7 @@ impl Error {
                     \nReason: {}",
                     date, msg
                 );
-                Self::print_at(files, file, span, msg);
+                Self::print_at(sources, index, span, msg);
             }
         }
     }
