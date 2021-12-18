@@ -69,9 +69,11 @@ fn parse_range(p: Pair<'_, Rule>) -> Result<Range> {
     let mut p = p.into_inner();
 
     let (start, start_delta) = parse_range_start(p.next().unwrap())?;
-    let (end, end_delta) = parse_range_end(p.next().unwrap())?;
-
-    assert_eq!(p.next(), None);
+    let (end, end_delta) = match p.next() {
+        // For some reason, the EOI gets captured but the SOI doesn't.
+        Some(p) if p.as_rule() != Rule::EOI => parse_range_end(p)?,
+        _ => (None, None),
+    };
 
     Ok(Range {
         start,
