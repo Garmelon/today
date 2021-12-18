@@ -8,6 +8,7 @@ use tzfile::Tz;
 use self::commands::{Command, Done, File};
 pub use self::error::{Error, Result};
 
+pub mod arguments;
 pub mod commands;
 mod error;
 mod format;

@@ -15,7 +15,7 @@ use super::primitives::{Spanned, Time, Weekday};
 
 #[derive(pest_derive::Parser)]
 #[grammar = "files/grammar.pest"]
-struct TodayfileParser;
+pub struct TodayfileParser;
 
 pub type Error = pest::error::Error<Rule>;
 pub type Result<T> = result::Result<T, Error>;
@@ -55,7 +55,7 @@ fn parse_title(p: Pair<'_, Rule>) -> String {
     p.as_str().trim().to_string()
 }
 
-fn parse_datum(p: Pair<'_, Rule>) -> Result<Spanned<NaiveDate>> {
+pub fn parse_datum(p: Pair<'_, Rule>) -> Result<Spanned<NaiveDate>> {
     assert_eq!(p.as_rule(), Rule::datum);
     let pspan = p.as_span();
     let span = (&pspan).into();
@@ -203,7 +203,7 @@ fn parse_delta_step(
     Ok(Spanned::new(span, f(value)))
 }
 
-fn parse_delta(p: Pair<'_, Rule>) -> Result<Spanned<Delta>> {
+pub fn parse_delta(p: Pair<'_, Rule>) -> Result<Spanned<Delta>> {
     assert_eq!(p.as_rule(), Rule::delta);
     let span = (&p.as_span()).into();
 
