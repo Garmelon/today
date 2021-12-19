@@ -371,3 +371,438 @@ impl<'a> CommandState<'a> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::panic;
+
+    use chrono::{Datelike, Duration, NaiveDate};
+
+    use crate::files::primitives::Span;
+
+    use super::{Expr, Var};
+
+    fn expr(expr: &Expr, date: NaiveDate, target: i64) {
+        if let Ok(result) = expr.eval(0, date) {
+            assert_eq!(result, target);
+        } else {
+            panic!("formula produced error for day {}", date);
+        }
+    }
+
+    #[test]
+    fn julian_day() {
+        let e = Expr::Var(Var::JulianDay);
+
+        for delta in -1000..1000 {
+            let d1 = NaiveDate::from_ymd(2021, 12, 19);
+            let d2 = d1 + Duration::days(delta);
+            assert_eq!(e.eval(0, d2).unwrap() - e.eval(0, d1).unwrap(), delta);
+        }
+    }
+
+    #[test]
+    fn year() {
+        let e = Expr::Var(Var::Year);
+
+        for y in -3000..=3000 {
+            expr(&e, NaiveDate::from_ymd(y, 2, 19), y.into());
+        }
+
+        expr(&e, NaiveDate::from_ymd(2021, 1, 1), 2021);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 31), 2021);
+    }
+
+    #[test]
+    fn year_length() {
+        let e = Expr::Var(Var::YearLength);
+
+        expr(&e, NaiveDate::from_ymd(2000, 12, 19), 366);
+        expr(&e, NaiveDate::from_ymd(2019, 12, 19), 365);
+        expr(&e, NaiveDate::from_ymd(2020, 12, 19), 366);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 19), 365);
+    }
+
+    #[test]
+    fn year_day() {
+        let e = Expr::Var(Var::YearDay);
+
+        for i in 1..=365 {
+            expr(&e, NaiveDate::from_yo(2020, i), i.into());
+            expr(&e, NaiveDate::from_yo(2021, i), i.into());
+        }
+
+        expr(&e, NaiveDate::from_yo(2020, 366), 366);
+    }
+
+    #[test]
+    fn year_day_reverse() {
+        let e = Expr::Var(Var::YearDayReverse);
+
+        for i in 1..=365 {
+            expr(&e, NaiveDate::from_yo(2020, i), (366 - i + 1).into());
+            expr(&e, NaiveDate::from_yo(2021, i), (365 - i + 1).into());
+        }
+
+        expr(&e, NaiveDate::from_ymd(2020, 1, 1), 366);
+        expr(&e, NaiveDate::from_ymd(2021, 1, 1), 365);
+        expr(&e, NaiveDate::from_ymd(2020, 12, 31), 1);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 31), 1);
+    }
+
+    #[test]
+    fn year_week() {
+        let e = Expr::Var(Var::YearWeek);
+
+        for y in 1000..3000 {
+            expr(&e, NaiveDate::from_ymd(y, 1, 1), 1);
+            expr(&e, NaiveDate::from_ymd(y, 1, 2), 1);
+            expr(&e, NaiveDate::from_ymd(y, 1, 3), 1);
+            expr(&e, NaiveDate::from_ymd(y, 1, 4), 1);
+            expr(&e, NaiveDate::from_ymd(y, 1, 5), 1);
+            expr(&e, NaiveDate::from_ymd(y, 1, 6), 1);
+            expr(&e, NaiveDate::from_ymd(y, 1, 7), 1);
+            expr(&e, NaiveDate::from_ymd(y, 1, 8), 2);
+            expr(&e, NaiveDate::from_ymd(y, 1, 9), 2);
+            expr(&e, NaiveDate::from_ymd(y, 1, 10), 2);
+            expr(&e, NaiveDate::from_ymd(y, 1, 11), 2);
+            expr(&e, NaiveDate::from_ymd(y, 1, 12), 2);
+            expr(&e, NaiveDate::from_ymd(y, 1, 13), 2);
+            expr(&e, NaiveDate::from_ymd(y, 1, 14), 2);
+            expr(&e, NaiveDate::from_ymd(y, 1, 15), 3);
+        }
+
+        expr(&e, NaiveDate::from_ymd(2020, 12, 28), 52);
+        expr(&e, NaiveDate::from_ymd(2020, 12, 29), 52);
+        expr(&e, NaiveDate::from_ymd(2020, 12, 30), 53);
+        expr(&e, NaiveDate::from_ymd(2020, 12, 31), 53);
+
+        expr(&e, NaiveDate::from_ymd(2021, 12, 28), 52);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 29), 52);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 30), 52);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 31), 53);
+    }
+
+    #[test]
+    fn year_week_reverse() {
+        let e = Expr::Var(Var::YearWeekReverse);
+
+        for y in 1000..3000 {
+            expr(&e, NaiveDate::from_ymd(y, 12, 31), 1);
+            expr(&e, NaiveDate::from_ymd(y, 12, 30), 1);
+            expr(&e, NaiveDate::from_ymd(y, 12, 29), 1);
+            expr(&e, NaiveDate::from_ymd(y, 12, 28), 1);
+            expr(&e, NaiveDate::from_ymd(y, 12, 27), 1);
+            expr(&e, NaiveDate::from_ymd(y, 12, 26), 1);
+            expr(&e, NaiveDate::from_ymd(y, 12, 25), 1);
+            expr(&e, NaiveDate::from_ymd(y, 12, 24), 2);
+            expr(&e, NaiveDate::from_ymd(y, 12, 23), 2);
+            expr(&e, NaiveDate::from_ymd(y, 12, 22), 2);
+            expr(&e, NaiveDate::from_ymd(y, 12, 21), 2);
+            expr(&e, NaiveDate::from_ymd(y, 12, 20), 2);
+            expr(&e, NaiveDate::from_ymd(y, 12, 19), 2);
+            expr(&e, NaiveDate::from_ymd(y, 12, 18), 2);
+            expr(&e, NaiveDate::from_ymd(y, 12, 17), 3);
+        }
+
+        expr(&e, NaiveDate::from_ymd(2020, 1, 1), 53);
+        expr(&e, NaiveDate::from_ymd(2020, 1, 2), 53);
+        expr(&e, NaiveDate::from_ymd(2020, 1, 3), 52);
+        expr(&e, NaiveDate::from_ymd(2020, 1, 4), 52);
+
+        expr(&e, NaiveDate::from_ymd(2021, 1, 1), 53);
+        expr(&e, NaiveDate::from_ymd(2021, 1, 2), 52);
+        expr(&e, NaiveDate::from_ymd(2021, 1, 3), 52);
+        expr(&e, NaiveDate::from_ymd(2021, 1, 4), 52);
+    }
+
+    #[test]
+    fn month() {
+        let e = Expr::Var(Var::Month);
+        for y in -1000..=3000 {
+            for m in 1..=12 {
+                expr(&e, NaiveDate::from_ymd(y, m, 13), m.into());
+            }
+        }
+    }
+
+    #[test]
+    fn month_length() {
+        let e = Expr::Var(Var::MonthLength);
+
+        expr(&e, NaiveDate::from_ymd(2021, 1, 5), 31);
+        expr(&e, NaiveDate::from_ymd(2021, 2, 5), 28);
+        expr(&e, NaiveDate::from_ymd(2021, 3, 5), 31);
+        expr(&e, NaiveDate::from_ymd(2021, 4, 5), 30);
+        expr(&e, NaiveDate::from_ymd(2021, 5, 5), 31);
+        expr(&e, NaiveDate::from_ymd(2021, 6, 5), 30);
+        expr(&e, NaiveDate::from_ymd(2021, 7, 5), 31);
+        expr(&e, NaiveDate::from_ymd(2021, 8, 5), 31);
+        expr(&e, NaiveDate::from_ymd(2021, 9, 5), 30);
+        expr(&e, NaiveDate::from_ymd(2021, 10, 5), 31);
+        expr(&e, NaiveDate::from_ymd(2021, 11, 5), 30);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 5), 31);
+
+        expr(&e, NaiveDate::from_ymd(2020, 2, 5), 29);
+        expr(&e, NaiveDate::from_ymd(2019, 2, 5), 28);
+        expr(&e, NaiveDate::from_ymd(2000, 2, 5), 29);
+    }
+
+    #[test]
+    fn month_week() {
+        let e = Expr::Var(Var::MonthWeek);
+
+        expr(&e, NaiveDate::from_ymd(2021, 12, 1), 1);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 2), 1);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 3), 1);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 4), 1);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 5), 1);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 6), 1);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 7), 1);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 8), 2);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 9), 2);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 10), 2);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 11), 2);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 12), 2);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 13), 2);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 14), 2);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 15), 3);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 16), 3);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 17), 3);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 18), 3);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 19), 3);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 20), 3);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 21), 3);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 22), 4);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 23), 4);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 24), 4);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 25), 4);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 26), 4);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 27), 4);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 28), 4);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 29), 5);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 30), 5);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 31), 5);
+    }
+
+    #[test]
+    fn month_week_reverse() {
+        let e = Expr::Var(Var::MonthWeekReverse);
+
+        expr(&e, NaiveDate::from_ymd(2021, 12, 1), 5);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 2), 5);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 3), 5);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 4), 4);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 5), 4);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 6), 4);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 7), 4);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 8), 4);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 9), 4);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 10), 4);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 11), 3);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 12), 3);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 13), 3);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 14), 3);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 15), 3);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 16), 3);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 17), 3);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 18), 2);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 19), 2);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 20), 2);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 21), 2);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 22), 2);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 23), 2);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 24), 2);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 25), 1);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 26), 1);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 27), 1);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 28), 1);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 29), 1);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 30), 1);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 31), 1);
+    }
+
+    #[test]
+    fn day() {
+        let e = Expr::Var(Var::Day);
+
+        for d in 1..=31 {
+            expr(&e, NaiveDate::from_ymd(2020, 1, d), d.into());
+            expr(&e, NaiveDate::from_ymd(2020, 3, d), d.into());
+            expr(&e, NaiveDate::from_ymd(2020, 5, d), d.into());
+            expr(&e, NaiveDate::from_ymd(2020, 7, d), d.into());
+            expr(&e, NaiveDate::from_ymd(2020, 8, d), d.into());
+            expr(&e, NaiveDate::from_ymd(2020, 10, d), d.into());
+            expr(&e, NaiveDate::from_ymd(2020, 12, d), d.into());
+
+            expr(&e, NaiveDate::from_ymd(2021, 1, d), d.into());
+            expr(&e, NaiveDate::from_ymd(2021, 3, d), d.into());
+            expr(&e, NaiveDate::from_ymd(2021, 5, d), d.into());
+            expr(&e, NaiveDate::from_ymd(2021, 7, d), d.into());
+            expr(&e, NaiveDate::from_ymd(2021, 8, d), d.into());
+            expr(&e, NaiveDate::from_ymd(2021, 10, d), d.into());
+            expr(&e, NaiveDate::from_ymd(2021, 12, d), d.into());
+        }
+
+        for d in 1..=30 {
+            expr(&e, NaiveDate::from_ymd(2020, 4, d), d.into());
+            expr(&e, NaiveDate::from_ymd(2020, 6, d), d.into());
+            expr(&e, NaiveDate::from_ymd(2020, 9, d), d.into());
+            expr(&e, NaiveDate::from_ymd(2020, 11, d), d.into());
+
+            expr(&e, NaiveDate::from_ymd(2021, 4, d), d.into());
+            expr(&e, NaiveDate::from_ymd(2021, 6, d), d.into());
+            expr(&e, NaiveDate::from_ymd(2021, 9, d), d.into());
+            expr(&e, NaiveDate::from_ymd(2021, 11, d), d.into());
+        }
+
+        for d in 1..=28 {
+            expr(&e, NaiveDate::from_ymd(2020, 2, d), d.into());
+            expr(&e, NaiveDate::from_ymd(2021, 2, d), d.into());
+        }
+
+        expr(&e, NaiveDate::from_ymd(2020, 2, 29), 29);
+    }
+
+    #[test]
+    fn day_reverse() {
+        let e = Expr::Var(Var::DayReverse);
+
+        expr(&e, NaiveDate::from_ymd(2021, 12, 1), 31);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 2), 30);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 3), 29);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 4), 28);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 5), 27);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 6), 26);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 7), 25);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 8), 24);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 9), 23);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 10), 22);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 11), 21);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 12), 20);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 13), 19);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 14), 18);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 15), 17);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 16), 16);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 17), 15);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 18), 14);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 19), 13);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 20), 12);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 21), 11);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 22), 10);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 23), 9);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 24), 8);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 25), 7);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 26), 6);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 27), 5);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 28), 4);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 29), 3);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 30), 2);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 31), 1);
+    }
+
+    // TODO Implement remaining tests
+
+    // #[test]
+    // fn iso_year() {}
+
+    // #[test]
+    // fn iso_year_length() {}
+
+    // #[test]
+    // fn iso_week() {}
+
+    #[test]
+    fn weekday() {
+        let e = Expr::Var(Var::Weekday);
+
+        expr(&e, NaiveDate::from_ymd(2021, 12, 18), 6);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 19), 7);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 20), 1);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 21), 2);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 22), 3);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 23), 4);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 24), 5);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 25), 6);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 26), 7);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 27), 1);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 28), 2);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 29), 3);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 30), 4);
+        expr(&e, NaiveDate::from_ymd(2021, 12, 31), 5);
+    }
+
+    #[test]
+    fn easter() {
+        let e = Expr::Var(Var::Easter(Span { start: 0, end: 0 }));
+
+        // From https://en.wikipedia.org/wiki/List_of_dates_for_Easter
+        #[rustfmt::skip]
+        let dates = [
+            (2041,4,21), (2040,4, 1),
+            (2039,4,10), (2038,4,25), (2037,4, 5), (2036,4,13), (2035,3,25), (2034,4, 9), (2033,4,17), (2032,3,28), (2031,4,13), (2030,4,21),
+            (2029,4, 1), (2028,4,16), (2027,3,28), (2026,4, 5), (2025,4,20), (2024,3,31), (2023,4, 9), (2022,4,17), (2021,4, 4), (2020,4,12),
+            (2019,4,21), (2018,4, 1), (2017,4,16), (2016,3,27), (2015,4, 5), (2014,4,20), (2013,3,31), (2012,4, 8), (2011,4,24), (2010,4, 4),
+            (2009,4,12), (2008,3,23), (2007,4, 8), (2006,4,16), (2005,3,27), (2004,4,11), (2003,4,20), (2002,3,31), (2001,4,15), (2000,4,23),
+            (1999,4, 4), (1998,4,12), (1997,3,30), (1996,4, 7), (1995,4,16), (1994,4, 3), (1993,4,11), (1992,4,19), (1991,3,31), (1990,4,15),
+            (1989,3,26), (1988,4, 3), (1987,4,19), (1986,3,30), (1985,4, 7), (1984,4,22), (1983,4, 3), (1982,4,11), (1981,4,19), (1980,4, 6),
+            (1979,4,15), (1978,3,26), (1977,4,10), (1976,4,18), (1975,3,30), (1974,4,14), (1973,4,22), (1972,4, 2), (1971,4,11), (1970,3,29),
+            (1969,4, 6), (1968,4,14), (1967,3,26), (1966,4,10), (1965,4,18), (1964,3,29), (1963,4,14), (1962,4,22), (1961,4, 2), (1960,4,17),
+            (1959,3,29), (1958,4, 6), (1957,4,21), (1956,4, 1), (1955,4,10), (1954,4,18), (1953,4, 5), (1952,4,13), (1951,3,25), (1950,4, 9),
+            (1949,4,17), (1948,3,28), (1947,4, 6), (1946,4,21), (1945,4, 1), (1944,4, 9), (1943,4,25), (1942,4, 5), (1941,4,13), (1940,3,24),
+            (1939,4, 9), (1938,4,17), (1937,3,28), (1936,4,12), (1935,4,21), (1934,4, 1), (1933,4,16), (1932,3,27), (1931,4, 5), (1930,4,20),
+            (1929,3,31), (1928,4, 8), (1927,4,17), (1926,4, 4), (1925,4,12), (1924,4,20), (1923,4, 1), (1922,4,16), (1921,3,27), (1920,4, 4),
+            (1919,4,20), (1918,3,31), (1917,4, 8), (1916,4,23), (1915,4, 4), (1914,4,12), (1913,3,23), (1912,4, 7), (1911,4,16), (1910,3,27),
+            (1909,4,11), (1908,4,19), (1907,3,31), (1906,4,15), (1905,4,23), (1904,4, 3), (1903,4,12), (1902,3,30), (1901,4, 7), (1900,4,15),
+            (1899,4, 2), (1898,4,10), (1897,4,18), (1896,4, 5), (1895,4,14), (1894,3,25), (1893,4, 2), (1892,4,17), (1891,3,29), (1890,4, 6),
+            (1889,4,21), (1888,4, 1), (1887,4,10), (1886,4,25), (1885,4, 5), (1884,4,13), (1883,3,25), (1882,4, 9), (1881,4,17), (1880,3,28),
+            (1879,4,13), (1878,4,21), (1877,4, 1), (1876,4,16), (1875,3,28), (1874,4, 5), (1873,4,13), (1872,3,31), (1871,4, 9), (1870,4,17),
+            (1869,3,28), (1868,4,12), (1867,4,21), (1866,4, 1), (1865,4,16), (1864,3,27), (1863,4, 5), (1862,4,20), (1861,3,31), (1860,4, 8),
+            (1859,4,24), (1858,4, 4), (1857,4,12), (1856,3,23), (1855,4, 8), (1854,4,16), (1853,3,27), (1852,4,11), (1851,4,20), (1850,3,31),
+            (1849,4, 8), (1848,4,23), (1847,4, 4), (1846,4,12), (1845,3,23), (1844,4, 7), (1843,4,16), (1842,3,27), (1841,4,11), (1840,4,19),
+            (1839,3,31), (1838,4,15), (1837,3,26), (1836,4, 3), (1835,4,19), (1834,3,30), (1833,4, 7), (1832,4,22), (1831,4, 3), (1830,4,11),
+            (1829,4,19), (1828,4, 6), (1827,4,15), (1826,3,26), (1825,4, 3), (1824,4,18), (1823,3,30), (1822,4, 7), (1821,4,22), (1820,4, 2),
+            (1819,4,11), (1818,3,22), (1817,4, 6), (1816,4,14), (1815,3,26), (1814,4,10), (1813,4,18), (1812,3,29), (1811,4,14), (1810,4,22),
+            (1809,4, 2), (1808,4,17), (1807,3,29), (1806,4, 6), (1805,4,14), (1804,4, 1), (1803,4,10), (1802,4,18), (1801,4, 5), (1800,4,13),
+            (1799,3,24), (1798,4, 8), (1797,4,16), (1796,3,27), (1795,4, 5), (1794,4,20), (1793,3,31), (1792,4, 8), (1791,4,24), (1790,4, 4),
+            (1789,4,12), (1788,3,23), (1787,4, 8), (1786,4,16), (1785,3,27), (1784,4,11), (1783,4,20), (1782,3,31), (1781,4,15), (1780,3,26),
+            (1779,4, 4), (1778,4,19), (1777,3,30), (1776,4, 7), (1775,4,16), (1774,4, 3), (1773,4,11), (1772,4,19), (1771,3,31), (1770,4,15),
+            (1769,3,26), (1768,4, 3), (1767,4,19), (1766,3,30), (1765,4, 7), (1764,4,22), (1763,4, 3), (1762,4,11), (1761,3,22), (1760,4, 6),
+            (1759,4,15), (1758,3,26), (1757,4,10), (1756,4,18), (1755,3,30), (1754,4,14), (1753,4,22), (1752,4, 2), (1751,4,11), (1750,3,29),
+            (1749,4, 6), (1748,4,14), (1747,4, 2), (1746,4,10), (1745,4,18), (1744,4, 5), (1743,4,14), (1742,3,25), (1741,4, 2), (1740,4,17),
+            (1739,3,29), (1738,4, 6), (1737,4,21), (1736,4, 1), (1735,4,10), (1734,4,25), (1733,4, 5), (1732,4,13), (1731,3,25), (1730,4, 9),
+            (1729,4,17), (1728,3,28), (1727,4,13), (1726,4,21), (1725,4, 1), (1724,4,16), (1723,3,28), (1722,4, 5), (1721,4,13), (1720,3,31),
+            (1719,4, 9), (1718,4,17), (1717,3,28), (1716,4,12), (1715,4,21), (1714,4, 1), (1713,4,16), (1712,3,27), (1711,4, 5), (1710,4,20),
+            (1709,3,31), (1708,4, 8), (1707,4,24), (1706,4, 4), (1705,4,12), (1704,3,23), (1703,4, 8), (1702,4,16), (1701,3,27), (1700,4,11),
+            (1699,4,19), (1698,3,30), (1697,4, 7), (1696,4,22), (1695,4, 3), (1694,4,11), (1693,3,22), (1692,4, 6), (1691,4,15), (1690,3,26),
+            (1689,4,10), (1688,4,18), (1687,3,30), (1686,4,14), (1685,4,22), (1684,4, 2), (1683,4,18), (1682,3,29), (1681,4, 6), (1680,4,21),
+            (1679,4, 2), (1678,4,10), (1677,4,18), (1676,4, 5), (1675,4,14), (1674,3,25), (1673,4, 2), (1672,4,17), (1671,3,29), (1670,4 ,6),
+            (1669,4,21), (1668,4, 1), (1667,4,10), (1666,4,25), (1665,4, 5), (1664,4,13), (1663,3,25), (1662,4, 9), (1661,4,17), (1660,3,28),
+            (1659,4,13), (1658,4,21), (1657,4, 1), (1656,4,16), (1655,3,28), (1654,4, 5), (1653,4,13), (1652,3,31), (1651,4, 9), (1650,4,17),
+            (1649,4, 4), (1648,4,12), (1647,4,21), (1646,4, 1), (1645,4,16), (1644,3,27), (1643,4, 5), (1642,4,20), (1641,3,31), (1640,4, 8),
+            (1639,4,24), (1638,4, 4), (1637,4,12), (1636,3,23), (1635,4, 8), (1634,4,16), (1633,3,27), (1632,4,11), (1631,4,20), (1630,3,31),
+            (1629,4,15), (1628,4,23), (1627,4, 4), (1626,4,12), (1625,3,30), (1624,4, 7), (1623,4,16), (1622,3,27), (1621,4,11), (1620,4,19),
+            (1619,3,31), (1618,4,15), (1617,3,26), (1616,4, 3), (1615,4,19), (1614,3,30), (1613,4, 7), (1612,4,22), (1611,4, 3), (1610,4,11),
+            (1609,4,19), (1608,4, 6), (1607,4,15), (1606,3,26), (1605,4,10), (1604,4,18), (1603,3,30), (1602,4, 7), (1601,4,22), (1600,4, 2),
+            (1599,4,11), (1598,3,22), (1597,4, 6), (1596,4,14), (1595,3,26), (1594,4,10), (1593,4,18), (1592,3,29), (1591,4,14), (1590,4,22),
+            (1589,4, 2), (1588,4,17), (1587,3,29), (1586,4, 6), (1585,4,21), (1584,4, 1), (1583,4,10),
+        ];
+
+        for (y, m, d) in dates {
+            expr(
+                &e,
+                NaiveDate::from_ymd(y, 1, 1),
+                NaiveDate::from_ymd(y, m, d).ordinal().into(),
+            );
+        }
+    }
+
+    // #[test]
+    // fn is_weekday()  {}
+
+    // #[test]
+    //  fn is_weekend() {}
+
+    // #[test]
+    //  fn is_leap_year() {}
+}
