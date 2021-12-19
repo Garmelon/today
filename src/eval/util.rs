@@ -19,6 +19,7 @@ pub fn month_length(year: i32, month: u32) -> u32 {
         .day()
 }
 
+// Length of an ISO week year in days.
 pub fn iso_year_length(year: i32) -> u32 {
     if is_iso_leap_year(year) {
         53 * 7

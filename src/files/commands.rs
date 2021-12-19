@@ -145,7 +145,7 @@ pub enum Var {
     DayReverse,
     /// `iy`, ISO 8601 year
     IsoYear,
-    /// `iyl`, length of current ISO 8601 year **in weeks**
+    /// `iyl`, length of current ISO 8601 year in days
     IsoYearLength,
     /// `iw`, ISO 8601 week
     IsoWeek,
@@ -159,6 +159,8 @@ pub enum Var {
     IsWeekend,
     /// `isLeapYear`, whether the current year is a leap year
     IsLeapYear,
+    /// `isIsoLeapYear`, whether the current year is a long year in the ISO week system
+    IsIsoLeapYear,
 }
 
 impl Var {
@@ -197,6 +199,7 @@ impl Var {
             Var::IsWeekday => "isWeekday",
             Var::IsWeekend => "isWeekend",
             Var::IsLeapYear => "isLeapYear",
+            Var::IsIsoLeapYear => "isIsoLeapYear",
         }
     }
 }

@@ -348,6 +348,7 @@ fn parse_variable(p: Pair<'_, Rule>) -> Var {
         "isWeekday" => Var::IsWeekday,
         "isWeekend" => Var::IsWeekend,
         "isLeapYear" => Var::IsLeapYear,
+        "isIsoLeapYear" => Var::IsIsoLeapYear,
         _ => unreachable!(),
     }
 }

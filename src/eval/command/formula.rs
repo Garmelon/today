@@ -43,6 +43,7 @@ pub enum Var {
     IsWeekday,
     IsWeekend,
     IsLeapYear,
+    IsIsoLeapYear,
 }
 
 impl Var {
@@ -97,6 +98,7 @@ impl Var {
                 b2i(wd.is_weekend())
             }
             Var::IsLeapYear => b2i(util::is_leap_year(date.year())),
+            Var::IsIsoLeapYear => b2i(util::is_iso_leap_year(date.year())),
         })
     }
 }
@@ -162,6 +164,7 @@ impl From<&Spanned<commands::Expr>> for Expr {
                 commands::Var::IsWeekday => Self::Var(Var::IsWeekday),
                 commands::Var::IsWeekend => Self::Var(Var::IsWeekend),
                 commands::Var::IsLeapYear => Self::Var(Var::IsLeapYear),
+                commands::Var::IsIsoLeapYear => Self::Var(Var::IsIsoLeapYear),
             },
             commands::Expr::Paren(i) => i.as_ref().into(),
             commands::Expr::Neg(i) => Self::Neg(conv(i)),

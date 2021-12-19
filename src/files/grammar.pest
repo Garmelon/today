@@ -48,7 +48,7 @@ delta = {
 boolean = { "true" | "false" }
 variable = {
     "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun"
-    | "isWeekday" | "isWeekend" | "isLeapYear"
+    | "isWeekday" | "isWeekend" | "isLeapYear" | "isIsoLeapYear"
     | "j"
     | "yl" | "yd" | "yD" | "yw" | "yW" | "y"
     | "ml" | "mw" | "mW" | "m"
