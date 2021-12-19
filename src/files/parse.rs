@@ -623,13 +623,13 @@ fn parse_stmt_move(p: Pair<'_, Rule>) -> Result<Statement> {
     Ok(Statement::Move { span, from, to })
 }
 
-// TODO Don't allow BDATE in TASKs
-fn parse_statements(p: Pair<'_, Rule>) -> Result<Vec<Statement>> {
+fn parse_statements(p: Pair<'_, Rule>, task: bool) -> Result<Vec<Statement>> {
     assert_eq!(p.as_rule(), Rule::statements);
     let mut statements = vec![];
     for p in p.into_inner() {
         statements.push(match p.as_rule() {
             Rule::stmt_date => parse_stmt_date(p)?,
+            Rule::stmt_bdate if task => fail(p.as_span(), "BDATE not allowed in TASKs")?,
             Rule::stmt_bdate => parse_stmt_bdate(p)?,
             Rule::stmt_from => parse_stmt_from(p)?,
             Rule::stmt_until => parse_stmt_until(p)?,
@@ -724,7 +724,7 @@ fn parse_task(p: Pair<'_, Rule>) -> Result<Task> {
     let mut p = p.into_inner();
 
     let title = parse_title(p.next().unwrap());
-    let statements = parse_statements(p.next().unwrap())?;
+    let statements = parse_statements(p.next().unwrap(), true)?;
     let done = parse_dones(p.next().unwrap())?;
     let desc = parse_description(p.next().unwrap())?;
 
@@ -743,7 +743,7 @@ fn parse_note(p: Pair<'_, Rule>) -> Result<Note> {
     let mut p = p.into_inner();
 
     let title = parse_title(p.next().unwrap());
-    let statements = parse_statements(p.next().unwrap())?;
+    let statements = parse_statements(p.next().unwrap(), false)?;
     let desc = parse_description(p.next().unwrap())?;
 
     assert_eq!(p.next(), None);
