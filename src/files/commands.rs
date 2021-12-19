@@ -72,6 +72,7 @@ pub struct DateSpec {
     pub end_delta: Option<Delta>,
     pub end_time: Option<Spanned<Time>>,
     pub repeat: Option<Repeat>,
+    // TODO Allow specifying amount of repetitions
 }
 
 #[derive(Debug)]
@@ -256,9 +257,11 @@ pub struct BirthdaySpec {
 pub enum Statement {
     Date(Spec),
     BDate(BirthdaySpec),
+    // TODO Allow specifying delta and repetitions for FROM and UNTIL
     From(Option<NaiveDate>),
     Until(Option<NaiveDate>),
-    Except(NaiveDate), // TODO Allow excluding ranges
+    // TODO Allow excluding ranges (maybe with --range syntax?)
+    Except(NaiveDate),
     Move {
         span: Span,
         from: NaiveDate,

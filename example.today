@@ -1,25 +1,30 @@
-TASK foo
+NOTE Physics lecture
+FROM 2021-04-14
+UNTIL 2021-07-28
+DATE wed 14:00 -- 15:30
+MOVE 2021-05-05 TO 2021-05-07
+# This is a description of the event. It might mention further information that
+# doesn't fit into the title.
+#
+# It may even contain multiple paragraphs.
 
-NOTE daily
+NOTE Daily
 DATE *
-DATE (true)
-DATE 2021-11-07; +d
 
-NOTE on weekends
-DATE (wd = sat | wd = sun)
+NOTE On Saturday and Sunday
+DATE (isWeekend)
+# or (wd = sat | wd = sun)
 
-NOTE weekends
+NOTE The whole weekend
 DATE sat -- sun
-DATE 2021-11-06 -- 2021-11-07; +w
-DATE 2021-11-06 -- +d; +w
-DATE (wd = sat) -- +d
+# or DATE (wd = sat) -- +d
 
-NOTE last of each month
-DATE (m = 1) -d
+NOTE The last day of each month
+DATE (D = 1)
 
-NOTE Second sunday of each month
-DATE (d = 1) +2sun
+NOTE The second Sunday of each month
 DATE (wd = sun & mw = 2)
+# or DATE (d = 1) +2sun
 
 NOTE Easter
 DATE (yd = e)
@@ -53,13 +58,3 @@ BDATE 1987-05-14
 
 NOTE Martha
 BDATE ?-09-21
-
-NOTE Physics lecture
-FROM 2021-04-14
-UNTIL 2021-07-28
-DATE wed 14:00 -- 15:30
-MOVE 2021-05-05 TO 2021-05-07
-# This is a description of the event. It might mention further information that
-# doesn't fit into the title.
-#
-# It may even contain multiple paragraphs.
