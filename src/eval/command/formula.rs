@@ -61,16 +61,16 @@ impl Var {
             }
             Var::Month => date.month().into(),
             Var::MonthLength => util::month_length(date.year(), date.month()).into(),
-            Var::MonthWeek => (date.month0().div_euclid(7) + 1).into(),
+            Var::MonthWeek => (date.day0().div_euclid(7) + 1).into(),
             Var::MonthWeekReverse => {
                 #[allow(non_snake_case)]
-                let mD = util::month_length(date.year(), date.month()) - date.month0();
+                let mD = util::month_length(date.year(), date.month()) - date.day();
                 (mD.div_euclid(7) + 1).into()
             }
             Var::Day => date.day().into(),
             Var::DayReverse => {
                 let ml = util::month_length(date.year(), date.month());
-                (ml - date.month0()).into()
+                (ml - date.day0()).into()
             }
             Var::IsoYear => date.iso_week().year().into(),
             Var::IsoYearLength => util::iso_year_length(date.iso_week().year()).into(),

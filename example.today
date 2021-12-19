@@ -18,7 +18,7 @@ NOTE last of each month
 DATE (m = 1) -d
 
 NOTE Second sunday of each month
-DATE (m = 1) +2sun
+DATE (d = 1) +2sun
 DATE (wd = sun & mw = 2)
 
 NOTE Easter

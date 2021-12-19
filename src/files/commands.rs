@@ -131,17 +131,17 @@ pub enum Var {
     MonthLength,
     /// `mw`, 1 during the first 7 days of the month, 2 during the next etc.
     ///
-    /// Equal to `((md - 1) / 7) + 1`
+    /// Equal to `((d - 1) / 7) + 1`
     MonthWeek,
     /// `mW`, 1 during the last 7 days of the month, 2 during the previous etc.
     ///
-    /// Equal to `((mD - 1) / 7) + 1`
+    /// Equal to `((D - 1) / 7) + 1`
     MonthWeekReverse,
     /// `d`, day of the month
     Day,
     /// `D`, day of the month starting from the end
     ///
-    /// Equal to `ml - md + 1`
+    /// Equal to `ml - d + 1`
     DayReverse,
     /// `iy`, ISO 8601 year
     IsoYear,
