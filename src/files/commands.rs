@@ -267,6 +267,7 @@ pub enum Statement {
         from: NaiveDate,
         to: NaiveDate,
     },
+    Remind(Option<Spanned<Delta>>),
 }
 
 #[derive(Debug, Clone, Copy)]

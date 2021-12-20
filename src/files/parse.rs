@@ -623,6 +623,17 @@ fn parse_stmt_move(p: Pair<'_, Rule>) -> Result<Statement> {
     Ok(Statement::Move { span, from, to })
 }
 
+fn parse_stmt_remind(p: Pair<'_, Rule>) -> Result<Statement> {
+    assert_eq!(p.as_rule(), Rule::stmt_remind);
+    let mut p = p.into_inner();
+    let delta = match p.next() {
+        Some(p) => Some(parse_delta(p)?),
+        None => None,
+    };
+    assert_eq!(p.next(), None);
+    Ok(Statement::Remind(delta))
+}
+
 fn parse_statements(p: Pair<'_, Rule>, task: bool) -> Result<Vec<Statement>> {
     assert_eq!(p.as_rule(), Rule::statements);
     let mut statements = vec![];
@@ -635,6 +646,7 @@ fn parse_statements(p: Pair<'_, Rule>, task: bool) -> Result<Vec<Statement>> {
             Rule::stmt_until => parse_stmt_until(p)?,
             Rule::stmt_except => parse_stmt_except(p)?,
             Rule::stmt_move => parse_stmt_move(p)?,
+            Rule::stmt_remind => parse_stmt_remind(p)?,
             _ => unreachable!(),
         });
     }

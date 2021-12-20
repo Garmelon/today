@@ -221,6 +221,8 @@ impl fmt::Display for Statement {
             Statement::Until(None) => writeln!(f, "UNTIL *"),
             Statement::Except(date) => writeln!(f, "EXCEPT {}", date),
             Statement::Move { from, to, .. } => writeln!(f, "MOVE {} TO {}", from, to),
+            Statement::Remind(Some(delta)) => writeln!(f, "REMIND {}", delta),
+            Statement::Remind(None) => writeln!(f, "REMIND *"),
         }
     }
 }
