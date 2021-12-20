@@ -84,7 +84,7 @@ impl DateSpec {
                     .map(|date| date.succ())
                     .unwrap_or(self.start);
                 let range = s
-                    .range
+                    .range_with_remind()
                     .expand_by(&self.end_delta)
                     .move_by(&self.start_delta)
                     .with_from(range_from)?;
@@ -93,7 +93,7 @@ impl DateSpec {
             Command::Note(_) => {
                 let start = self.start;
                 let range = s
-                    .range
+                    .range_with_remind()
                     .expand_by(&self.end_delta)
                     .move_by(&self.start_delta);
                 (start, false, range)
@@ -142,13 +142,13 @@ impl<'a> CommandState<'a> {
                 }
                 while start <= range.until() {
                     let dates = spec.dates(index, start)?;
-                    self.add(self.kind(), Some(dates));
+                    self.add(self.entry_with_remind(self.kind(), Some(dates))?);
                     start = DateSpec::step(index, start, repeat)?;
                 }
             }
         } else {
             let dates = spec.dates(index, spec.start)?;
-            self.add(self.kind(), Some(dates));
+            self.add(self.entry_with_remind(self.kind(), Some(dates))?);
         }
         Ok(())
     }

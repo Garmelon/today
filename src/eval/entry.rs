@@ -19,14 +19,31 @@ pub struct Entry {
     pub source: Source,
     pub kind: EntryKind,
     pub dates: Option<Dates>,
+    /// Remind the user of an entry before it occurs. This date should always be
+    /// before the entry's start date, or `None` if there is no start date.
+    pub remind: Option<NaiveDate>,
 }
 
 impl Entry {
-    pub fn new(source: Source, kind: EntryKind, dates: Option<Dates>) -> Self {
+    pub fn new(
+        source: Source,
+        kind: EntryKind,
+        dates: Option<Dates>,
+        remind: Option<NaiveDate>,
+    ) -> Self {
+        if let Some(dates) = dates {
+            if let Some(remind) = remind {
+                assert!(remind < dates.sorted().root());
+            }
+        } else {
+            assert!(remind.is_none());
+        }
+
         Self {
             source,
             kind,
             dates,
+            remind,
         }
     }
 

@@ -324,7 +324,7 @@ impl From<&commands::WeekdaySpec> for FormulaSpec {
 impl FormulaSpec {
     fn range(&self, s: &CommandState<'_>) -> Option<DateRange> {
         let mut range = s
-            .range
+            .range_with_remind()
             .expand_by(&self.end_delta)
             .move_by(&self.start_delta);
 
@@ -367,7 +367,7 @@ impl<'a> CommandState<'a> {
             for day in range.days() {
                 if spec.eval(index, day)? {
                     let dates = spec.dates(index, day)?;
-                    self.add(self.kind(), Some(dates));
+                    self.add(self.entry_with_remind(self.kind(), Some(dates))?);
                 }
             }
         }

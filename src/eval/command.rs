@@ -2,11 +2,14 @@ use std::collections::HashMap;
 
 use chrono::NaiveDate;
 
-use crate::files::commands::{BirthdaySpec, Command, Done, DoneDate, Note, Spec, Statement, Task};
-use crate::files::primitives::Span;
+use crate::files::commands::{
+    self, BirthdaySpec, Command, Done, DoneDate, Note, Spec, Statement, Task,
+};
+use crate::files::primitives::{Span, Spanned};
 use crate::files::SourcedCommand;
 
 use super::date::Dates;
+use super::delta::Delta;
 use super::{DateRange, Entry, EntryKind, Error, Result};
 
 mod birthday;
@@ -19,6 +22,7 @@ pub struct CommandState<'a> {
 
     from: Option<NaiveDate>,
     until: Option<NaiveDate>,
+    remind: Option<Spanned<Delta>>,
 
     dated: HashMap<NaiveDate, Entry>,
     undated: Vec<Entry>,
@@ -44,6 +48,7 @@ impl<'a> CommandState<'a> {
             command,
             from: None,
             until: None,
+            remind: None,
             dated: HashMap::new(),
             undated: Vec::new(),
         }
@@ -70,6 +75,13 @@ impl<'a> CommandState<'a> {
         match self.command.command {
             Command::Task(_) => EntryKind::Task,
             Command::Note(_) => EntryKind::Note,
+        }
+    }
+
+    fn range_with_remind(&self) -> DateRange {
+        match &self.remind {
+            None => self.range,
+            Some(delta) => self.range.expand_by(&delta.value),
         }
     }
 
@@ -113,11 +125,31 @@ impl<'a> CommandState<'a> {
         }
     }
 
+    fn entry_with_remind(&self, kind: EntryKind, dates: Option<Dates>) -> Result<Entry> {
+        let remind = if let (Some(dates), Some(delta)) = (dates, &self.remind) {
+            let index = self.command.source.file();
+            let start = dates.sorted().root();
+            let remind = delta.value.apply_date(index, dates.sorted().root())?;
+            if remind >= start {
+                return Err(Error::RemindDidNotMoveBackwards {
+                    index,
+                    span: delta.span,
+                    from: start,
+                    to: remind,
+                });
+            }
+            Some(remind)
+        } else {
+            None
+        };
+
+        Ok(Entry::new(self.command.source, kind, dates, remind))
+    }
+
     /// Add an entry, respecting [`Self::from`] and [`Self::until`]. Does not
     /// overwrite existing entries if a root date is specified.
-    fn add(&mut self, kind: EntryKind, dates: Option<Dates>) {
-        let entry = Entry::new(self.command.source, kind, dates);
-        if let Some(dates) = dates {
+    fn add(&mut self, entry: Entry) {
+        if let Some(dates) = entry.dates {
             let root = dates.root();
             if let Some(from) = self.from {
                 if root < from {
@@ -137,9 +169,8 @@ impl<'a> CommandState<'a> {
 
     /// Add an entry, ignoring [`Self::from`] and [`Self::until`]. Always
     /// overwrites existing entries if a root date is specified.
-    fn add_forced(&mut self, kind: EntryKind, dates: Option<Dates>) {
-        let entry = Entry::new(self.command.source, kind, dates);
-        if let Some(dates) = dates {
+    fn add_forced(&mut self, entry: Entry) {
+        if let Some(dates) = entry.dates {
             self.dated.insert(dates.root(), entry);
         } else {
             self.undated.push(entry);
@@ -160,11 +191,11 @@ impl<'a> CommandState<'a> {
                 self.eval_statement(statement)?;
             }
         } else if task.done.is_empty() {
-            self.add(self.kind(), None);
+            self.add(self.entry_with_remind(self.kind(), None)?);
         }
 
         for done in &task.done {
-            self.eval_done(done);
+            self.eval_done(done)?;
         }
 
         Ok(())
@@ -176,7 +207,7 @@ impl<'a> CommandState<'a> {
                 self.eval_statement(statement)?;
             }
         } else {
-            self.add(self.kind(), None);
+            self.add(self.entry_with_remind(self.kind(), None)?);
         }
 
         Ok(())
@@ -185,11 +216,12 @@ impl<'a> CommandState<'a> {
     fn eval_statement(&mut self, statement: &Statement) -> Result<()> {
         match statement {
             Statement::Date(spec) => self.eval_date(spec)?,
-            Statement::BDate(spec) => self.eval_bdate(spec),
+            Statement::BDate(spec) => self.eval_bdate(spec)?,
             Statement::From(date) => self.from = *date,
             Statement::Until(date) => self.until = *date,
             Statement::Except(date) => self.eval_except(*date),
             Statement::Move { span, from, to } => self.eval_move(*span, *from, *to)?,
+            Statement::Remind(delta) => self.eval_remind(delta),
         }
         Ok(())
     }
@@ -202,8 +234,8 @@ impl<'a> CommandState<'a> {
         }
     }
 
-    fn eval_bdate(&mut self, spec: &BirthdaySpec) {
-        self.eval_birthday_spec(spec);
+    fn eval_bdate(&mut self, spec: &BirthdaySpec) -> Result<()> {
+        self.eval_birthday_spec(spec)
     }
 
     fn eval_except(&mut self, date: NaiveDate) {
@@ -226,10 +258,19 @@ impl<'a> CommandState<'a> {
         }
     }
 
-    fn eval_done(&mut self, done: &Done) {
-        self.add_forced(
+    fn eval_remind(&mut self, delta: &Option<Spanned<commands::Delta>>) {
+        if let Some(delta) = delta {
+            self.remind = Some(Spanned::new(delta.span, (&delta.value).into()));
+        } else {
+            self.remind = None;
+        }
+    }
+
+    fn eval_done(&mut self, done: &Done) -> Result<()> {
+        self.add_forced(self.entry_with_remind(
             EntryKind::TaskDone(done.done_at),
             done.date.map(|date| date.into()),
-        );
+        )?);
+        Ok(())
     }
 }

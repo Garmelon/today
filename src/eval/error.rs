@@ -34,6 +34,16 @@ pub enum Error {
         from: NaiveDate,
         to: NaiveDate,
     },
+    /// A `REMIND`'s delta did not move backwards in time from the entry's start
+    /// date. Instead, it either remained at the start date (`to == from`) or
+    /// moved forwards in time (`from < to`).
+    #[error("remind delta did not move backwards")]
+    RemindDidNotMoveBackwards {
+        index: usize,
+        span: Span,
+        from: NaiveDate,
+        to: NaiveDate,
+    },
     /// A `MOVE a TO b` statement was executed, but there was no entry at the
     /// date `a`.
     #[error("tried to move nonexisting entry")]
@@ -130,6 +140,19 @@ impl Error {
             } => {
                 let msg = format!(
                     "Repeat delta did not move forwards\
+                    \nMoved from {} to {}",
+                    from, to
+                );
+                Self::print_at(sources, index, span, msg);
+            }
+            Error::RemindDidNotMoveBackwards {
+                index,
+                span,
+                from,
+                to,
+            } => {
+                let msg = format!(
+                    "Remind delta did not move backwards\
                     \nMoved from {} to {}",
                     from, to
                 );
