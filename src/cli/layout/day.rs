@@ -81,10 +81,13 @@ impl DayLayout {
     fn layout_task(&mut self, index: usize, entry: &Entry) {
         if let Some(dates) = entry.dates {
             let (start, end) = dates.sorted().dates();
-            if self.today < start && (start - self.today).num_days() < 7 {
-                // TODO Make this adjustable, maybe even per-command
-                let days = (start - self.today).num_days();
-                self.insert(self.today, DayEntry::ReminderUntil(index, days));
+            if self.today < start {
+                if let Some(remind) = entry.remind {
+                    if remind <= self.today {
+                        let days = (start - self.today).num_days();
+                        self.insert(self.today, DayEntry::ReminderUntil(index, days));
+                    }
+                }
             } else if start < self.today && self.today < end {
                 let days = (end - self.today).num_days();
                 self.insert(self.today, DayEntry::ReminderWhile(index, days));
