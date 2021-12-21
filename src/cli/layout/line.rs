@@ -154,7 +154,7 @@ impl LineLayout {
             DayEntry::ReminderWhile(i, d) => {
                 let text = Self::format_entry(files, entries, *i);
                 let plural = if *d == 1 { "" } else { "s" };
-                let text = format!("{} ({} day{} left)", text, i, plural);
+                let text = format!("{} ({} day{} left)", text, d, plural);
                 self.line_entry(Some(*i), Times::Untimed, text);
             }
             DayEntry::Undated(i) => {
