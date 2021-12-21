@@ -81,7 +81,11 @@ impl DayLayout {
     fn layout_task(&mut self, index: usize, entry: &Entry) {
         if let Some(dates) = entry.dates {
             let (start, end) = dates.sorted().dates();
-            if self.today < start {
+            if self.today < self.range.from() || self.range.until() < self.today {
+                // If `self.today` is not in range, reminders won't be displayed
+                // (since they're always displayed on `self.today`) so there's
+                // no need to calculate them.
+            } else if self.today < start {
                 if let Some(remind) = entry.remind {
                     if remind <= self.today {
                         let days = (start - self.today).num_days();
@@ -118,7 +122,18 @@ impl DayLayout {
     fn layout_note(&mut self, index: usize, entry: &Entry) {
         if let Some(dates) = entry.dates {
             let (start, end) = dates.sorted().dates();
-            if start < self.range.from() && self.range.until() < end {
+            if self.today < self.range.from() || self.range.until() < self.today {
+                // if `self.today` is not in range, reminders won't be displayed
+                // (since they're always displayed on `self.today`) so there's
+                // no need to calculate them.
+            } else if self.today < start {
+                if let Some(remind) = entry.remind {
+                    if remind <= self.today {
+                        let days = (start - self.today).num_days();
+                        self.insert(self.today, DayEntry::ReminderUntil(index, days));
+                    }
+                }
+            } else if start < self.range.from() && self.range.until() < end {
                 // This note applies to the current day, but it won't appear if
                 // we just layout it as a dated entry, so instead we add it as a
                 // reminder. Since we are usually more interested in when
@@ -126,9 +141,8 @@ impl DayLayout {
                 // the end.
                 let days = (end - self.today).num_days();
                 self.insert(self.today, DayEntry::ReminderWhile(index, days));
-            } else {
-                self.layout_dated_entry(index, dates);
             }
+            self.layout_dated_entry(index, dates);
         } else {
             self.insert(self.today, DayEntry::Undated(index));
         }
