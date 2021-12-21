@@ -106,7 +106,7 @@ stmt_bdate = !{ "BDATE" ~ bdatum ~ eol }
 stmt_from = !{ "FROM" ~ (datum | "*") ~ eol }
 stmt_until = !{ "UNTIL" ~ (datum | "*") ~ eol }
 stmt_except = !{ "EXCEPT" ~ datum ~ eol }
-stmt_move = !{ "MOVE" ~ datum ~ "TO" ~ datum ~ eol }
+stmt_move = !{ "MOVE" ~ datum ~ "TO" ~ (datum ~ time? | time) ~ eol }
 stmt_remind = !{ "REMIND" ~ (delta | "*") ~ eol }
 
 statements = { (stmt_date | stmt_bdate | stmt_from | stmt_until | stmt_except | stmt_move | stmt_remind)* }

@@ -103,11 +103,24 @@ impl Dates {
     }
 
     pub fn move_by(&self, delta: Duration) -> Self {
-        Self {
-            root: self.root + delta,
-            other: self.other + delta,
-            times: self.times,
+        let mut result = *self;
+
+        // Modify dates
+        result.root += delta;
+        result.other += delta;
+
+        // Modify times if necessary (may further modify dates)
+        const MINUTES_PER_DAY: i64 = 24 * 60;
+        let minutes = delta.num_minutes() % MINUTES_PER_DAY; // May be negative
+        if let Some(times) = self.times {
+            let (root_days, root) = times.root.add_minutes(minutes);
+            let (other_days, other) = times.other.add_minutes(minutes);
+            result.root += Duration::days(root_days);
+            result.other += Duration::days(other_days);
+            result.times = Some(Times { root, other });
         }
+
+        result
     }
 }
 

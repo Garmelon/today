@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
-use chrono::NaiveDate;
+use chrono::{Duration, NaiveDate};
 
 use crate::files::commands::{
     self, BirthdaySpec, Command, Done, DoneDate, Note, Spec, Statement, Task,
 };
-use crate::files::primitives::{Span, Spanned};
+use crate::files::primitives::{Span, Spanned, Time};
 use crate::files::SourcedCommand;
 
 use super::date::Dates;
@@ -220,7 +220,12 @@ impl<'a> CommandState<'a> {
             Statement::From(date) => self.from = *date,
             Statement::Until(date) => self.until = *date,
             Statement::Except(date) => self.eval_except(*date),
-            Statement::Move { span, from, to } => self.eval_move(*span, *from, *to)?,
+            Statement::Move {
+                span,
+                from,
+                to,
+                to_time,
+            } => self.eval_move(*span, *from, *to, *to_time)?,
             Statement::Remind(delta) => self.eval_remind(delta),
         }
         Ok(())
@@ -242,13 +247,31 @@ impl<'a> CommandState<'a> {
         self.dated.remove(&date);
     }
 
-    fn eval_move(&mut self, span: Span, from: NaiveDate, to: NaiveDate) -> Result<()> {
+    fn eval_move(
+        &mut self,
+        span: Span,
+        from: NaiveDate,
+        to: Option<NaiveDate>,
+        to_time: Option<Time>,
+    ) -> Result<()> {
         if let Some(mut entry) = self.dated.remove(&from) {
-            if let Some(dates) = entry.dates {
-                let delta = to - from;
-                entry.dates = Some(dates.move_by(delta));
+            let mut dates = entry.dates.expect("comes from self.dated");
+
+            // Determine delta
+            let mut delta = Duration::zero();
+            if let Some(to) = to {
+                delta = delta + (to - dates.root());
             }
-            self.dated.insert(to, entry);
+            if let Some(to_time) = to_time {
+                if let Some((root, _)) = dates.times() {
+                    delta = delta + Duration::minutes(root.minutes_to(to_time));
+                }
+            }
+
+            dates = dates.move_by(delta);
+            entry.dates = Some(dates);
+            self.dated.insert(dates.root(), entry);
+
             Ok(())
         } else {
             Err(Error::MoveWithoutSource {

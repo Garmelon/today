@@ -265,7 +265,8 @@ pub enum Statement {
     Move {
         span: Span,
         from: NaiveDate,
-        to: NaiveDate,
+        to: Option<NaiveDate>,
+        to_time: Option<Time>,
     },
     Remind(Option<Spanned<Delta>>),
 }

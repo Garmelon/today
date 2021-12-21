@@ -220,7 +220,14 @@ impl fmt::Display for Statement {
             Statement::Until(Some(date)) => writeln!(f, "UNTIL {}", date),
             Statement::Until(None) => writeln!(f, "UNTIL *"),
             Statement::Except(date) => writeln!(f, "EXCEPT {}", date),
-            Statement::Move { from, to, .. } => writeln!(f, "MOVE {} TO {}", from, to),
+            Statement::Move {
+                from, to, to_time, ..
+            } => match (to, to_time) {
+                (None, None) => unreachable!(),
+                (Some(to), None) => writeln!(f, "MOVE {} TO {}", from, to),
+                (None, Some(to_time)) => writeln!(f, "MOVE {} TO {}", from, to_time),
+                (Some(to), Some(to_time)) => writeln!(f, "MOVE {} TO {} {}", from, to, to_time),
+            },
             Statement::Remind(Some(delta)) => writeln!(f, "REMIND {}", delta),
             Statement::Remind(None) => writeln!(f, "REMIND *"),
         }

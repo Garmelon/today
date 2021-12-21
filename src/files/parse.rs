@@ -618,9 +618,23 @@ fn parse_stmt_move(p: Pair<'_, Rule>) -> Result<Statement> {
     let span = (&p.as_span()).into();
     let mut p = p.into_inner();
     let from = parse_datum(p.next().unwrap())?.value;
-    let to = parse_datum(p.next().unwrap())?.value;
-    assert_eq!(p.next(), None);
-    Ok(Statement::Move { span, from, to })
+
+    let mut to = None;
+    let mut to_time = None;
+    for p in p {
+        match p.as_rule() {
+            Rule::datum => to = Some(parse_datum(p)?.value),
+            Rule::time => to_time = Some(parse_time(p)?.value),
+            _ => unreachable!(),
+        }
+    }
+
+    Ok(Statement::Move {
+        span,
+        from,
+        to,
+        to_time,
+    })
 }
 
 fn parse_stmt_remind(p: Pair<'_, Rule>) -> Result<Statement> {

@@ -258,8 +258,8 @@ impl DeltaEval {
             None => return Err(self.err_time(span)),
         };
 
-        let (days, time) = time.add_hours(amount);
-        self.curr += Duration::days(days.into());
+        let (days, time) = time.add_hours(amount.into());
+        self.curr += Duration::days(days);
         self.curr_time = Some(time);
         Ok(())
     }
@@ -270,8 +270,8 @@ impl DeltaEval {
             None => return Err(self.err_time(span)),
         };
 
-        let (days, time) = time.add_minutes(amount);
-        self.curr += Duration::days(days.into());
+        let (days, time) = time.add_minutes(amount.into());
+        self.curr += Duration::days(days);
         self.curr_time = Some(time);
         Ok(())
     }

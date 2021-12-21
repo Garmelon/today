@@ -98,10 +98,15 @@ impl Time {
         true
     }
 
-    pub fn add_minutes(&self, amount: i32) -> (i32, Self) {
+    /// How many minutes into the day this time is.
+    fn minutes(&self) -> i64 {
+        (self.hour as i64) * 60 + (self.min as i64)
+    }
+
+    pub fn add_minutes(&self, amount: i64) -> (i64, Self) {
         match amount.cmp(&0) {
             Ordering::Less => {
-                let mut mins = (self.hour as i32) * 60 + (self.min as i32) + amount;
+                let mut mins = self.minutes() + amount;
 
                 let days = mins.div_euclid(60 * 24);
                 mins = mins.rem_euclid(60 * 24);
@@ -111,7 +116,7 @@ impl Time {
                 (days, Self::new(hour, min))
             }
             Ordering::Greater => {
-                let mut mins = (self.hour as i32) * 60 + (self.min as i32) + amount;
+                let mut mins = self.minutes() + amount;
 
                 let mut days = mins.div_euclid(60 * 24);
                 mins = mins.rem_euclid(60 * 24);
@@ -130,8 +135,17 @@ impl Time {
         }
     }
 
-    pub fn add_hours(&self, amount: i32) -> (i32, Self) {
+    pub fn add_hours(&self, amount: i64) -> (i64, Self) {
         self.add_minutes(amount * 60)
+    }
+
+    /// `a.minutes_to(b)` returns the minutes from `a` to `b`, meaning it is
+    /// greater than 0 if `a` is earlier than `b`.
+    ///
+    /// May return weird amounts if [`Self::in_normal_range`] is not true for
+    /// both.
+    pub fn minutes_to(&self, other: Self) -> i64 {
+        other.minutes() - self.minutes()
     }
 }
 
