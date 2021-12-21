@@ -244,6 +244,7 @@ impl<'a> CommandState<'a> {
     }
 
     fn eval_except(&mut self, date: NaiveDate) {
+        // TODO Error if nothing is removed?
         self.dated.remove(&date);
     }
 
@@ -252,7 +253,7 @@ impl<'a> CommandState<'a> {
         span: Span,
         from: NaiveDate,
         to: Option<NaiveDate>,
-        to_time: Option<Time>,
+        to_time: Option<Spanned<Time>>,
     ) -> Result<()> {
         if let Some(mut entry) = self.dated.remove(&from) {
             let mut dates = entry.dates.expect("comes from self.dated");
@@ -264,7 +265,12 @@ impl<'a> CommandState<'a> {
             }
             if let Some(to_time) = to_time {
                 if let Some((root, _)) = dates.times() {
-                    delta = delta + Duration::minutes(root.minutes_to(to_time));
+                    delta = delta + Duration::minutes(root.minutes_to(to_time.value));
+                } else {
+                    return Err(Error::TimedMoveWithoutTime {
+                        index: self.command.source.file(),
+                        span: to_time.span,
+                    });
                 }
             }
 

@@ -48,6 +48,10 @@ pub enum Error {
     /// date `a`.
     #[error("tried to move nonexisting entry")]
     MoveWithoutSource { index: usize, span: Span },
+    /// A `MOVE a TO b` statement was executed where `b` contains a time but `a`
+    /// doesn't was executed.
+    #[error("tried to move un-timed entry to new time")]
+    TimedMoveWithoutTime { index: usize, span: Span },
     /// A division by zero has occurred.
     #[error("tried to divide by zero")]
     DivByZero {
@@ -160,6 +164,10 @@ impl Error {
             }
             Error::MoveWithoutSource { index, span } => {
                 let msg = "Tried to move nonexisting entry".to_string();
+                Self::print_at(sources, index, span, msg);
+            }
+            Error::TimedMoveWithoutTime { index, span } => {
+                let msg = "Tried to move un-timed entry to new time".to_string();
                 Self::print_at(sources, index, span, msg);
             }
             Error::DivByZero { index, span, date } => {

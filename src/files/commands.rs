@@ -266,7 +266,7 @@ pub enum Statement {
         span: Span,
         from: NaiveDate,
         to: Option<NaiveDate>,
-        to_time: Option<Time>,
+        to_time: Option<Spanned<Time>>,
     },
     Remind(Option<Spanned<Delta>>),
 }

@@ -624,7 +624,7 @@ fn parse_stmt_move(p: Pair<'_, Rule>) -> Result<Statement> {
     for p in p {
         match p.as_rule() {
             Rule::datum => to = Some(parse_datum(p)?.value),
-            Rule::time => to_time = Some(parse_time(p)?.value),
+            Rule::time => to_time = Some(parse_time(p)?),
             _ => unreachable!(),
         }
     }
