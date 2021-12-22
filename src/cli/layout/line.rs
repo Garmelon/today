@@ -15,10 +15,38 @@ use super::super::error::{Error, Result};
 use super::day::{DayEntry, DayLayout};
 
 #[derive(Debug, Clone, Copy)]
+pub enum SpanStyle {
+    Solid,
+    Dashed,
+    Dotted,
+}
+
+impl SpanStyle {
+    fn from_indentation(index: usize) -> Self {
+        match index % 3 {
+            0 => Self::Solid,
+            1 => Self::Dashed,
+            2 => Self::Dotted,
+            _ => unreachable!(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 pub enum SpanSegment {
-    Start,
-    Middle,
-    End,
+    Start(SpanStyle),
+    Middle(SpanStyle),
+    End(SpanStyle),
+}
+
+impl SpanSegment {
+    fn style(&self) -> SpanStyle {
+        match self {
+            SpanSegment::Start(s) => *s,
+            SpanSegment::Middle(s) => *s,
+            SpanSegment::End(s) => *s,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -28,10 +56,19 @@ pub enum Times {
     FromTo(Time, Time),
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum LineKind {
+    Task,
+    Done,
+    Note,
+    Birthday,
+}
+
 pub enum LineEntry {
     Day {
         spans: Vec<Option<SpanSegment>>,
         date: NaiveDate,
+        today: bool,
     },
     Now {
         spans: Vec<Option<SpanSegment>>,
@@ -41,7 +78,9 @@ pub enum LineEntry {
         number: Option<usize>,
         spans: Vec<Option<SpanSegment>>,
         time: Times,
+        kind: LineKind,
         text: String,
+        extra: Option<String>,
     },
 }
 
@@ -80,7 +119,11 @@ impl LineLayout {
 
         for day in layout.range.days() {
             let spans = self.spans_for_line();
-            self.line(LineEntry::Day { spans, date: day });
+            self.line(LineEntry::Day {
+                spans,
+                date: day,
+                today: day == layout.today,
+            });
 
             let layout_entries = layout.days.get(&day).expect("got nonexisting day");
             for layout_entry in layout_entries {
@@ -114,8 +157,10 @@ impl LineLayout {
         match l_entry {
             DayEntry::End(i) => {
                 self.stop_span(*i);
-                let text = Self::format_entry(files, entries, *i);
-                self.line_entry(Some(*i), Times::Untimed, text);
+                let entry = &entries[*i];
+                let kind = Self::entry_kind(entry);
+                let text = Self::entry_title(files, entry);
+                self.line_entry(Some(*i), Times::Untimed, kind, text, None);
             }
             DayEntry::Now(t) => self.line(LineEntry::Now {
                 spans: self.spans_for_line(),
@@ -123,89 +168,114 @@ impl LineLayout {
             }),
             DayEntry::TimedEnd(i, t) => {
                 self.stop_span(*i);
-                let text = Self::format_entry(files, entries, *i);
-                self.line_entry(Some(*i), Times::At(*t), text);
+                let entry = &entries[*i];
+                let kind = Self::entry_kind(entry);
+                let text = Self::entry_title(files, entry);
+                self.line_entry(Some(*i), Times::At(*t), kind, text, None);
             }
             DayEntry::TimedAt(i, t, t2) => {
                 let time = t2
                     .map(|t2| Times::FromTo(*t, t2))
                     .unwrap_or_else(|| Times::At(*t));
-                let text = Self::format_entry(files, entries, *i);
-                self.line_entry(Some(*i), time, text);
+                let entry = &entries[*i];
+                let kind = Self::entry_kind(entry);
+                let text = Self::entry_title(files, entry);
+                self.line_entry(Some(*i), time, kind, text, None);
             }
             DayEntry::TimedStart(i, t) => {
                 self.start_span(*i);
-                let text = Self::format_entry(files, entries, *i);
-                self.line_entry(Some(*i), Times::At(*t), text);
+                let entry = &entries[*i];
+                let kind = Self::entry_kind(entry);
+                let text = Self::entry_title(files, entry);
+                self.line_entry(Some(*i), Times::At(*t), kind, text, None);
             }
             DayEntry::ReminderSince(i, d) => {
-                let text = Self::format_entry(files, entries, *i);
-                let text = if *d == 1 {
-                    format!("{} (yesterday)", text)
+                let entry = &entries[*i];
+                let kind = Self::entry_kind(entry);
+                let text = Self::entry_title(files, entry);
+                let extra = if *d == 1 {
+                    "yesterday".to_string()
                 } else {
-                    format!("{} ({} days ago)", text, d)
+                    format!("{} days ago", d)
                 };
-                self.line_entry(Some(*i), Times::Untimed, text);
+                self.line_entry(Some(*i), Times::Untimed, kind, text, Some(extra));
             }
             DayEntry::At(i) => {
-                let text = Self::format_entry(files, entries, *i);
-                self.line_entry(Some(*i), Times::Untimed, text);
+                let entry = &entries[*i];
+                let kind = Self::entry_kind(entry);
+                let text = Self::entry_title(files, entry);
+                self.line_entry(Some(*i), Times::Untimed, kind, text, None);
             }
             DayEntry::ReminderWhile(i, d) => {
-                let text = Self::format_entry(files, entries, *i);
+                let entry = &entries[*i];
+                let kind = Self::entry_kind(entry);
+                let text = Self::entry_title(files, entry);
                 let plural = if *d == 1 { "" } else { "s" };
-                let text = format!("{} ({} day{} left)", text, d, plural);
-                self.line_entry(Some(*i), Times::Untimed, text);
+                let extra = format!("{} day{} left", d, plural);
+                self.line_entry(Some(*i), Times::Untimed, kind, text, Some(extra));
             }
             DayEntry::Undated(i) => {
-                let text = Self::format_entry(files, entries, *i);
-                self.line_entry(Some(*i), Times::Untimed, text);
+                let entry = &entries[*i];
+                let kind = Self::entry_kind(entry);
+                let text = Self::entry_title(files, entry);
+                self.line_entry(Some(*i), Times::Untimed, kind, text, None);
             }
             DayEntry::Start(i) => {
                 self.start_span(*i);
-                let text = Self::format_entry(files, entries, *i);
-                self.line_entry(Some(*i), Times::Untimed, text);
+                let entry = &entries[*i];
+                let kind = Self::entry_kind(entry);
+                let text = Self::entry_title(files, entry);
+                self.line_entry(Some(*i), Times::Untimed, kind, text, None);
             }
             DayEntry::ReminderUntil(i, d) => {
-                let text = Self::format_entry(files, entries, *i);
-                let text = if *d == 1 {
-                    format!("{} (tomorrow)", text)
+                let entry = &entries[*i];
+                let kind = Self::entry_kind(entry);
+                let text = Self::entry_title(files, entry);
+                let extra = if *d == 1 {
+                    "tomorrow".to_string()
                 } else {
-                    format!("{} (in {} days)", text, d)
+                    format!("in {} days", d)
                 };
-                self.line_entry(Some(*i), Times::Untimed, text);
+                self.line_entry(Some(*i), Times::Untimed, kind, text, Some(extra));
             }
         }
     }
 
-    fn format_entry(files: &Files, entries: &[Entry], index: usize) -> String {
-        let entry = entries[index];
+    fn entry_kind(entry: &Entry) -> LineKind {
+        match entry.kind {
+            EntryKind::Task => LineKind::Task,
+            EntryKind::TaskDone(_) => LineKind::Done,
+            EntryKind::Note => LineKind::Note,
+            EntryKind::Birthday(_) => LineKind::Birthday,
+        }
+    }
+
+    fn entry_title(files: &Files, entry: &Entry) -> String {
         let command = files.command(entry.source);
         match entry.kind {
-            EntryKind::Task => format!("T {}", command.title()),
-            EntryKind::TaskDone(_) => format!("D {}", command.title()),
-            EntryKind::Note => format!("N {}", command.title()),
-            EntryKind::Birthday(Some(age)) => format!("B {} ({})", command.title(), age),
-            EntryKind::Birthday(None) => format!("B {}", command.title()),
+            EntryKind::Birthday(Some(age)) => format!("{} ({})", command.title(), age),
+            _ => command.title().to_string(),
         }
     }
 
     fn start_span(&mut self, index: usize) {
-        for span in self.spans.iter_mut() {
+        for (i, span) in self.spans.iter_mut().enumerate() {
             if span.is_none() {
-                *span = Some((index, SpanSegment::Start));
+                let style = SpanStyle::from_indentation(i);
+                *span = Some((index, SpanSegment::Start(style)));
                 return;
             }
         }
 
         // Not enough space, we need another column
-        self.spans.push(Some((index, SpanSegment::Start)));
+        let style = SpanStyle::from_indentation(self.spans.len());
+        self.spans.push(Some((index, SpanSegment::Start(style))));
     }
 
     fn stop_span(&mut self, index: usize) {
         for span in self.spans.iter_mut() {
             match span {
-                Some((i, s)) if *i == index => *s = SpanSegment::End,
+                Some((i, s)) if *i == index => *s = SpanSegment::End(s.style()),
                 _ => {}
             }
         }
@@ -214,8 +284,8 @@ impl LineLayout {
     fn step_spans(&mut self) {
         for span in self.spans.iter_mut() {
             match span {
-                Some((_, s @ SpanSegment::Start)) => *s = SpanSegment::Middle,
-                Some((_, SpanSegment::End)) => *span = None,
+                Some((_, s @ SpanSegment::Start(_))) => *s = SpanSegment::Middle(s.style()),
+                Some((_, SpanSegment::End(_))) => *span = None,
                 _ => {}
             }
         }
@@ -233,7 +303,14 @@ impl LineLayout {
         self.step_spans();
     }
 
-    fn line_entry(&mut self, index: Option<usize>, time: Times, text: String) {
+    fn line_entry(
+        &mut self,
+        index: Option<usize>,
+        time: Times,
+        kind: LineKind,
+        text: String,
+        extra: Option<String>,
+    ) {
         let number = match index {
             Some(index) => Some(match self.numbers.get(&index) {
                 Some(number) => *number,
@@ -250,7 +327,9 @@ impl LineLayout {
             number,
             spans: self.spans_for_line(),
             time,
+            kind,
             text,
+            extra,
         });
     }
 }

@@ -1,10 +1,11 @@
 use std::cmp;
 
 use chrono::{Datelike, NaiveDate};
+use colored::{Color, ColoredString, Colorize};
 
 use crate::files::primitives::{Time, Weekday};
 
-use super::layout::line::{LineEntry, LineLayout, SpanSegment, Times};
+use super::layout::line::{LineEntry, LineKind, LineLayout, SpanSegment, SpanStyle, Times};
 
 struct ShowLines {
     num_width: usize,
@@ -23,41 +24,59 @@ impl ShowLines {
 
     fn display_line(&mut self, line: &LineEntry) {
         match line {
-            LineEntry::Day { spans, date } => self.display_line_date(spans, *date),
+            LineEntry::Day { spans, date, today } => self.display_line_date(spans, *date, *today),
             LineEntry::Now { spans, time } => self.display_line_now(spans, *time),
             LineEntry::Entry {
                 number,
                 spans,
                 time,
+                kind,
                 text,
-            } => self.display_line_entry(*number, spans, *time, text),
+                extra,
+            } => self.display_line_entry(*number, spans, *time, *kind, text, extra),
         }
     }
 
-    fn display_line_date(&mut self, spans: &[Option<SpanSegment>], date: NaiveDate) {
+    fn display_line_date(&mut self, spans: &[Option<SpanSegment>], date: NaiveDate, today: bool) {
         let weekday: Weekday = date.weekday().into();
         let weekday = weekday.full_name();
-        self.push(&format!(
-            "{:=>nw$}={:=<sw$}===  {:9}  {}  ==={:=<sw$}={:=>nw$}\n",
-            "",
-            Self::display_spans(spans, '='),
+
+        let color = if today {
+            Color::BrightCyan
+        } else {
+            Color::Cyan
+        };
+
+        // '=' symbols before the spans start
+        let p1 = format!("{:=<w$}=", "", w = self.num_width);
+
+        // Spans and filler '=' symbols
+        let p2 = self.display_spans(spans, "=".color(color).bold());
+
+        // The rest of the line
+        let p3 = format!(
+            "===  {:9}  {}  ===={:=<w$}",
             weekday,
             date,
             "",
-            "",
-            nw = self.num_width,
-            sw = self.span_width
+            w = self.num_width + self.span_width
+        );
+
+        self.push(&format!(
+            "{}{}{}\n",
+            p1.color(color).bold(),
+            p2,
+            p3.color(color).bold()
         ));
     }
 
     fn display_line_now(&mut self, spans: &[Option<SpanSegment>], time: Time) {
         self.push(&format!(
-            "{:<nw$} {:sw$} {}\n",
-            "now",
-            Self::display_spans(spans, ' '),
-            time,
+            "{:<nw$} {} {}\n",
+            "now".bright_cyan().bold(),
+            self.display_spans(spans, " ".into()),
+            Self::display_time(Times::At(time)),
             nw = self.num_width,
-            sw = self.span_width
         ));
     }
 
@@ -66,41 +85,68 @@ impl ShowLines {
         number: Option<usize>,
         spans: &[Option<SpanSegment>],
         time: Times,
+        kind: LineKind,
         text: &str,
+        extra: &Option<String>,
     ) {
         let num = match number {
             Some(n) => format!("{}", n),
             None => "".to_string(),
         };
 
-        let time = match time {
-            Times::Untimed => "".to_string(),
-            Times::At(t) => format!("{} ", t),
-            Times::FromTo(t1, t2) => format!("{}--{} ", t1, t2),
-        };
-
         self.push(&format!(
-            "{:>nw$} {:sw$} {}{}\n",
-            num,
-            Self::display_spans(spans, ' '),
-            time,
+            "{:>nw$} {} {} {}{}{}\n",
+            num.bright_black(),
+            self.display_spans(spans, " ".into()),
+            Self::display_kind(kind),
+            Self::display_time(time),
             text,
+            Self::display_extra(extra),
             nw = self.num_width,
-            sw = self.span_width
         ))
     }
 
-    fn display_spans(spans: &[Option<SpanSegment>], empty: char) -> String {
+    fn display_spans(&self, spans: &[Option<SpanSegment>], empty: ColoredString) -> String {
         let mut result = String::new();
-        for segment in spans {
-            result.push(match segment {
-                Some(SpanSegment::Start) => '┌',
-                Some(SpanSegment::Middle) => '│',
-                Some(SpanSegment::End) => '└',
-                None => empty,
-            });
+        for i in 0..self.span_width {
+            if let Some(Some(segment)) = spans.get(i) {
+                let colored_str = match segment {
+                    SpanSegment::Start(_) => "┌".bright_black(),
+                    SpanSegment::Middle(SpanStyle::Solid) => "│".bright_black(),
+                    SpanSegment::Middle(SpanStyle::Dashed) => "╎".bright_black(),
+                    SpanSegment::Middle(SpanStyle::Dotted) => "┊".bright_black(),
+                    SpanSegment::End(_) => "└".bright_black(),
+                };
+                result.push_str(&format!("{}", colored_str));
+            } else {
+                result.push_str(&format!("{}", empty));
+            }
         }
         result
+    }
+
+    fn display_time(time: Times) -> ColoredString {
+        match time {
+            Times::Untimed => "".into(),
+            Times::At(t) => format!("{} ", t).bright_black(),
+            Times::FromTo(t1, t2) => format!("{}--{} ", t1, t2).bright_black(),
+        }
+    }
+
+    fn display_kind(kind: LineKind) -> ColoredString {
+        match kind {
+            LineKind::Task => "T".magenta().bold(),
+            LineKind::Done => "D".green().bold(),
+            LineKind::Note => "N".blue().bold(),
+            LineKind::Birthday => "B".yellow().bold(),
+        }
+    }
+
+    fn display_extra(extra: &Option<String>) -> ColoredString {
+        match extra {
+            None => "".into(),
+            Some(extra) => format!(" ({})", extra).bright_black(),
+        }
     }
 
     fn push(&mut self, line: &str) {
