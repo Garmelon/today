@@ -72,7 +72,7 @@ impl ShowLines {
 
     fn display_line_now(&mut self, spans: &[Option<SpanSegment>], time: Time) {
         self.push(&format!(
-            "{:<nw$} {} {}\n",
+            "{:>nw$} {} {}\n",
             "now".bright_cyan().bold(),
             self.display_spans(spans, " ".into()),
             Self::display_time(Times::At(time)),
