@@ -72,7 +72,7 @@ impl ShowLines {
 
     fn display_line_now(&mut self, spans: &[Option<SpanSegment>], time: Time) {
         self.push(&format!(
-            "{:>nw$} {} {}\n",
+            "{:>nw$} {}  {}\n",
             "now".bright_cyan().bold(),
             self.display_spans(spans, " ".into()),
             Self::display_time(Times::At(time)),
@@ -95,7 +95,7 @@ impl ShowLines {
         };
 
         self.push(&format!(
-            "{:>nw$} {} {} {}{}{}\n",
+            "{:>nw$} {} {}{} {}{}\n",
             num.bright_black(),
             self.display_spans(spans, " ".into()),
             Self::display_kind(kind),
@@ -128,8 +128,8 @@ impl ShowLines {
     fn display_time(time: Times) -> ColoredString {
         match time {
             Times::Untimed => "".into(),
-            Times::At(t) => format!("{} ", t).bright_black(),
-            Times::FromTo(t1, t2) => format!("{}--{} ", t1, t2).bright_black(),
+            Times::At(t) => format!(" {}", t).bright_black(),
+            Times::FromTo(t1, t2) => format!(" {}--{}", t1, t2).bright_black(),
         }
     }
 
