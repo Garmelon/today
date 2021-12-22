@@ -110,6 +110,15 @@ impl Entries {
             return true;
         }
 
+        if let (Some(remind), Some(dates)) = (entry.remind, entry.dates) {
+            let (_, end) = dates.sorted().dates();
+            let remind_before = remind <= self.range.until();
+            let entry_before = end < self.range.from();
+            if remind_before && !entry_before {
+                return true;
+            }
+        }
+
         // Tasks that were finished inside the range
         if let EntryKind::TaskDone(done) = entry.kind {
             if self.range.contains(done) {
