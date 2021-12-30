@@ -1,7 +1,7 @@
 use std::cmp;
 
 use chrono::{Datelike, NaiveDate};
-use colored::{Color, ColoredString, Colorize};
+use colored::{ColoredString, Colorize};
 
 use crate::files::primitives::{Time, Weekday};
 
@@ -41,17 +41,19 @@ impl ShowLines {
         let weekday: Weekday = date.weekday().into();
         let weekday = weekday.full_name();
 
-        let color = if today {
-            Color::BrightCyan
-        } else {
-            Color::Cyan
+        let styled = |s: &str| {
+            if today {
+                s.bright_cyan().bold()
+            } else {
+                s.cyan()
+            }
         };
 
         // '=' symbols before the spans start
         let p1 = format!("{:=<w$}=", "", w = self.num_width);
 
         // Spans and filler '=' symbols
-        let p2 = self.display_spans(spans, "=".color(color).bold());
+        let p2 = self.display_spans(spans, styled("="));
 
         // The rest of the line
         let p3 = format!(
@@ -62,12 +64,7 @@ impl ShowLines {
             w = self.num_width + self.span_width
         );
 
-        self.push(&format!(
-            "{}{}{}\n",
-            p1.color(color).bold(),
-            p2,
-            p3.color(color).bold()
-        ));
+        self.push(&format!("{}{}{}\n", styled(&p1), p2, styled(&p3)));
     }
 
     fn display_line_now(&mut self, spans: &[Option<SpanSegment>], time: Time) {
