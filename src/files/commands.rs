@@ -338,6 +338,12 @@ pub struct Note {
 }
 
 #[derive(Debug)]
+pub struct Log {
+    pub date: NaiveDate,
+    pub desc: Vec<String>,
+}
+
+#[derive(Debug)]
 pub enum Command {
     Task(Task),
     Note(Note),
@@ -371,5 +377,6 @@ pub struct File {
     pub contents: String,
     pub includes: Vec<String>,
     pub timezone: Option<String>,
+    pub logs: Vec<Log>,
     pub commands: Vec<Command>,
 }

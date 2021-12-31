@@ -9,7 +9,7 @@ use pest::{Parser, Span};
 
 use super::commands::{
     BirthdaySpec, Command, DateSpec, Delta, DeltaStep, Done, DoneDate, DoneKind, Expr, File,
-    FormulaSpec, Note, Repeat, Spec, Statement, Task, Var, WeekdaySpec,
+    FormulaSpec, Log, Note, Repeat, Spec, Statement, Task, Var, WeekdaySpec,
 };
 use super::primitives::{Spanned, Time, Weekday};
 
@@ -795,6 +795,23 @@ fn parse_note(p: Pair<'_, Rule>) -> Result<Note> {
     })
 }
 
+fn parse_log_head(p: Pair<'_, Rule>) -> Result<NaiveDate> {
+    assert_eq!(p.as_rule(), Rule::log_head);
+    Ok(parse_datum(p.into_inner().next().unwrap())?.value)
+}
+
+fn parse_log(p: Pair<'_, Rule>) -> Result<Log> {
+    assert_eq!(p.as_rule(), Rule::log);
+    let mut p = p.into_inner();
+
+    let date = parse_log_head(p.next().unwrap())?;
+    let desc = parse_description(p.next().unwrap())?;
+
+    assert_eq!(p.next(), None);
+
+    Ok(Log { date, desc })
+}
+
 fn parse_command(p: Pair<'_, Rule>, file: &mut File) -> Result<()> {
     assert_eq!(p.as_rule(), Rule::command);
 
@@ -807,6 +824,7 @@ fn parse_command(p: Pair<'_, Rule>, file: &mut File) -> Result<()> {
         },
         Rule::task => file.commands.push(Command::Task(parse_task(p)?)),
         Rule::note => file.commands.push(Command::Note(parse_note(p)?)),
+        Rule::log => file.logs.push(parse_log(p)?),
         _ => unreachable!(),
     }
 
@@ -820,6 +838,7 @@ pub fn parse_file(p: Pair<'_, Rule>, contents: String) -> Result<File> {
         contents,
         includes: vec![],
         timezone: None,
+        logs: vec![],
         commands: vec![],
     };
 

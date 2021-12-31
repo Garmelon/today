@@ -6,7 +6,7 @@ use crate::files::commands::DoneKind;
 
 use super::commands::{
     BirthdaySpec, Command, DateSpec, Delta, DeltaStep, Done, DoneDate, Expr, File, FormulaSpec,
-    Note, Repeat, Spec, Statement, Task, Var, WeekdaySpec,
+    Log, Note, Repeat, Spec, Statement, Task, Var, WeekdaySpec,
 };
 use super::primitives::{Spanned, Time, Weekday};
 
@@ -306,9 +306,19 @@ impl fmt::Display for Command {
     }
 }
 
+impl fmt::Display for Log {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "LOG {}", self.date)?;
+        format_desc(f, &self.desc)?;
+        Ok(())
+    }
+}
+
 impl fmt::Display for File {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut empty = true;
+
+        // TODO Sort includes alphabetically
         for include in &self.includes {
             writeln!(f, "INCLUDE {}", include)?;
             empty = false;
@@ -320,6 +330,11 @@ impl fmt::Display for File {
             }
             writeln!(f, "TIMEZONE {}", tz)?;
             empty = false;
+        }
+
+        // TODO Sort logs from old to new
+        for log in &self.logs {
+            writeln!(f, "{}", log)?;
         }
 
         for command in &self.commands {

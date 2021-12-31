@@ -140,8 +140,11 @@ note = {
     ~ description
 }
 
+log_head = !{ "LOG" ~ datum ~ eol }
+log = { log_head ~ description }
+
 empty_line = _{ WHITESPACE* ~ NEWLINE }
-command = { include | timezone | task | note }
+command = { include | timezone | task | note | log }
 
 file = ${ SOI ~ (empty_line* ~ command)* ~ empty_line* ~ WHITESPACE* ~ EOI }
 
