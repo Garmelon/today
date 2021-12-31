@@ -9,6 +9,7 @@ use super::range::DateRange;
 pub enum EntryKind {
     Task,
     TaskDone(NaiveDate),
+    TaskCanceled(NaiveDate),
     Note,
     Birthday(Option<i32>),
 }
@@ -120,7 +121,7 @@ impl Entries {
         }
 
         // Tasks that were finished inside the range
-        if let EntryKind::TaskDone(done) = entry.kind {
+        if let EntryKind::TaskDone(done) | EntryKind::TaskCanceled(done) = entry.kind {
             if self.range.contains(done) {
                 return true;
             }

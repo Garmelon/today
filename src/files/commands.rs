@@ -310,7 +310,14 @@ impl DoneDate {
 }
 
 #[derive(Debug)]
+pub enum DoneKind {
+    Done,
+    Canceled,
+}
+
+#[derive(Debug)]
 pub struct Done {
+    pub kind: DoneKind,
     pub date: Option<DoneDate>,
     pub done_at: NaiveDate,
 }

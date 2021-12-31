@@ -73,7 +73,9 @@ impl DayLayout {
     fn layout_entry(&mut self, index: usize, entry: &Entry) {
         match entry.kind {
             EntryKind::Task => self.layout_task(index, entry),
-            EntryKind::TaskDone(at) => self.layout_task_done(index, entry, at),
+            EntryKind::TaskDone(at) | EntryKind::TaskCanceled(at) => {
+                self.layout_task_done(index, entry, at)
+            }
             EntryKind::Note | EntryKind::Birthday(_) => self.layout_note(index, entry),
         }
     }
@@ -208,7 +210,7 @@ impl DayLayout {
         // 3.
         entries.sort_by_key(|(_, e, _)| match e.kind {
             EntryKind::Task => 0,
-            EntryKind::TaskDone(_) => 1,
+            EntryKind::TaskDone(_) | EntryKind::TaskCanceled(_) => 1,
             EntryKind::Birthday(_) => 2,
             EntryKind::Note => 3,
         });

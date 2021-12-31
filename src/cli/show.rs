@@ -13,6 +13,10 @@ fn show_entry(files: &Files, entry: &Entry) {
             println!("DONE {}", command.title());
             println!("DONE AT {}", when);
         }
+        EntryKind::TaskCanceled(when) => {
+            println!("CANCELED {}", command.title());
+            println!("CANCELED AT {}", when);
+        }
         EntryKind::Note => println!("NOTE {}", command.title()),
         EntryKind::Birthday(Some(age)) => {
             println!("BIRTHDAY {}", command.title());

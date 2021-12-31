@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use chrono::{Duration, NaiveDate};
 
 use crate::files::commands::{
-    self, BirthdaySpec, Command, Done, DoneDate, Note, Spec, Statement, Task,
+    self, BirthdaySpec, Command, Done, DoneDate, DoneKind, Note, Spec, Statement, Task,
 };
 use crate::files::primitives::{Span, Spanned, Time};
 use crate::files::SourcedCommand;
@@ -296,10 +296,12 @@ impl<'a> CommandState<'a> {
     }
 
     fn eval_done(&mut self, done: &Done) -> Result<()> {
-        self.add_forced(self.entry_with_remind(
-            EntryKind::TaskDone(done.done_at),
-            done.date.map(|date| date.into()),
-        )?);
+        let kind = match done.kind {
+            DoneKind::Done => EntryKind::TaskDone(done.done_at),
+            DoneKind::Canceled => EntryKind::TaskCanceled(done.done_at),
+        };
+        let dates = done.date.map(|date| date.into());
+        self.add_forced(self.entry_with_remind(kind, dates)?);
         Ok(())
     }
 }

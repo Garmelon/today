@@ -9,7 +9,7 @@ use crate::files::Files;
 use super::error::{Error, Result};
 use super::layout::line::LineLayout;
 
-pub fn done(
+pub fn cancel(
     files: &mut Files,
     entries: &[Entry],
     layout: &LineLayout,
@@ -20,7 +20,7 @@ pub fn done(
     for &number in numbers {
         let entry = &entries[layout.look_up_number(number)?];
         let done = Done {
-            kind: DoneKind::Done,
+            kind: DoneKind::Canceled,
             date: entry.dates.map(|dates| dates.into()),
             done_at: now.date(),
         };

@@ -13,6 +13,7 @@ use crate::files::{self, Files};
 use self::error::Result;
 use self::layout::line::LineLayout;
 
+mod cancel;
 mod done;
 mod error;
 mod layout;
@@ -45,6 +46,12 @@ pub enum Command {
     },
     /// Marks one or more entries as done
     Done {
+        /// Entries to mark as done
+        #[structopt(required = true)]
+        entries: Vec<usize>,
+    },
+    /// Marks one or more entries as canceled
+    Cancel {
         /// Entries to mark as done
         #[structopt(required = true)]
         entries: Vec<usize>,
@@ -103,6 +110,14 @@ fn run_command(opt: &Opt, files: &mut Files, range: DateRange, now: NaiveDateTim
             let entries = find_entries(files, range)?;
             let layout = find_layout(files, &entries, range, now);
             done::done(files, &entries, &layout, ns, now)?;
+            let entries = find_entries(files, range)?;
+            let layout = find_layout(files, &entries, range, now);
+            print::print(&layout);
+        }
+        Some(Command::Cancel { entries: ns }) => {
+            let entries = find_entries(files, range)?;
+            let layout = find_layout(files, &entries, range, now);
+            cancel::cancel(files, &entries, &layout, ns, now)?;
             let entries = find_entries(files, range)?;
             let layout = find_layout(files, &entries, range, now);
             print::print(&layout);

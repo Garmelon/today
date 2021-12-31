@@ -60,6 +60,7 @@ pub enum Times {
 pub enum LineKind {
     Task,
     Done,
+    Canceled,
     Note,
     Birthday,
 }
@@ -245,6 +246,7 @@ impl LineLayout {
         match entry.kind {
             EntryKind::Task => LineKind::Task,
             EntryKind::TaskDone(_) => LineKind::Done,
+            EntryKind::TaskCanceled(_) => LineKind::Canceled,
             EntryKind::Note => LineKind::Note,
             EntryKind::Birthday(_) => LineKind::Birthday,
         }

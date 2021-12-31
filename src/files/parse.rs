@@ -8,8 +8,8 @@ use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::{Parser, Span};
 
 use super::commands::{
-    BirthdaySpec, Command, DateSpec, Delta, DeltaStep, Done, DoneDate, Expr, File, FormulaSpec,
-    Note, Repeat, Spec, Statement, Task, Var, WeekdaySpec,
+    BirthdaySpec, Command, DateSpec, Delta, DeltaStep, Done, DoneDate, DoneKind, Expr, File,
+    FormulaSpec, Note, Repeat, Spec, Statement, Task, Var, WeekdaySpec,
 };
 use super::primitives::{Spanned, Time, Weekday};
 
@@ -704,10 +704,20 @@ fn parse_donedate(p: Pair<'_, Rule>) -> Result<DoneDate> {
     })
 }
 
+fn parse_done_kind(p: Pair<'_, Rule>) -> DoneKind {
+    assert_eq!(p.as_rule(), Rule::done_kind);
+    match p.as_str() {
+        "DONE" => DoneKind::Done,
+        "CANCELED" => DoneKind::Canceled,
+        _ => unreachable!(),
+    }
+}
+
 fn parse_done(p: Pair<'_, Rule>) -> Result<Done> {
     assert_eq!(p.as_rule(), Rule::done);
     let mut p = p.into_inner();
 
+    let kind = parse_done_kind(p.next().unwrap());
     let done_at = parse_datum(p.next().unwrap())?.value;
     let date = if let Some(p) = p.next() {
         Some(parse_donedate(p)?)
@@ -717,7 +727,11 @@ fn parse_done(p: Pair<'_, Rule>) -> Result<Done> {
 
     assert_eq!(p.next(), None);
 
-    Ok(Done { date, done_at })
+    Ok(Done {
+        kind,
+        date,
+        done_at,
+    })
 }
 
 fn parse_dones(p: Pair<'_, Rule>) -> Result<Vec<Done>> {

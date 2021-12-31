@@ -2,6 +2,8 @@ use std::fmt;
 
 use chrono::Datelike;
 
+use crate::files::commands::DoneKind;
+
 use super::commands::{
     BirthdaySpec, Command, DateSpec, Delta, DeltaStep, Done, DoneDate, Expr, File, FormulaSpec,
     Note, Repeat, Spec, Statement, Task, Var, WeekdaySpec,
@@ -258,7 +260,11 @@ impl fmt::Display for DoneDate {
 
 impl fmt::Display for Done {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "DONE [{}]", self.done_at)?;
+        let kind = match self.kind {
+            DoneKind::Done => "DONE",
+            DoneKind::Canceled => "CANCELED",
+        };
+        write!(f, "{} [{}]", kind, self.done_at)?;
         if let Some(date) = &self.date {
             write!(f, " {}", date)?;
         }

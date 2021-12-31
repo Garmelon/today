@@ -118,7 +118,8 @@ donedate = {
     | datum ~ "--" ~ datum
     | datum
 }
-done = !{ "DONE" ~ "[" ~ datum ~ "]" ~ donedate? ~ eol }
+done_kind = { "DONE" | "CANCELED" }
+done = !{ done_kind ~ "[" ~ datum ~ "]" ~ donedate? ~ eol }
 dones = { done* }
 
 desc_line = { "#" ~ (" " ~ rest_any)? ~ eol }
