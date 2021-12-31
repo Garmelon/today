@@ -141,7 +141,6 @@ impl Files {
     pub fn save(&self) -> Result<()> {
         for file in &self.files {
             if file.dirty {
-                println!("Saving file {:?}", file.path);
                 Self::save_file(&file.path, &file.file)?;
             }
         }
@@ -149,10 +148,16 @@ impl Files {
     }
 
     fn save_file(path: &Path, file: &File) -> Result<()> {
-        fs::write(path, &format!("{}", file)).map_err(|e| Error::WriteFile {
-            file: path.to_path_buf(),
-            error: e,
-        })?;
+        let formatted = format!("{}", file);
+        if file.contents == formatted {
+            println!("Unchanged file {:?}", path);
+        } else {
+            println!("Saving file {:?}", path);
+            fs::write(path, &formatted).map_err(|e| Error::WriteFile {
+                file: path.to_path_buf(),
+                error: e,
+            })?;
+        }
         Ok(())
     }
 
