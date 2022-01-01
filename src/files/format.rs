@@ -300,8 +300,11 @@ impl fmt::Display for Note {
 impl fmt::Display for Command {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Command::Include(name) => writeln!(f, "INCLUDE {}", name),
+            Command::Timezone(name) => writeln!(f, "TIMEZONE {}", name),
             Command::Task(task) => write!(f, "{}", task),
             Command::Note(note) => write!(f, "{}", note),
+            Command::Log(log) => write!(f, "{}", log),
         }
     }
 }
@@ -316,33 +319,17 @@ impl fmt::Display for Log {
 
 impl fmt::Display for File {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut empty = true;
+        for i in 0..self.commands.len() {
+            let curr = &self.commands[i];
+            let next = self.commands.get(i + 1);
 
-        // TODO Sort includes alphabetically
-        for include in &self.includes {
-            writeln!(f, "INCLUDE {}", include)?;
-            empty = false;
-        }
+            write!(f, "{}", curr)?;
 
-        if let Some(tz) = &self.timezone {
-            if !empty {
-                writeln!(f)?;
+            match (curr, next) {
+                (Command::Include(_), Some(Command::Include(_))) => {}
+                (_, None) => {}
+                _ => writeln!(f)?,
             }
-            writeln!(f, "TIMEZONE {}", tz)?;
-            empty = false;
-        }
-
-        // TODO Sort logs from old to new
-        for log in &self.logs {
-            writeln!(f, "{}", log)?;
-        }
-
-        for command in &self.commands {
-            if !empty {
-                writeln!(f)?;
-            }
-            write!(f, "{}", command)?;
-            empty = false;
         }
 
         Ok(())

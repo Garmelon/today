@@ -812,46 +812,34 @@ fn parse_log(p: Pair<'_, Rule>) -> Result<Log> {
     Ok(Log { date, desc })
 }
 
-fn parse_command(p: Pair<'_, Rule>, file: &mut File) -> Result<()> {
+fn parse_command(p: Pair<'_, Rule>) -> Result<Command> {
     assert_eq!(p.as_rule(), Rule::command);
 
     let p = p.into_inner().next().unwrap();
-    match p.as_rule() {
-        Rule::include => file.includes.push(parse_include(p)),
-        Rule::timezone => match file.timezone {
-            None => file.timezone = Some(parse_timezone(p)),
-            Some(_) => fail(p.as_span(), "cannot set timezone multiple times")?,
-        },
-        Rule::task => file.commands.push(Command::Task(parse_task(p)?)),
-        Rule::note => file.commands.push(Command::Note(parse_note(p)?)),
-        Rule::log => file.logs.push(parse_log(p)?),
+    Ok(match p.as_rule() {
+        Rule::include => Command::Include(parse_include(p)),
+        Rule::timezone => Command::Timezone(parse_timezone(p)),
+        Rule::task => Command::Task(parse_task(p)?),
+        Rule::note => Command::Note(parse_note(p)?),
+        Rule::log => Command::Log(parse_log(p)?),
         _ => unreachable!(),
-    }
-
-    Ok(())
+    })
 }
 
 pub fn parse_file(p: Pair<'_, Rule>, contents: String) -> Result<File> {
     assert_eq!(p.as_rule(), Rule::file);
 
-    let mut file = File {
-        contents,
-        includes: vec![],
-        timezone: None,
-        logs: vec![],
-        commands: vec![],
-    };
-
+    let mut commands = vec![];
     for p in p.into_inner() {
         // For some reason, the EOI in `file` always gets captured
         if p.as_rule() == Rule::EOI {
             break;
         }
 
-        parse_command(p, &mut file)?;
+        commands.push(parse_command(p)?);
     }
 
-    Ok(file)
+    Ok(File { contents, commands })
 }
 
 pub fn parse(path: &Path, input: &str) -> Result<File> {
