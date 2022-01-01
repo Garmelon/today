@@ -1,7 +1,11 @@
 use std::path::PathBuf;
 use std::{io, result};
 
+use chrono::NaiveDate;
+
 use super::parse;
+
+// TODO Format TzConflict and LogConflict errors better
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -17,13 +21,10 @@ pub enum Error {
     LocalTz { error: io::Error },
     #[error("{0}")]
     Parse(#[from] parse::Error),
-    #[error("{file1} has time zone {tz1} but {file2} has time zone {tz2}")]
-    TzConflict {
-        file1: PathBuf,
-        tz1: String,
-        file2: PathBuf,
-        tz2: String,
-    },
+    #[error("Conflicting time zones {tz1} and {tz2}")]
+    TzConflict { tz1: String, tz2: String },
+    #[error("Duplicate logs for {0}")]
+    LogConflict(NaiveDate),
 }
 
 impl Error {
@@ -50,15 +51,13 @@ impl Error {
                 eprintln!("  {}", error);
             }
             Error::Parse(error) => eprintln!("{}", error),
-            Error::TzConflict {
-                file1,
-                tz1,
-                file2,
-                tz2,
-            } => {
+            Error::TzConflict { tz1, tz2 } => {
                 eprintln!("Time zone conflict:");
-                eprintln!("  {:?} has time zone {}", file1, tz1);
-                eprintln!("  {:?} has time zone {}", file2, tz2);
+                eprintln!("  Both {} and {} are specified", tz1, tz2);
+            }
+            Error::LogConflict(date) => {
+                eprintln!("Log conflict:");
+                eprintln!("  More than one entry exists for {}", date);
             }
         }
     }

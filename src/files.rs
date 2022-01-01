@@ -1,11 +1,10 @@
-use std::collections::HashMap;
+use std::collections::hash_map::Entry;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use tzfile::Tz;
-
-use crate::eval::SourceInfo;
 
 use self::commands::{Command, Done, File};
 pub use self::error::{Error, Result};
@@ -46,6 +45,10 @@ pub struct Source {
 }
 
 impl Source {
+    pub fn new(file: usize, command: usize) -> Self {
+        Self { file, command }
+    }
+
     pub fn file(&self) -> usize {
         self.file
     }
@@ -61,19 +64,30 @@ pub struct SourcedCommand<'a> {
 pub struct Files {
     files: Vec<LoadedFile>,
     timezone: Tz,
+    logs: HashMap<NaiveDate, Source>,
 }
 
 impl Files {
+    /* Loading */
+
     pub fn load(path: &Path) -> Result<Self> {
-        let mut paths = HashMap::new();
+        // Track already loaded files by their normalized paths
+        let mut loaded = HashSet::new();
+
         let mut files = vec![];
-        Self::load_file(&mut paths, &mut files, path)?;
+        Self::load_file(&mut loaded, &mut files, path)?;
+
         let timezone = Self::determine_timezone(&files)?;
-        Ok(Self { files, timezone })
+        let logs = Self::collect_logs(&files)?;
+        Ok(Self {
+            files,
+            timezone,
+            logs,
+        })
     }
 
     fn load_file(
-        paths: &mut HashMap<PathBuf, usize>,
+        loaded: &mut HashSet<PathBuf>,
         files: &mut Vec<LoadedFile>,
         name: &Path,
     ) -> Result<()> {
@@ -81,7 +95,7 @@ impl Files {
             path: name.to_path_buf(),
             error: e,
         })?;
-        if paths.contains_key(&path) {
+        if loaded.contains(&path) {
             // We've already loaded this exact file.
             return Ok(());
         }
@@ -93,50 +107,71 @@ impl Files {
 
         // Using `name` instead of `path` for the unwrap below.
         let file = parse::parse(name, &content)?;
-        let includes = file.includes.clone();
 
-        paths.insert(path.clone(), files.len());
+        let includes = file
+            .commands
+            .iter()
+            .filter_map(|c| match c {
+                Command::Include(path) => Some(path.clone()),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+
+        loaded.insert(path.clone());
         files.push(LoadedFile::new(path, name.to_owned(), file));
 
         for include in includes {
             // Since we've successfully opened the file, its name can't be the
-            // root directory or empty string and must thus have a parent.
+            // root directory or empty string and it must thus have a parent.
             let include_path = name.parent().unwrap().join(include);
-            Self::load_file(paths, files, &include_path)?;
+            Self::load_file(loaded, files, &include_path)?;
         }
 
         Ok(())
     }
 
     fn determine_timezone(files: &[LoadedFile]) -> Result<Tz> {
-        let mut found: Option<(PathBuf, String)> = None;
+        let mut found: Option<String> = None;
 
-        for file in files {
-            if let Some(file_tz) = &file.file.timezone {
-                if let Some((found_name, found_tz)) = &found {
-                    if found_tz != file_tz {
+        for command in Self::commands_of_files(files) {
+            if let Command::Timezone(tz) = command.command {
+                if let Some(found_tz) = &found {
+                    if tz != found_tz {
                         return Err(Error::TzConflict {
-                            file1: found_name.clone(),
                             tz1: found_tz.clone(),
-                            file2: file.name.clone(),
-                            tz2: file_tz.clone(),
+                            tz2: tz.clone(),
                         });
                     }
                 } else {
-                    found = Some((file.name.clone(), file_tz.clone()));
+                    found = Some(tz.clone());
                 }
             }
         }
 
-        Ok(if let Some((_, tz)) = found {
-            Tz::named(&tz).map_err(|e| Error::ResolveTz {
-                timezone: tz,
-                error: e,
-            })?
+        Ok(if let Some(timezone) = found {
+            Tz::named(&timezone).map_err(|error| Error::ResolveTz { timezone, error })?
         } else {
-            Tz::local().map_err(|e| Error::LocalTz { error: e })?
+            Tz::local().map_err(|error| Error::LocalTz { error })?
         })
     }
+
+    fn collect_logs(files: &[LoadedFile]) -> Result<HashMap<NaiveDate, Source>> {
+        let mut logs = HashMap::new();
+
+        for command in Self::commands_of_files(files) {
+            if let Command::Log(log) = command.command {
+                if let Entry::Vacant(e) = logs.entry(log.date) {
+                    e.insert(command.source);
+                } else {
+                    return Err(Error::LogConflict(log.date));
+                }
+            }
+        }
+
+        Ok(logs)
+    }
+
+    /* Saving */
 
     pub fn save(&self) -> Result<()> {
         for file in &self.files {
@@ -148,6 +183,7 @@ impl Files {
     }
 
     fn save_file(path: &Path, file: &File) -> Result<()> {
+        // TODO Sort commands within file
         let formatted = format!("{}", file);
         if file.contents == formatted {
             println!("Unchanged file {:?}", path);
@@ -161,26 +197,47 @@ impl Files {
         Ok(())
     }
 
-    pub fn mark_all_dirty(&mut self) {
-        for file in self.files.iter_mut() {
-            file.dirty = true;
+    /* Querying */
+
+    pub fn files(&self) -> Vec<(&Path, &File)> {
+        self.files
+            .iter()
+            .map(|f| (&f.name as &Path, &f.file))
+            .collect()
+    }
+
+    fn commands_of_files(files: &[LoadedFile]) -> Vec<SourcedCommand<'_>> {
+        let mut result = vec![];
+        for (file_index, file) in files.iter().enumerate() {
+            for (command_index, command) in file.file.commands.iter().enumerate() {
+                let source = Source::new(file_index, command_index);
+                result.push(SourcedCommand { source, command });
+            }
         }
+        result
+    }
+
+    pub fn commands(&self) -> Vec<SourcedCommand<'_>> {
+        Self::commands_of_files(&self.files)
     }
 
     pub fn command(&self, source: Source) -> &Command {
         &self.files[source.file].file.commands[source.command]
     }
 
-    pub fn sources(&self) -> Vec<SourceInfo<'_>> {
-        self.files
-            .iter()
-            .map(|f| SourceInfo {
-                name: Some(f.name.to_string_lossy().to_string()),
-                content: &f.file.contents,
-            })
-            .collect()
+    pub fn now(&self) -> DateTime<&Tz> {
+        Utc::now().with_timezone(&&self.timezone)
     }
 
+    /* Updating */
+
+    pub fn mark_all_dirty(&mut self) {
+        for file in self.files.iter_mut() {
+            file.dirty = true;
+        }
+    }
+
+    /*
     /// Add a [`Done`] statement to the task identified by `source`.
     ///
     /// Returns whether the addition was successful. It can fail if the entry
@@ -195,22 +252,5 @@ impl Files {
         file.dirty = true;
         true
     }
-
-    pub fn commands(&self) -> Vec<SourcedCommand<'_>> {
-        let mut result = vec![];
-        for (file_index, file) in self.files.iter().enumerate() {
-            for (command_index, command) in file.file.commands.iter().enumerate() {
-                let source = Source {
-                    file: file_index,
-                    command: command_index,
-                };
-                result.push(SourcedCommand { source, command });
-            }
-        }
-        result
-    }
-
-    pub fn now(&self) -> DateTime<&Tz> {
-        Utc::now().with_timezone(&&self.timezone)
-    }
+    */
 }
