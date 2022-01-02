@@ -1,14 +1,14 @@
 use chrono::NaiveDate;
 
 use crate::files::arguments::{Range, RangeDate};
-use crate::files::Files;
+use crate::files::{FileSource, Files};
 
-use self::command::CommandState;
+use self::command::{CommandState, EvalCommand};
 pub use self::date::Dates;
 use self::delta::Delta;
 use self::entry::Entries;
 pub use self::entry::{Entry, EntryKind, EntryMode};
-pub use self::error::{Error, Result, SourceInfo};
+pub use self::error::Error;
 pub use self::range::DateRange;
 
 mod command;
@@ -20,11 +20,14 @@ mod range;
 mod util;
 
 impl Files {
-    pub fn eval(&self, mode: EntryMode, range: DateRange) -> Result<Vec<Entry>> {
+    pub fn eval(&self, mode: EntryMode, range: DateRange) -> Result<Vec<Entry>, Error<FileSource>> {
         let mut entries = Entries::new(mode, range);
         for command in self.commands() {
-            for entry in CommandState::new(command, range).eval()?.entries() {
-                entries.add(entry);
+            let source = command.source;
+            if let Some(command) = EvalCommand::new(command.command) {
+                for entry in CommandState::new(command, source, range).eval()?.entries() {
+                    entries.add(entry);
+                }
             }
         }
         Ok(entries.entries())
@@ -32,7 +35,7 @@ impl Files {
 }
 
 impl Range {
-    pub fn eval(&self, index: usize, today: NaiveDate) -> Result<DateRange> {
+    pub fn eval<S: Copy>(&self, index: S, today: NaiveDate) -> Result<DateRange, Error<S>> {
         let mut start = match self.start {
             RangeDate::Date(d) => d,
             RangeDate::Today => today,

@@ -5,7 +5,7 @@ use chrono::{Datelike, Duration, NaiveDate};
 use crate::files::commands;
 use crate::files::primitives::{Span, Spanned, Time, Weekday};
 
-use super::{util, Error, Result};
+use super::{util, Error};
 
 /// Like [`commands::DeltaStep`] but includes a new constructor,
 /// [`DeltaStep::Time`].
@@ -142,16 +142,16 @@ impl From<&commands::Delta> for Delta {
     }
 }
 
-struct DeltaEval {
-    index: usize,
+struct DeltaEval<I> {
+    index: I,
     start: NaiveDate,
     start_time: Option<Time>,
     curr: NaiveDate,
     curr_time: Option<Time>,
 }
 
-impl DeltaEval {
-    fn new(index: usize, start: NaiveDate, start_time: Option<Time>) -> Self {
+impl<S: Copy> DeltaEval<S> {
+    fn new(index: S, start: NaiveDate, start_time: Option<Time>) -> Self {
         Self {
             index,
             start,
@@ -161,7 +161,7 @@ impl DeltaEval {
         }
     }
 
-    fn err_step(&self, span: Span) -> Error {
+    fn err_step(&self, span: Span) -> Error<S> {
         Error::DeltaInvalidStep {
             index: self.index,
             span,
@@ -172,7 +172,7 @@ impl DeltaEval {
         }
     }
 
-    fn err_time(&self, span: Span) -> Error {
+    fn err_time(&self, span: Span) -> Error<S> {
         Error::DeltaNoTime {
             index: self.index,
             span,
@@ -181,7 +181,7 @@ impl DeltaEval {
         }
     }
 
-    fn apply(&mut self, step: &Spanned<DeltaStep>) -> Result<()> {
+    fn apply(&mut self, step: &Spanned<DeltaStep>) -> Result<(), Error<S>> {
         match step.value {
             DeltaStep::Year(n) => self.step_year(step.span, n)?,
             DeltaStep::Month(n) => self.step_month(step.span, n)?,
@@ -196,7 +196,7 @@ impl DeltaEval {
         Ok(())
     }
 
-    fn step_year(&mut self, span: Span, amount: i32) -> Result<()> {
+    fn step_year(&mut self, span: Span, amount: i32) -> Result<(), Error<S>> {
         let year = self.curr.year() + amount;
         match NaiveDate::from_ymd_opt(year, self.curr.month(), self.curr.day()) {
             None => Err(self.err_step(span)),
@@ -207,7 +207,7 @@ impl DeltaEval {
         }
     }
 
-    fn step_month(&mut self, span: Span, amount: i32) -> Result<()> {
+    fn step_month(&mut self, span: Span, amount: i32) -> Result<(), Error<S>> {
         let (year, month) = util::add_months(self.curr.year(), self.curr.month(), amount);
         match NaiveDate::from_ymd_opt(year, month, self.curr.day()) {
             None => Err(self.err_step(span)),
@@ -218,7 +218,7 @@ impl DeltaEval {
         }
     }
 
-    fn step_month_reverse(&mut self, span: Span, amount: i32) -> Result<()> {
+    fn step_month_reverse(&mut self, span: Span, amount: i32) -> Result<(), Error<S>> {
         // Calculate offset from the last day of the month
         let month_length = util::month_length(self.curr.year(), self.curr.month()) as i32;
         let end_offset = self.curr.day() as i32 - month_length;
@@ -252,7 +252,7 @@ impl DeltaEval {
         self.curr += delta;
     }
 
-    fn step_hour(&mut self, span: Span, amount: i32) -> Result<()> {
+    fn step_hour(&mut self, span: Span, amount: i32) -> Result<(), Error<S>> {
         let time = match self.curr_time {
             Some(time) => time,
             None => return Err(self.err_time(span)),
@@ -264,7 +264,7 @@ impl DeltaEval {
         Ok(())
     }
 
-    fn step_minute(&mut self, span: Span, amount: i32) -> Result<()> {
+    fn step_minute(&mut self, span: Span, amount: i32) -> Result<(), Error<S>> {
         let time = match self.curr_time {
             Some(time) => time,
             None => return Err(self.err_time(span)),
@@ -290,7 +290,7 @@ impl DeltaEval {
         }
     }
 
-    fn step_time(&mut self, span: Span, time: Time) -> Result<()> {
+    fn step_time(&mut self, span: Span, time: Time) -> Result<(), Error<S>> {
         let curr_time = match self.curr_time {
             Some(time) => time,
             None => return Err(self.err_time(span)),
@@ -313,11 +313,11 @@ impl Delta {
         self.steps.iter().map(|step| step.value.upper_bound()).sum()
     }
 
-    fn apply(
+    fn apply<S: Copy>(
         &self,
-        index: usize,
+        index: S,
         start: (NaiveDate, Option<Time>),
-    ) -> Result<(NaiveDate, Option<Time>)> {
+    ) -> Result<(NaiveDate, Option<Time>), Error<S>> {
         let mut eval = DeltaEval::new(index, start.0, start.1);
         for step in &self.steps {
             eval.apply(step)?;
@@ -325,16 +325,16 @@ impl Delta {
         Ok((eval.curr, eval.curr_time))
     }
 
-    pub fn apply_date(&self, index: usize, date: NaiveDate) -> Result<NaiveDate> {
+    pub fn apply_date<S: Copy>(&self, index: S, date: NaiveDate) -> Result<NaiveDate, Error<S>> {
         Ok(self.apply(index, (date, None))?.0)
     }
 
-    pub fn apply_date_time(
+    pub fn apply_date_time<S: Copy>(
         &self,
-        index: usize,
+        index: S,
         date: NaiveDate,
         time: Time,
-    ) -> Result<(NaiveDate, Time)> {
+    ) -> Result<(NaiveDate, Time), Error<S>> {
         let (date, time) = self.apply(index, (date, Some(time)))?;
         Ok((date, time.expect("time was not preserved")))
     }
@@ -346,7 +346,7 @@ mod tests {
 
     use crate::files::primitives::{Span, Spanned, Time};
 
-    use super::super::Result;
+    use super::super::Error;
     use super::{Delta, DeltaStep as Step};
 
     const SPAN: Span = Span { start: 12, end: 34 };
@@ -357,8 +357,8 @@ mod tests {
         }
     }
 
-    fn apply_d(step: Step, from: (i32, u32, u32)) -> Result<NaiveDate> {
-        delta(step).apply_date(0, NaiveDate::from_ymd(from.0, from.1, from.2))
+    fn apply_d(step: Step, from: (i32, u32, u32)) -> Result<NaiveDate, Error<()>> {
+        delta(step).apply_date((), NaiveDate::from_ymd(from.0, from.1, from.2))
     }
 
     fn test_d(step: Step, from: (i32, u32, u32), expected: (i32, u32, u32)) {
@@ -368,9 +368,12 @@ mod tests {
         );
     }
 
-    fn apply_dt(step: Step, from: (i32, u32, u32, u32, u32)) -> Result<(NaiveDate, Time)> {
+    fn apply_dt(
+        step: Step,
+        from: (i32, u32, u32, u32, u32),
+    ) -> Result<(NaiveDate, Time), Error<()>> {
         delta(step).apply_date_time(
-            0,
+            (),
             NaiveDate::from_ymd(from.0, from.1, from.2),
             Time::new(from.3, from.4),
         )

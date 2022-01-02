@@ -6,18 +6,69 @@ use crate::files::commands::{
     self, BirthdaySpec, Command, Done, DoneDate, DoneKind, Note, Spec, Statement, Task,
 };
 use crate::files::primitives::{Span, Spanned, Time};
-use crate::files::SourcedCommand;
+use crate::files::{FileSource, Source};
 
 use super::date::Dates;
 use super::delta::Delta;
-use super::{DateRange, Entry, EntryKind, Error, Result};
+use super::{DateRange, Entry, EntryKind, Error};
 
 mod birthday;
 mod date;
 mod formula;
 
+/// A command that can be evaluated.
+pub enum EvalCommand<'a> {
+    Task(&'a Task),
+    Note(&'a Note),
+}
+
+impl<'a> EvalCommand<'a> {
+    pub fn new(command: &'a Command) -> Option<Self> {
+        match command {
+            Command::Task(task) => Some(Self::Task(task)),
+            Command::Note(note) => Some(Self::Note(note)),
+            _ => None,
+        }
+    }
+
+    fn statements(&self) -> &[Statement] {
+        match self {
+            Self::Task(task) => &task.statements,
+            Self::Note(note) => &note.statements,
+        }
+    }
+
+    fn kind(&self) -> EntryKind {
+        match self {
+            Self::Task(_) => EntryKind::Task,
+            Self::Note(_) => EntryKind::Note,
+        }
+    }
+
+    /// Last root date mentioned in any `DONE`.
+    fn last_done_root(&self) -> Option<NaiveDate> {
+        match self {
+            Self::Task(task) => task
+                .done
+                .iter()
+                .filter_map(|done| done.date.map(DoneDate::root))
+                .max(),
+            Self::Note(_) => None,
+        }
+    }
+
+    /// Last completion date mentioned in any `DONE`.
+    fn last_done_completion(&self) -> Option<NaiveDate> {
+        match self {
+            Self::Task(task) => task.done.iter().map(|done| done.done_at).max(),
+            Self::Note(_) => None,
+        }
+    }
+}
+
 pub struct CommandState<'a> {
-    command: SourcedCommand<'a>,
+    command: EvalCommand<'a>,
+    source: Source,
     range: DateRange,
 
     from: Option<NaiveDate>,
@@ -29,7 +80,7 @@ pub struct CommandState<'a> {
 }
 
 impl<'a> CommandState<'a> {
-    pub fn new(command: SourcedCommand<'a>, mut range: DateRange) -> Self {
+    pub fn new(command: EvalCommand<'a>, source: Source, mut range: DateRange) -> Self {
         // If we don't calculate entries for the source of the move command, it
         // fails even though the user did nothing wrong. Also, move commands (or
         // chains thereof) may move an initially out-of-range entry into range.
@@ -37,15 +88,16 @@ impl<'a> CommandState<'a> {
         // To fix this, we just expand the range to contain all move command
         // sources. This is a quick fix, but until it becomes a performance
         // issue (if ever), it's probably fine.
-        for statement in command.command.statements() {
+        for statement in command.statements() {
             if let Statement::Move { from, .. } = statement {
                 range = range.containing(*from)
             }
         }
 
         Self {
-            range,
             command,
+            source,
+            range,
             from: None,
             until: None,
             remind: None,
@@ -54,10 +106,10 @@ impl<'a> CommandState<'a> {
         }
     }
 
-    pub fn eval(mut self) -> Result<Self> {
-        match self.command.command {
-            Command::Task(task) => self.eval_task(task)?,
-            Command::Note(note) => self.eval_note(note)?,
+    pub fn eval(mut self) -> Result<Self, Error<FileSource>> {
+        match self.command {
+            EvalCommand::Task(task) => self.eval_task(task)?,
+            EvalCommand::Note(note) => self.eval_note(note)?,
         }
         Ok(self)
     }
@@ -71,37 +123,10 @@ impl<'a> CommandState<'a> {
 
     // Helper functions
 
-    fn kind(&self) -> EntryKind {
-        match self.command.command {
-            Command::Task(_) => EntryKind::Task,
-            Command::Note(_) => EntryKind::Note,
-        }
-    }
-
     fn range_with_remind(&self) -> DateRange {
         match &self.remind {
             None => self.range,
             Some(delta) => self.range.expand_by(&delta.value),
-        }
-    }
-
-    /// Last root date mentioned in any `DONE`.
-    fn last_done_root(&self) -> Option<NaiveDate> {
-        match self.command.command {
-            Command::Task(task) => task
-                .done
-                .iter()
-                .filter_map(|done| done.date.map(DoneDate::root))
-                .max(),
-            Command::Note(_) => None,
-        }
-    }
-
-    /// Last completion date mentioned in any `DONE`.
-    fn last_done_completion(&self) -> Option<NaiveDate> {
-        match self.command.command {
-            Command::Task(task) => task.done.iter().map(|done| done.done_at).max(),
-            Command::Note(_) => None,
         }
     }
 
@@ -125,9 +150,13 @@ impl<'a> CommandState<'a> {
         }
     }
 
-    fn entry_with_remind(&self, kind: EntryKind, dates: Option<Dates>) -> Result<Entry> {
+    fn entry_with_remind(
+        &self,
+        kind: EntryKind,
+        dates: Option<Dates>,
+    ) -> Result<Entry, Error<FileSource>> {
         let remind = if let (Some(dates), Some(delta)) = (dates, &self.remind) {
-            let index = self.command.source.file();
+            let index = self.source.file();
             let start = dates.sorted().root();
             let remind = delta.value.apply_date(index, dates.sorted().root())?;
             if remind >= start {
@@ -143,7 +172,7 @@ impl<'a> CommandState<'a> {
             None
         };
 
-        Ok(Entry::new(self.command.source, kind, dates, remind))
+        Ok(Entry::new(self.source, kind, dates, remind))
     }
 
     /// Add an entry, respecting [`Self::from`] and [`Self::until`]. Does not
@@ -185,13 +214,13 @@ impl<'a> CommandState<'a> {
             .any(|s| matches!(s, Statement::Date(_) | Statement::BDate(_)))
     }
 
-    fn eval_task(&mut self, task: &Task) -> Result<()> {
+    fn eval_task(&mut self, task: &Task) -> Result<(), Error<FileSource>> {
         if Self::has_date_stmt(&task.statements) {
             for statement in &task.statements {
                 self.eval_statement(statement)?;
             }
         } else if task.done.is_empty() {
-            self.add(self.entry_with_remind(self.kind(), None)?);
+            self.add(self.entry_with_remind(self.command.kind(), None)?);
         }
 
         for done in &task.done {
@@ -201,19 +230,19 @@ impl<'a> CommandState<'a> {
         Ok(())
     }
 
-    fn eval_note(&mut self, note: &Note) -> Result<()> {
+    fn eval_note(&mut self, note: &Note) -> Result<(), Error<FileSource>> {
         if Self::has_date_stmt(&note.statements) {
             for statement in &note.statements {
                 self.eval_statement(statement)?;
             }
         } else {
-            self.add(self.entry_with_remind(self.kind(), None)?);
+            self.add(self.entry_with_remind(self.command.kind(), None)?);
         }
 
         Ok(())
     }
 
-    fn eval_statement(&mut self, statement: &Statement) -> Result<()> {
+    fn eval_statement(&mut self, statement: &Statement) -> Result<(), Error<FileSource>> {
         match statement {
             Statement::Date(spec) => self.eval_date(spec)?,
             Statement::BDate(spec) => self.eval_bdate(spec)?,
@@ -231,7 +260,7 @@ impl<'a> CommandState<'a> {
         Ok(())
     }
 
-    fn eval_date(&mut self, spec: &Spec) -> Result<()> {
+    fn eval_date(&mut self, spec: &Spec) -> Result<(), Error<FileSource>> {
         match spec {
             Spec::Date(spec) => self.eval_date_spec(spec.into()),
             Spec::Weekday(spec) => self.eval_formula_spec(spec.into()),
@@ -239,7 +268,7 @@ impl<'a> CommandState<'a> {
         }
     }
 
-    fn eval_bdate(&mut self, spec: &BirthdaySpec) -> Result<()> {
+    fn eval_bdate(&mut self, spec: &BirthdaySpec) -> Result<(), Error<FileSource>> {
         self.eval_birthday_spec(spec)
     }
 
@@ -254,7 +283,7 @@ impl<'a> CommandState<'a> {
         from: NaiveDate,
         to: Option<NaiveDate>,
         to_time: Option<Spanned<Time>>,
-    ) -> Result<()> {
+    ) -> Result<(), Error<FileSource>> {
         if let Some(mut entry) = self.dated.remove(&from) {
             let mut dates = entry.dates.expect("comes from self.dated");
 
@@ -268,7 +297,7 @@ impl<'a> CommandState<'a> {
                     delta = delta + Duration::minutes(root.minutes_to(to_time.value));
                 } else {
                     return Err(Error::TimedMoveWithoutTime {
-                        index: self.command.source.file(),
+                        index: self.source.file(),
                         span: to_time.span,
                     });
                 }
@@ -281,7 +310,7 @@ impl<'a> CommandState<'a> {
             Ok(())
         } else {
             Err(Error::MoveWithoutSource {
-                index: self.command.source.file(),
+                index: self.source.file(),
                 span,
             })
         }
@@ -295,7 +324,7 @@ impl<'a> CommandState<'a> {
         }
     }
 
-    fn eval_done(&mut self, done: &Done) -> Result<()> {
+    fn eval_done(&mut self, done: &Done) -> Result<(), Error<FileSource>> {
         let kind = match done.kind {
             DoneKind::Done => EntryKind::TaskDone(done.done_at),
             DoneKind::Canceled => EntryKind::TaskCanceled(done.done_at),

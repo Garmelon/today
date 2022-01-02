@@ -1,14 +1,15 @@
 use chrono::{Datelike, NaiveDate};
 
 use crate::files::commands::BirthdaySpec;
+use crate::files::FileSource;
 
 use super::super::command::CommandState;
 use super::super::date::Dates;
-use super::super::error::Result;
+use super::super::error::Error;
 use super::super::EntryKind;
 
 impl<'a> CommandState<'a> {
-    pub fn eval_birthday_spec(&mut self, spec: &BirthdaySpec) -> Result<()> {
+    pub fn eval_birthday_spec(&mut self, spec: &BirthdaySpec) -> Result<(), Error<FileSource>> {
         let range = match self.limit_from_until(self.range_with_remind()) {
             Some(range) => range,
             None => return Ok(()),

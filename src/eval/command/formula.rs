@@ -1,12 +1,14 @@
 use chrono::{Datelike, Duration, NaiveDate};
 
-use crate::files::commands::{self, Command};
+use crate::files::commands;
 use crate::files::primitives::{Span, Spanned, Time, Weekday};
+use crate::files::FileSource;
 
 use super::super::command::CommandState;
 use super::super::date::Dates;
 use super::super::delta::{Delta, DeltaStep};
-use super::super::{util, DateRange, Error, Result};
+use super::super::{util, DateRange, Error};
+use super::EvalCommand;
 
 fn b2i(b: bool) -> i64 {
     if b {
@@ -47,7 +49,7 @@ pub enum Var {
 }
 
 impl Var {
-    fn eval(self, index: usize, date: NaiveDate) -> Result<i64> {
+    fn eval<S>(self, index: S, date: NaiveDate) -> Result<i64, Error<S>> {
         Ok(match self {
             Var::JulianDay => date.num_days_from_ce().into(),
             Var::Year => date.year().into(),
@@ -202,7 +204,7 @@ impl From<Weekday> for Expr {
 }
 
 impl Expr {
-    fn eval(&self, index: usize, date: NaiveDate) -> Result<i64> {
+    fn eval<S: Copy>(&self, index: S, date: NaiveDate) -> Result<i64, Error<S>> {
         Ok(match self {
             Expr::Lit(l) => *l,
             Expr::Var(v) => v.eval(index, date)?,
@@ -328,12 +330,12 @@ impl FormulaSpec {
             .expand_by(&self.end_delta)
             .move_by(&self.start_delta);
 
-        if let Command::Task(_) = s.command.command {
-            if let Some(last_done_root) = s.last_done_root() {
+        if let EvalCommand::Task(_) = s.command {
+            if let Some(last_done_root) = s.command.last_done_root() {
                 range = range.with_from(last_done_root.succ())?;
             } else if let Some(from) = s.from {
                 range = range.with_from(from)?;
-            } else if matches!(s.command.command, Command::Task(_)) {
+            } else if matches!(s.command, EvalCommand::Task(_)) {
                 // We have no idea if we missed any tasks since the user hasn't
                 // specified a `FROM`, so we just just look back one year. Any
                 // task older than a year is probably not important anyways...
@@ -344,7 +346,7 @@ impl FormulaSpec {
         s.limit_from_until(range)
     }
 
-    fn dates(&self, index: usize, start: NaiveDate) -> Result<Dates> {
+    fn dates(&self, index: FileSource, start: NaiveDate) -> Result<Dates, Error<FileSource>> {
         let root = self.start_delta.apply_date(index, start)?;
         Ok(if let Some(root_time) = self.start_time {
             let (other, other_time) = self.end_delta.apply_date_time(index, root, root_time)?;
@@ -355,19 +357,19 @@ impl FormulaSpec {
         })
     }
 
-    fn eval(&self, index: usize, date: NaiveDate) -> Result<bool> {
+    fn eval(&self, index: FileSource, date: NaiveDate) -> Result<bool, Error<FileSource>> {
         Ok(i2b(self.start.eval(index, date)?))
     }
 }
 
 impl<'a> CommandState<'a> {
-    pub fn eval_formula_spec(&mut self, spec: FormulaSpec) -> Result<()> {
+    pub fn eval_formula_spec(&mut self, spec: FormulaSpec) -> Result<(), Error<FileSource>> {
         if let Some(range) = spec.range(self) {
-            let index = self.command.source.file();
+            let index = self.source.file();
             for day in range.days() {
                 if spec.eval(index, day)? {
                     let dates = spec.dates(index, day)?;
-                    self.add(self.entry_with_remind(self.kind(), Some(dates))?);
+                    self.add(self.entry_with_remind(self.command.kind(), Some(dates))?);
                 }
             }
         }
@@ -386,7 +388,7 @@ mod tests {
     use super::{Expr, Var};
 
     fn expr(expr: &Expr, date: NaiveDate, target: i64) {
-        if let Ok(result) = expr.eval(0, date) {
+        if let Ok(result) = expr.eval((), date) {
             assert_eq!(result, target);
         } else {
             panic!("formula produced error for day {}", date);
@@ -400,7 +402,7 @@ mod tests {
         for delta in -1000..1000 {
             let d1 = NaiveDate::from_ymd(2021, 12, 19);
             let d2 = d1 + Duration::days(delta);
-            assert_eq!(e.eval(0, d2).unwrap() - e.eval(0, d1).unwrap(), delta);
+            assert_eq!(e.eval((), d2).unwrap() - e.eval((), d1).unwrap(), delta);
         }
     }
 

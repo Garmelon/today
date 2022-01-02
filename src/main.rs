@@ -4,7 +4,7 @@
 #![warn(clippy::use_self)]
 
 mod cli;
-// mod eval;
+mod eval;
 mod files;
 
 fn main() {
