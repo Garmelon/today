@@ -33,14 +33,20 @@ fn fail<S: Into<String>, T>(span: Span<'_>, message: S) -> Result<T> {
     Err(error(span, message))
 }
 
-fn parse_include(p: Pair<'_, Rule>) -> String {
+fn parse_include(p: Pair<'_, Rule>) -> Spanned<String> {
     assert_eq!(p.as_rule(), Rule::include);
-    p.into_inner().next().unwrap().as_str().to_string()
+    let p = p.into_inner().next().unwrap();
+    let span = (&p.as_span()).into();
+    let name = p.as_str().to_string();
+    Spanned::new(span, name)
 }
 
-fn parse_timezone(p: Pair<'_, Rule>) -> String {
+fn parse_timezone(p: Pair<'_, Rule>) -> Spanned<String> {
     assert_eq!(p.as_rule(), Rule::timezone);
-    p.into_inner().next().unwrap().as_str().trim().to_string()
+    let p = p.into_inner().next().unwrap();
+    let span = (&p.as_span()).into();
+    let name = p.as_str().to_string();
+    Spanned::new(span, name)
 }
 
 fn parse_number(p: Pair<'_, Rule>) -> i32 {
@@ -795,9 +801,9 @@ fn parse_note(p: Pair<'_, Rule>) -> Result<Note> {
     })
 }
 
-fn parse_log_head(p: Pair<'_, Rule>) -> Result<NaiveDate> {
+fn parse_log_head(p: Pair<'_, Rule>) -> Result<Spanned<NaiveDate>> {
     assert_eq!(p.as_rule(), Rule::log_head);
-    Ok(parse_datum(p.into_inner().next().unwrap())?.value)
+    parse_datum(p.into_inner().next().unwrap())
 }
 
 fn parse_log(p: Pair<'_, Rule>) -> Result<Log> {

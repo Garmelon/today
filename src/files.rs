@@ -10,8 +10,9 @@ use codespan_reporting::term::{self, Config};
 use termcolor::StandardStream;
 use tzfile::Tz;
 
-use self::commands::{Command, Done, File};
+use self::commands::{Command, File};
 pub use self::error::{Error, Result};
+use self::primitives::Spanned;
 
 pub mod arguments;
 pub mod commands;
@@ -52,9 +53,17 @@ pub struct Source {
     command: usize,
 }
 
+// TODO Rename to `SourceFile`?
+#[derive(Debug, Clone, Copy)]
+pub struct FileSource(usize);
+
 impl Source {
     pub fn new(file: usize, command: usize) -> Self {
         Self { file, command }
+    }
+
+    pub fn file(&self) -> FileSource {
+        FileSource(self.file)
     }
 }
 
@@ -69,37 +78,47 @@ pub struct Files {
     files: Vec<LoadedFile>,
     /// Codespan-reporting file database.
     cs_files: SimpleFiles<String, String>,
-    timezone: Tz,
+    timezone: Option<Tz>,
     logs: HashMap<NaiveDate, Source>,
 }
 
 impl Files {
     /* Loading */
 
-    pub fn load(path: &Path) -> Result<Self> {
+    pub fn new() -> Self {
+        Self {
+            files: vec![],
+            cs_files: SimpleFiles::new(),
+            timezone: None,
+            logs: HashMap::new(),
+        }
+    }
+
+    /// Load a file and all its includes.
+    ///
+    /// # Warning
+    ///
+    /// - This function must be called before all other functions.
+    /// - This function must only be called once.
+    /// - If this function fails,
+    ///   - it is safe to print the error with [`Files::eprint_diagnostic`] and
+    ///   - no other function must be called.
+    pub fn load(&mut self, path: &Path) -> Result<()> {
+        if !self.files.is_empty() {
+            panic!("Files::load called multiple times");
+        }
+
         // Track already loaded files by their normalized paths
         let mut loaded = HashSet::new();
 
-        let mut files = vec![];
-        let mut cs_files = SimpleFiles::new();
-        Self::load_file(&mut loaded, &mut files, &mut cs_files, path)?;
+        self.load_file(&mut loaded, path)?;
+        self.determine_timezone()?;
+        self.collect_logs()?;
 
-        let timezone = Self::determine_timezone(&files)?;
-        let logs = Self::collect_logs(&files)?;
-        Ok(Self {
-            files,
-            cs_files,
-            timezone,
-            logs,
-        })
+        Ok(())
     }
 
-    fn load_file(
-        loaded: &mut HashSet<PathBuf>,
-        files: &mut Vec<LoadedFile>,
-        cs_files: &mut SimpleFiles<String, String>,
-        name: &Path,
-    ) -> Result<()> {
+    fn load_file(&mut self, loaded: &mut HashSet<PathBuf>, name: &Path) -> Result<()> {
         let path = name.canonicalize().map_err(|e| Error::ResolvePath {
             path: name.to_path_buf(),
             error: e,
@@ -127,58 +146,87 @@ impl Files {
             .collect::<Vec<_>>();
 
         loaded.insert(path.clone());
-        let cs_id = cs_files.add(path.to_string_lossy().to_string(), content);
-        files.push(LoadedFile::new(path, name.to_owned(), cs_id, file));
+        let cs_id = self
+            .cs_files
+            .add(path.to_string_lossy().to_string(), content);
+        self.files
+            .push(LoadedFile::new(path, name.to_owned(), cs_id, file));
 
         for include in includes {
             // Since we've successfully opened the file, its name can't be the
             // root directory or empty string and it must thus have a parent.
-            let include_path = name.parent().unwrap().join(include);
-            Self::load_file(loaded, files, cs_files, &include_path)?;
+            let include_path = name.parent().unwrap().join(include.value);
+            self.load_file(loaded, &include_path)?;
         }
 
         Ok(())
     }
 
-    fn determine_timezone(files: &[LoadedFile]) -> Result<Tz> {
-        let mut found: Option<String> = None;
+    fn determine_timezone(&mut self) -> Result<()> {
+        assert_eq!(self.timezone, None);
 
-        for command in Self::commands_of_files(files) {
+        let mut found: Option<(Source, Spanned<String>)> = None;
+
+        for command in self.commands() {
             if let Command::Timezone(tz) = command.command {
-                if let Some(found_tz) = &found {
-                    if tz != found_tz {
+                if let Some((found_source, found_tz)) = &found {
+                    if tz.value != found_tz.value {
                         return Err(Error::TzConflict {
-                            tz1: found_tz.clone(),
-                            tz2: tz.clone(),
+                            file1: found_source.file(),
+                            span1: found_tz.span,
+                            tz1: found_tz.value.clone(),
+                            file2: command.source.file(),
+                            span2: tz.span,
+                            tz2: tz.value.clone(),
                         });
                     }
                 } else {
-                    found = Some(tz.clone());
+                    found = Some((command.source, tz.clone()));
                 }
             }
         }
 
-        Ok(if let Some(timezone) = found {
-            Tz::named(&timezone).map_err(|error| Error::ResolveTz { timezone, error })?
+        let timezone = if let Some((source, tz)) = found {
+            Tz::named(&tz.value).map_err(|error| Error::ResolveTz {
+                file: source.file(),
+                span: tz.span,
+                tz: tz.value,
+                error,
+            })?
         } else {
             Tz::local().map_err(|error| Error::LocalTz { error })?
-        })
+        };
+        self.timezone = Some(timezone);
+
+        Ok(())
     }
 
-    fn collect_logs(files: &[LoadedFile]) -> Result<HashMap<NaiveDate, Source>> {
-        let mut logs = HashMap::new();
-
-        for command in Self::commands_of_files(files) {
+    fn collect_logs(&mut self) -> Result<()> {
+        for command in Self::commands_of_files(&self.files) {
             if let Command::Log(log) = command.command {
-                if let Entry::Vacant(e) = logs.entry(log.date) {
-                    e.insert(command.source);
-                } else {
-                    return Err(Error::LogConflict(log.date));
+                match self.logs.entry(log.date.value) {
+                    Entry::Vacant(e) => {
+                        e.insert(command.source);
+                    }
+                    Entry::Occupied(e) => {
+                        let other_cmd = Self::command_of_files(&self.files, *e.get());
+                        let other_span = match &other_cmd.command {
+                            Command::Log(log) => log.date.span,
+                            _ => unreachable!(),
+                        };
+                        return Err(Error::LogConflict {
+                            file1: other_cmd.source.file(),
+                            span1: other_span,
+                            file2: command.source.file(),
+                            span2: log.date.span,
+                            date: log.date.value,
+                        });
+                    }
                 }
             }
         }
 
-        Ok(logs)
+        Ok(())
     }
 
     /* Saving */
@@ -231,12 +279,21 @@ impl Files {
         Self::commands_of_files(&self.files)
     }
 
-    pub fn command(&self, source: Source) -> &Command {
-        &self.files[source.file].file.commands[source.command]
+    fn command_of_files(files: &[LoadedFile], source: Source) -> SourcedCommand<'_> {
+        let command = &files[source.file].file.commands[source.command];
+        SourcedCommand { source, command }
+    }
+
+    pub fn command(&self, source: Source) -> SourcedCommand<'_> {
+        Self::command_of_files(&self.files, source)
     }
 
     pub fn now(&self) -> DateTime<&Tz> {
-        Utc::now().with_timezone(&&self.timezone)
+        if let Some(tz) = &self.timezone {
+            Utc::now().with_timezone(&tz)
+        } else {
+            panic!("Called Files::now before Files::load");
+        }
     }
 
     /* Updating */
@@ -265,6 +322,10 @@ impl Files {
     */
 
     /* Errors */
+
+    pub fn cs_id(&self, file: FileSource) -> usize {
+        self.files[file.0].cs_id
+    }
 
     pub fn eprint_diagnostic(&self, diagnostic: &Diagnostic<usize>) {
         let mut out = StandardStream::stderr(termcolor::ColorChoice::Auto);

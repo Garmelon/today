@@ -2,10 +2,10 @@ use std::path::PathBuf;
 use std::{io, result};
 
 use chrono::NaiveDate;
+use codespan_reporting::diagnostic::{Diagnostic, Label};
 
-use super::parse;
-
-// TODO Format TzConflict and LogConflict errors better
+use super::primitives::Span;
+use super::{parse, FileSource, Files};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -15,20 +15,38 @@ pub enum Error {
     ReadFile { file: PathBuf, error: io::Error },
     #[error("Could not write {file}: {error}")]
     WriteFile { file: PathBuf, error: io::Error },
-    #[error("Could not resolve timezone {timezone}: {error}")]
-    ResolveTz { timezone: String, error: io::Error },
+    #[error("Could not resolve timezone {tz}: {error}")]
+    ResolveTz {
+        file: FileSource,
+        span: Span,
+        tz: String,
+        error: io::Error,
+    },
     #[error("Could not determine local timezone: {error}")]
     LocalTz { error: io::Error },
     #[error("{0}")]
     Parse(#[from] parse::Error),
     #[error("Conflicting time zones {tz1} and {tz2}")]
-    TzConflict { tz1: String, tz2: String },
-    #[error("Duplicate logs for {0}")]
-    LogConflict(NaiveDate),
+    TzConflict {
+        file1: FileSource,
+        span1: Span,
+        tz1: String,
+        file2: FileSource,
+        span2: Span,
+        tz2: String,
+    },
+    #[error("Duplicate logs for {date}")]
+    LogConflict {
+        file1: FileSource,
+        span1: Span,
+        file2: FileSource,
+        span2: Span,
+        date: NaiveDate,
+    },
 }
 
 impl Error {
-    pub fn print(&self) {
+    pub fn print(&self, files: &Files) {
         match self {
             Error::ResolvePath { path, error } => {
                 eprintln!("Could not resolve path {:?}:", path);
@@ -42,22 +60,61 @@ impl Error {
                 eprintln!("Could not write file {:?}:", file);
                 eprintln!("  {}", error);
             }
-            Error::ResolveTz { timezone, error } => {
-                eprintln!("Could not resolve time zone {}:", timezone);
-                eprintln!("  {}", error);
+            Error::ResolveTz {
+                file,
+                span,
+                tz,
+                error,
+            } => {
+                let diagnostic = Diagnostic::error()
+                    .with_message(format!("Could not resolve time zone {}", tz))
+                    .with_labels(vec![Label::primary(files.cs_id(*file), span)
+                        .with_message("Time zone defined here")])
+                    .with_notes(vec![format!("{}", error)]);
+                files.eprint_diagnostic(&diagnostic);
             }
             Error::LocalTz { error } => {
                 eprintln!("Could not determine local timezone:");
                 eprintln!("  {}", error);
             }
+            // TODO Format using codespan-reporting as well
             Error::Parse(error) => eprintln!("{}", error),
-            Error::TzConflict { tz1, tz2 } => {
-                eprintln!("Time zone conflict:");
-                eprintln!("  Both {} and {} are specified", tz1, tz2);
+            Error::TzConflict {
+                file1,
+                span1,
+                tz1,
+                file2,
+                span2,
+                tz2,
+            } => {
+                let diagnostic = Diagnostic::error()
+                    .with_message(format!("Time zone conflict between {} and {}", tz1, tz2))
+                    .with_labels(vec![
+                        Label::primary(files.cs_id(*file1), span1)
+                            .with_message("Time zone defined here"),
+                        Label::primary(files.cs_id(*file2), span2)
+                            .with_message("Time zone defined here"),
+                    ])
+                    .with_notes(vec![
+                        "All TIMEZONE commands must set the same time zone.".to_string()
+                    ]);
+                files.eprint_diagnostic(&diagnostic);
             }
-            Error::LogConflict(date) => {
-                eprintln!("Log conflict:");
-                eprintln!("  More than one entry exists for {}", date);
+            Error::LogConflict {
+                file1,
+                span1,
+                file2,
+                span2,
+                date,
+            } => {
+                let diagnostic = Diagnostic::error()
+                    .with_message(format!("Duplicate log entries for {}", date))
+                    .with_labels(vec![
+                        Label::primary(files.cs_id(*file1), span1).with_message("Log defined here"),
+                        Label::primary(files.cs_id(*file2), span2).with_message("Log defined here"),
+                    ])
+                    .with_notes(vec!["A day can have at most one LOG entry.".to_string()]);
+                files.eprint_diagnostic(&diagnostic);
             }
         }
     }

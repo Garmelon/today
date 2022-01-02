@@ -339,14 +339,14 @@ pub struct Note {
 
 #[derive(Debug)]
 pub struct Log {
-    pub date: NaiveDate,
+    pub date: Spanned<NaiveDate>,
     pub desc: Vec<String>,
 }
 
 #[derive(Debug)]
 pub enum Command {
-    Include(String),
-    Timezone(String),
+    Include(Spanned<String>),
+    Timezone(Spanned<String>),
     Task(Task),
     Note(Note),
     Log(Log),

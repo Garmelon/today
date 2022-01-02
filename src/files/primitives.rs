@@ -1,5 +1,5 @@
 use std::cmp::{self, Ordering};
-use std::fmt;
+use std::{fmt, ops};
 
 use chrono::{NaiveTime, Timelike};
 
@@ -15,6 +15,12 @@ impl<'a> From<&pest::Span<'a>> for Span {
             start: pspan.start(),
             end: pspan.end(),
         }
+    }
+}
+
+impl From<&Span> for ops::Range<usize> {
+    fn from(span: &Span) -> Self {
+        span.start..span.end
     }
 }
 
