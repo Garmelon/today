@@ -4,6 +4,10 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use chrono::{DateTime, NaiveDate, Utc};
+use codespan_reporting::diagnostic::Diagnostic;
+use codespan_reporting::files::SimpleFiles;
+use codespan_reporting::term::{self, Config};
+use termcolor::StandardStream;
 use tzfile::Tz;
 
 use self::commands::{Command, Done, File};
@@ -16,22 +20,26 @@ mod format;
 mod parse;
 pub mod primitives;
 
+// TODO Move file content from `File` to `LoadedFile`
 #[derive(Debug)]
 struct LoadedFile {
-    /// Canonical path for this file
+    /// Canonical path for this file.
     path: PathBuf,
-    // User-readable path for this file
+    /// User-readable path for this file.
     name: PathBuf,
+    /// Identifier for codespan-reporting.
+    cs_id: usize,
     file: File,
-    /// Whether this file has been changed
+    /// Whether this file has been changed.
     dirty: bool,
 }
 
 impl LoadedFile {
-    pub fn new(path: PathBuf, name: PathBuf, file: File) -> Self {
+    pub fn new(path: PathBuf, name: PathBuf, cs_id: usize, file: File) -> Self {
         Self {
             path,
             name,
+            cs_id,
             file,
             dirty: false,
         }
@@ -48,10 +56,6 @@ impl Source {
     pub fn new(file: usize, command: usize) -> Self {
         Self { file, command }
     }
-
-    pub fn file(&self) -> usize {
-        self.file
-    }
 }
 
 #[derive(Debug)]
@@ -63,6 +67,8 @@ pub struct SourcedCommand<'a> {
 #[derive(Debug)]
 pub struct Files {
     files: Vec<LoadedFile>,
+    /// Codespan-reporting file database.
+    cs_files: SimpleFiles<String, String>,
     timezone: Tz,
     logs: HashMap<NaiveDate, Source>,
 }
@@ -75,12 +81,14 @@ impl Files {
         let mut loaded = HashSet::new();
 
         let mut files = vec![];
-        Self::load_file(&mut loaded, &mut files, path)?;
+        let mut cs_files = SimpleFiles::new();
+        Self::load_file(&mut loaded, &mut files, &mut cs_files, path)?;
 
         let timezone = Self::determine_timezone(&files)?;
         let logs = Self::collect_logs(&files)?;
         Ok(Self {
             files,
+            cs_files,
             timezone,
             logs,
         })
@@ -89,6 +97,7 @@ impl Files {
     fn load_file(
         loaded: &mut HashSet<PathBuf>,
         files: &mut Vec<LoadedFile>,
+        cs_files: &mut SimpleFiles<String, String>,
         name: &Path,
     ) -> Result<()> {
         let path = name.canonicalize().map_err(|e| Error::ResolvePath {
@@ -118,13 +127,14 @@ impl Files {
             .collect::<Vec<_>>();
 
         loaded.insert(path.clone());
-        files.push(LoadedFile::new(path, name.to_owned(), file));
+        let cs_id = cs_files.add(path.to_string_lossy().to_string(), content);
+        files.push(LoadedFile::new(path, name.to_owned(), cs_id, file));
 
         for include in includes {
             // Since we've successfully opened the file, its name can't be the
             // root directory or empty string and it must thus have a parent.
             let include_path = name.parent().unwrap().join(include);
-            Self::load_file(loaded, files, &include_path)?;
+            Self::load_file(loaded, files, cs_files, &include_path)?;
         }
 
         Ok(())
@@ -253,4 +263,14 @@ impl Files {
         true
     }
     */
+
+    /* Errors */
+
+    pub fn eprint_diagnostic(&self, diagnostic: &Diagnostic<usize>) {
+        let mut out = StandardStream::stderr(termcolor::ColorChoice::Auto);
+        let config = Config::default();
+        if let Err(e) = term::emit(&mut out, &config, &self.cs_files, diagnostic) {
+            panic!("Error while reporting error: {}", e);
+        }
+    }
 }
