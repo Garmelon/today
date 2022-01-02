@@ -6,19 +6,19 @@ use chrono::{NaiveDate, NaiveDateTime};
 use directories::ProjectDirs;
 use structopt::StructOpt;
 
-use crate::eval::{DateRange, Entry, EntryMode, SourceInfo};
+// use crate::eval::{DateRange, Entry, EntryMode, SourceInfo};
 use crate::files::arguments::Range;
 use crate::files::{self, Files};
 
-use self::error::Result;
-use self::layout::line::LineLayout;
+// use self::error::Result;
+// use self::layout::line::LineLayout;
 
-mod cancel;
-mod done;
-mod error;
-mod layout;
-mod print;
-mod show;
+// mod cancel;
+// mod done;
+// mod error;
+// mod layout;
+// mod print;
+// mod show;
 
 #[derive(Debug, StructOpt)]
 pub struct Opt {
@@ -67,10 +67,12 @@ fn default_file() -> PathBuf {
         .join("main.today")
 }
 
-fn load_files(opt: &Opt) -> result::Result<Files, files::Error> {
+fn load_files(opt: &Opt, files: &mut Files) -> result::Result<(), files::Error> {
     let file = opt.file.clone().unwrap_or_else(default_file);
-    Files::load(&file)
+    files.load(&file)
 }
+
+/*
 
 fn find_now(opt: &Opt, files: &Files) -> NaiveDateTime {
     let now = files.now().naive_local();
@@ -127,16 +129,18 @@ fn run_command(opt: &Opt, files: &mut Files, range: DateRange, now: NaiveDateTim
     Ok(())
 }
 
+*/
+
 pub fn run() {
     let opt = Opt::from_args();
 
-    let mut files = match load_files(&opt) {
-        Ok(result) => result,
-        Err(e) => {
-            e.print();
-            process::exit(1);
-        }
-    };
+    let mut files = Files::new();
+    if let Err(e) = load_files(&opt, &mut files) {
+        e.print(&files);
+        process::exit(1);
+    }
+
+    /*
 
     let now = find_now(&opt, &files);
 
@@ -164,8 +168,10 @@ pub fn run() {
         process::exit(1);
     }
 
+    */
+
     if let Err(e) = files.save() {
-        e.print();
+        e.print(&files);
         process::exit(1);
     }
 }

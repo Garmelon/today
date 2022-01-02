@@ -3,10 +3,10 @@
 #![warn(clippy::all)]
 #![warn(clippy::use_self)]
 
-// mod cli;
+mod cli;
 // mod eval;
 mod files;
 
 fn main() {
-    // cli::run();
+    cli::run();
 }
