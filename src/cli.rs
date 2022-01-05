@@ -3,9 +3,11 @@ use std::str::FromStr;
 use std::{process, result};
 
 use chrono::{NaiveDate, NaiveDateTime};
+use codespan_reporting::files::SimpleFile;
 use directories::ProjectDirs;
 use structopt::StructOpt;
 
+use crate::error;
 // use crate::eval::{DateRange, Entry, EntryMode, SourceInfo};
 use crate::files::arguments::Range;
 use crate::files::{self, Files};
@@ -72,8 +74,6 @@ fn load_files(opt: &Opt, files: &mut Files) -> result::Result<(), files::Error> 
     files.load(&file)
 }
 
-/*
-
 fn find_now(opt: &Opt, files: &Files) -> NaiveDateTime {
     let now = files.now().naive_local();
     if let Some(date) = opt.date {
@@ -82,6 +82,8 @@ fn find_now(opt: &Opt, files: &Files) -> NaiveDateTime {
         now
     }
 }
+
+/*
 
 fn find_entries(files: &Files, range: DateRange) -> Result<Vec<Entry>> {
     Ok(files.eval(EntryMode::Relevant, range)?)
@@ -136,24 +138,20 @@ pub fn run() {
 
     let mut files = Files::new();
     if let Err(e) = load_files(&opt, &mut files) {
-        e.print(&files);
+        error::eprint_error(&files, &e);
         process::exit(1);
     }
-
-    /*
 
     let now = find_now(&opt, &files);
 
     // Kinda ugly, but it can stay for now (until it grows at least).
     let range = match Range::from_str(&opt.range) {
-        Ok(range) => match range.eval(0, now.date()) {
+        Ok(range) => match range.eval((), now.date()) {
             Ok(range) => range,
             Err(e) => {
                 eprintln!("Failed to evaluate --range:");
-                e.print(&[SourceInfo {
-                    name: Some("--range".to_string()),
-                    content: &opt.range,
-                }]);
+                let file = SimpleFile::new("--range", &opt.range);
+                error::eprint_error(&file, &e);
                 process::exit(1)
             }
         },
@@ -163,6 +161,8 @@ pub fn run() {
         }
     };
 
+    /*
+
     if let Err(e) = run_command(&opt, &mut files, range, now) {
         e.print(&files.sources());
         process::exit(1);
@@ -171,7 +171,7 @@ pub fn run() {
     */
 
     if let Err(e) = files.save() {
-        e.print(&files);
+        error::eprint_error(&files, &e);
         process::exit(1);
     }
 }

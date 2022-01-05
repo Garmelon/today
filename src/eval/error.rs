@@ -1,8 +1,10 @@
 use chrono::NaiveDate;
 use codespan_reporting::diagnostic::{Diagnostic, Label};
+use codespan_reporting::files::Files;
+use codespan_reporting::term::Config;
 
+use crate::error::Eprint;
 use crate::files::primitives::{Span, Time};
-use crate::files::{FileSource, Files};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error<S> {
@@ -76,15 +78,17 @@ pub enum Error<S> {
     },
 }
 
-impl Error<FileSource> {
+impl<S> Error<S> {
     fn fmt_date_time(date: NaiveDate, time: Option<Time>) -> String {
         match time {
             None => format!("{}", date),
             Some(time) => format!("{} {}", date, time),
         }
     }
+}
 
-    pub fn print(&self, files: &Files) {
+impl<'a, F: Files<'a>> Eprint<'a, F> for Error<F::FileId> {
+    fn eprint<'f: 'a>(&self, files: &'f F, config: &Config) {
         let diagnostic = match self {
             Error::DeltaInvalidStep {
                 index,
@@ -99,7 +103,7 @@ impl Error<FileSource> {
                 Diagnostic::error()
                     .with_message("Delta step resulted in invalid date")
                     .with_labels(vec![
-                        Label::primary(files.cs_id(*index), span).with_message("At this step")
+                        Label::primary(*index, span).with_message("At this step")
                     ])
                     .with_notes(vec![
                         format!("Date before applying delta: {}", start_str),
@@ -114,7 +118,7 @@ impl Error<FileSource> {
             } => Diagnostic::error()
                 .with_message("Time-based delta step applied to date without time")
                 .with_labels(vec![
-                    Label::primary(files.cs_id(*index), span).with_message("At this step")
+                    Label::primary(*index, span).with_message("At this step")
                 ])
                 .with_notes(vec![
                     format!("Date before applying delta: {}", start),
@@ -127,9 +131,7 @@ impl Error<FileSource> {
                 to,
             } => Diagnostic::error()
                 .with_message("Repeat delta did not move forwards")
-                .with_labels(vec![
-                    Label::primary(files.cs_id(*index), span).with_message("This delta")
-                ])
+                .with_labels(vec![Label::primary(*index, span).with_message("This delta")])
                 .with_notes(vec![format!("Moved from {} to {}", from, to)]),
             Error::RemindDidNotMoveBackwards {
                 index,
@@ -138,30 +140,24 @@ impl Error<FileSource> {
                 to,
             } => Diagnostic::error()
                 .with_message("Remind delta did not move backwards")
-                .with_labels(vec![
-                    Label::primary(files.cs_id(*index), span).with_message("This delta")
-                ])
+                .with_labels(vec![Label::primary(*index, span).with_message("This delta")])
                 .with_notes(vec![format!("Moved from {} to {}", from, to)]),
             Error::MoveWithoutSource { index, span } => Diagnostic::error()
                 .with_message("Tried to move nonexistent entry")
-                .with_labels(vec![
-                    Label::primary(files.cs_id(*index), span).with_message("Here")
-                ]),
+                .with_labels(vec![Label::primary(*index, span).with_message("Here")]),
             Error::TimedMoveWithoutTime { index, span } => Diagnostic::error()
                 .with_message("Tried to move un-timed entry to new time")
-                .with_labels(vec![
-                    Label::primary(files.cs_id(*index), span).with_message("Here")
-                ]),
+                .with_labels(vec![Label::primary(*index, span).with_message("Here")]),
             Error::DivByZero { index, span, date } => Diagnostic::error()
                 .with_message("Tried to divide by zero")
                 .with_labels(vec![
-                    Label::primary(files.cs_id(*index), span).with_message("This expression")
+                    Label::primary(*index, span).with_message("This expression")
                 ])
                 .with_notes(vec![format!("At date: {}", date)]),
             Error::ModByZero { index, span, date } => Diagnostic::error()
                 .with_message("Tried to modulo by zero")
                 .with_labels(vec![
-                    Label::primary(files.cs_id(*index), span).with_message("This expression")
+                    Label::primary(*index, span).with_message("This expression")
                 ])
                 .with_notes(vec![format!("At date: {}", date)]),
             Error::Easter {
@@ -172,13 +168,13 @@ impl Error<FileSource> {
             } => Diagnostic::error()
                 .with_message("Failed to calculate easter")
                 .with_labels(vec![
-                    Label::primary(files.cs_id(*index), span).with_message("This expression")
+                    Label::primary(*index, span).with_message("This expression")
                 ])
                 .with_notes(vec![
                     format!("At date: {}", date),
                     format!("Reason: {}", msg),
                 ]),
         };
-        files.eprint_diagnostic(&diagnostic);
+        Self::eprint_diagnostic(files, config, &diagnostic);
     }
 }

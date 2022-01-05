@@ -1,13 +1,10 @@
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
-use std::fs;
 use std::path::{Path, PathBuf};
+use std::{fs, result};
 
 use chrono::{DateTime, NaiveDate, Utc};
-use codespan_reporting::diagnostic::Diagnostic;
 use codespan_reporting::files::SimpleFiles;
-use codespan_reporting::term::{self, Config};
-use termcolor::StandardStream;
 use tzfile::Tz;
 
 use self::commands::{Command, File};
@@ -54,7 +51,7 @@ pub struct Source {
 }
 
 // TODO Rename to `SourceFile`?
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FileSource(usize);
 
 impl Source {
@@ -80,6 +77,42 @@ pub struct Files {
     cs_files: SimpleFiles<String, String>,
     timezone: Option<Tz>,
     logs: HashMap<NaiveDate, Source>,
+}
+
+impl<'a> codespan_reporting::files::Files<'a> for Files {
+    type FileId = FileSource;
+    type Name = String;
+    type Source = &'a str;
+
+    fn name(
+        &'a self,
+        id: Self::FileId,
+    ) -> result::Result<Self::Name, codespan_reporting::files::Error> {
+        self.cs_files.name(self.cs_id(id))
+    }
+
+    fn source(
+        &'a self,
+        id: Self::FileId,
+    ) -> result::Result<Self::Source, codespan_reporting::files::Error> {
+        self.cs_files.source(self.cs_id(id))
+    }
+
+    fn line_index(
+        &'a self,
+        id: Self::FileId,
+        byte_index: usize,
+    ) -> result::Result<usize, codespan_reporting::files::Error> {
+        self.cs_files.line_index(self.cs_id(id), byte_index)
+    }
+
+    fn line_range(
+        &'a self,
+        id: Self::FileId,
+        line_index: usize,
+    ) -> result::Result<std::ops::Range<usize>, codespan_reporting::files::Error> {
+        self.cs_files.line_range(self.cs_id(id), line_index)
+    }
 }
 
 impl Files {
@@ -323,15 +356,7 @@ impl Files {
 
     /* Errors */
 
-    pub fn cs_id(&self, file: FileSource) -> usize {
+    fn cs_id(&self, file: FileSource) -> usize {
         self.files[file.0].cs_id
-    }
-
-    pub fn eprint_diagnostic(&self, diagnostic: &Diagnostic<usize>) {
-        let mut out = StandardStream::stderr(termcolor::ColorChoice::Auto);
-        let config = Config::default();
-        if let Err(e) = term::emit(&mut out, &config, &self.cs_files, diagnostic) {
-            panic!("Error while reporting error: {}", e);
-        }
     }
 }

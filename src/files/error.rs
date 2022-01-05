@@ -3,6 +3,9 @@ use std::{io, result};
 
 use chrono::NaiveDate;
 use codespan_reporting::diagnostic::{Diagnostic, Label};
+use codespan_reporting::term::Config;
+
+use crate::error::Eprint;
 
 use super::primitives::Span;
 use super::{parse, FileSource, Files};
@@ -45,8 +48,8 @@ pub enum Error {
     },
 }
 
-impl Error {
-    pub fn print(&self, files: &Files) {
+impl<'a> Eprint<'a, Files> for Error {
+    fn eprint<'f: 'a>(&self, files: &'f Files, config: &Config) {
         match self {
             Error::ResolvePath { path, error } => {
                 eprintln!("Could not resolve path {:?}:", path);
@@ -68,10 +71,11 @@ impl Error {
             } => {
                 let diagnostic = Diagnostic::error()
                     .with_message(format!("Could not resolve time zone {}", tz))
-                    .with_labels(vec![Label::primary(files.cs_id(*file), span)
-                        .with_message("Time zone defined here")])
+                    .with_labels(vec![
+                        Label::primary(*file, span).with_message("Time zone defined here")
+                    ])
                     .with_notes(vec![format!("{}", error)]);
-                files.eprint_diagnostic(&diagnostic);
+                Self::eprint_diagnostic(files, config, &diagnostic);
             }
             Error::LocalTz { error } => {
                 eprintln!("Could not determine local timezone:");
@@ -90,15 +94,13 @@ impl Error {
                 let diagnostic = Diagnostic::error()
                     .with_message(format!("Time zone conflict between {} and {}", tz1, tz2))
                     .with_labels(vec![
-                        Label::primary(files.cs_id(*file1), span1)
-                            .with_message("Time zone defined here"),
-                        Label::primary(files.cs_id(*file2), span2)
-                            .with_message("Time zone defined here"),
+                        Label::primary(*file1, span1).with_message("Time zone defined here"),
+                        Label::primary(*file2, span2).with_message("Time zone defined here"),
                     ])
                     .with_notes(vec![
                         "All TIMEZONE commands must set the same time zone.".to_string()
                     ]);
-                files.eprint_diagnostic(&diagnostic);
+                Self::eprint_diagnostic(files, config, &diagnostic);
             }
             Error::LogConflict {
                 file1,
@@ -110,11 +112,11 @@ impl Error {
                 let diagnostic = Diagnostic::error()
                     .with_message(format!("Duplicate log entries for {}", date))
                     .with_labels(vec![
-                        Label::primary(files.cs_id(*file1), span1).with_message("Log defined here"),
-                        Label::primary(files.cs_id(*file2), span2).with_message("Log defined here"),
+                        Label::primary(*file1, span1).with_message("Log defined here"),
+                        Label::primary(*file2, span2).with_message("Log defined here"),
                     ])
                     .with_notes(vec!["A day can have at most one LOG entry.".to_string()]);
-                files.eprint_diagnostic(&diagnostic);
+                Self::eprint_diagnostic(files, config, &diagnostic);
             }
         }
     }
