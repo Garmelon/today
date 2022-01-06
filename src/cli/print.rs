@@ -24,7 +24,12 @@ impl ShowLines {
 
     fn display_line(&mut self, line: &LineEntry) {
         match line {
-            LineEntry::Day { spans, date, today } => self.display_line_date(spans, *date, *today),
+            LineEntry::Day {
+                spans,
+                date,
+                today,
+                has_log,
+            } => self.display_line_date(spans, *date, *today, *has_log),
             LineEntry::Now { spans, time } => self.display_line_now(spans, *time),
             LineEntry::Entry {
                 number,
@@ -32,12 +37,19 @@ impl ShowLines {
                 time,
                 kind,
                 text,
+                has_desc,
                 extra,
-            } => self.display_line_entry(*number, spans, *time, *kind, text, extra),
+            } => self.display_line_entry(*number, spans, *time, *kind, text, *has_desc, extra),
         }
     }
 
-    fn display_line_date(&mut self, spans: &[Option<SpanSegment>], date: NaiveDate, today: bool) {
+    fn display_line_date(
+        &mut self,
+        spans: &[Option<SpanSegment>],
+        date: NaiveDate,
+        today: bool,
+        has_log: bool,
+    ) {
         let weekday: Weekday = date.weekday().into();
         let weekday = weekday.full_name();
 
@@ -55,16 +67,23 @@ impl ShowLines {
         // Spans and filler '=' symbols
         let p2 = self.display_spans(spans, styled("="));
 
-        // The rest of the line
-        let p3 = format!(
-            "===  {:9}  {}  ===={:=<w$}",
-            weekday,
-            date,
-            "",
-            w = self.num_width + self.span_width
-        );
+        // The rest of the line until after the date
+        let p3 = format!("===  {:9}  {}", weekday, date,);
 
-        self.push(&format!("{}{}{}\n", styled(&p1), p2, styled(&p3)));
+        // The "has log" marker (if any)
+        let p4 = Self::display_marker(has_log, " ");
+
+        // The rest of the line
+        let p5 = format!(" ===={:=<w$}", "", w = self.num_width + self.span_width);
+
+        self.push(&format!(
+            "{}{}{}{}{}\n",
+            styled(&p1),
+            p2,
+            styled(&p3),
+            p4,
+            styled(&p5)
+        ));
     }
 
     fn display_line_now(&mut self, spans: &[Option<SpanSegment>], time: Time) {
@@ -84,6 +103,7 @@ impl ShowLines {
         time: Times,
         kind: LineKind,
         text: &str,
+        has_desc: bool,
         extra: &Option<String>,
     ) {
         let num = match number {
@@ -92,12 +112,13 @@ impl ShowLines {
         };
 
         self.push(&format!(
-            "{:>nw$} {} {}{} {}{}\n",
+            "{:>nw$} {} {}{} {}{}{}\n",
             num.bright_black(),
             self.display_spans(spans, " ".into()),
             Self::display_kind(kind),
             Self::display_time(time),
             text,
+            Self::display_marker(has_desc, ""),
             Self::display_extra(extra),
             nw = self.num_width,
         ))
@@ -137,6 +158,14 @@ impl ShowLines {
             LineKind::Canceled => "C".red().bold(),
             LineKind::Note => "N".blue().bold(),
             LineKind::Birthday => "B".yellow().bold(),
+        }
+    }
+
+    fn display_marker(marker: bool, otherwise: &str) -> ColoredString {
+        if marker {
+            "*".bright_yellow()
+        } else {
+            otherwise.into()
         }
     }
 

@@ -9,6 +9,7 @@ use chrono::NaiveDate;
 
 use crate::eval::{Entry, EntryKind};
 use crate::files::primitives::Time;
+use crate::files::Files;
 
 use super::super::error::Error;
 use super::day::{DayEntry, DayLayout};
@@ -69,6 +70,7 @@ pub enum LineEntry {
         spans: Vec<Option<SpanSegment>>,
         date: NaiveDate,
         today: bool,
+        has_log: bool,
     },
     Now {
         spans: Vec<Option<SpanSegment>>,
@@ -80,6 +82,7 @@ pub enum LineEntry {
         time: Times,
         kind: LineKind,
         text: String,
+        has_desc: bool,
         extra: Option<String>,
     },
 }
@@ -107,7 +110,7 @@ impl LineLayout {
         }
     }
 
-    pub fn render(&mut self, entries: &[Entry], layout: &DayLayout) {
+    pub fn render(&mut self, files: &Files, entries: &[Entry], layout: &DayLayout) {
         // Make sure spans for visible `*End`s are drawn
         for entry in &layout.earlier {
             match entry {
@@ -123,6 +126,7 @@ impl LineLayout {
                 spans,
                 date: day,
                 today: day == layout.today,
+                has_log: files.log(day).is_some(),
             });
 
             let layout_entries = layout.days.get(&day).expect("got nonexisting day");
@@ -291,6 +295,7 @@ impl LineLayout {
             time,
             kind: Self::entry_kind(entry),
             text: Self::entry_title(entry),
+            has_desc: entry.has_description,
             extra,
         });
     }

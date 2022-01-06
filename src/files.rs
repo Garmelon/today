@@ -7,7 +7,7 @@ use chrono::{DateTime, NaiveDate, Utc};
 use codespan_reporting::files::SimpleFiles;
 use tzfile::Tz;
 
-use self::commands::{Command, Done, File};
+use self::commands::{Command, Done, File, Log};
 pub use self::error::{Error, Result};
 use self::primitives::Spanned;
 
@@ -309,6 +309,14 @@ impl Files {
 
     pub fn command(&self, source: Source) -> SourcedCommand<'_> {
         Self::command_of_files(&self.files, source)
+    }
+
+    pub fn log(&self, date: NaiveDate) -> Option<&Log> {
+        let source = *self.logs.get(&date)?;
+        match self.command(source).command {
+            Command::Log(log) => Some(log),
+            _ => unreachable!(),
+        }
     }
 
     pub fn now(&self) -> DateTime<&Tz> {

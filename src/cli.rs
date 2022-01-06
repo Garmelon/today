@@ -86,8 +86,13 @@ fn find_entries(files: &Files, range: DateRange) -> Result<Vec<Entry>, Error<Fil
     Ok(files.eval(EntryMode::Relevant, range)?)
 }
 
-fn find_layout(entries: &[Entry], range: DateRange, now: NaiveDateTime) -> LineLayout {
-    layout::layout(entries, range, now)
+fn find_layout(
+    files: &Files,
+    entries: &[Entry],
+    range: DateRange,
+    now: NaiveDateTime,
+) -> LineLayout {
+    layout::layout(files, entries, range, now)
 }
 
 fn run_command(
@@ -99,28 +104,28 @@ fn run_command(
     match &opt.command {
         None => {
             let entries = find_entries(files, range)?;
-            let layout = find_layout(&entries, range, now);
+            let layout = find_layout(files, &entries, range, now);
             print::print(&layout);
         }
         Some(Command::Show { entries: ns }) => {
             let entries = find_entries(files, range)?;
-            let layout = find_layout(&entries, range, now);
+            let layout = find_layout(files, &entries, range, now);
             show::show(files, &entries, &layout, ns)?;
         }
         Some(Command::Done { entries: ns }) => {
             let entries = find_entries(files, range)?;
-            let layout = find_layout(&entries, range, now);
+            let layout = find_layout(files, &entries, range, now);
             done::done(files, &entries, &layout, ns, now)?;
             let entries = find_entries(files, range)?;
-            let layout = find_layout(&entries, range, now);
+            let layout = find_layout(files, &entries, range, now);
             print::print(&layout);
         }
         Some(Command::Cancel { entries: ns }) => {
             let entries = find_entries(files, range)?;
-            let layout = find_layout(&entries, range, now);
+            let layout = find_layout(files, &entries, range, now);
             cancel::cancel(files, &entries, &layout, ns, now)?;
             let entries = find_entries(files, range)?;
-            let layout = find_layout(&entries, range, now);
+            let layout = find_layout(files, &entries, range, now);
             print::print(&layout);
         }
         Some(Command::Fmt) => files.mark_all_dirty(),
