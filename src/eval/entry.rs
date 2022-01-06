@@ -15,10 +15,12 @@ pub enum EntryKind {
 }
 
 /// A single instance of a command.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Entry {
     pub source: Source,
     pub kind: EntryKind,
+    pub title: String,
+    pub has_description: bool,
     pub dates: Option<Dates>,
     /// Remind the user of an entry before it occurs. This date should always be
     /// before the entry's start date, or `None` if there is no start date.
@@ -29,6 +31,8 @@ impl Entry {
     pub fn new(
         source: Source,
         kind: EntryKind,
+        title: String,
+        has_description: bool,
         dates: Option<Dates>,
         remind: Option<NaiveDate>,
     ) -> Self {
@@ -43,6 +47,8 @@ impl Entry {
         Self {
             source,
             kind,
+            title,
+            has_description,
             dates,
             remind,
         }

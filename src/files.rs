@@ -7,7 +7,7 @@ use chrono::{DateTime, NaiveDate, Utc};
 use codespan_reporting::files::SimpleFiles;
 use tzfile::Tz;
 
-use self::commands::{Command, File};
+use self::commands::{Command, Done, File};
 pub use self::error::{Error, Result};
 use self::primitives::Spanned;
 
@@ -337,7 +337,6 @@ impl Files {
         }
     }
 
-    /*
     /// Add a [`Done`] statement to the task identified by `source`.
     ///
     /// Returns whether the addition was successful. It can fail if the entry
@@ -347,12 +346,11 @@ impl Files {
         let file = &mut self.files[source.file];
         match &mut file.file.commands[source.command] {
             Command::Task(t) => t.done.push(done),
-            Command::Note(_) => return false,
+            _ => return false,
         }
         file.dirty = true;
         true
     }
-    */
 
     /* Errors */
 

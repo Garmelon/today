@@ -45,6 +45,20 @@ impl<'a> EvalCommand<'a> {
         }
     }
 
+    fn title(&self) -> String {
+        match self {
+            Self::Task(task) => task.title.clone(),
+            Self::Note(note) => note.title.clone(),
+        }
+    }
+
+    fn has_description(&self) -> bool {
+        match self {
+            Self::Task(task) => !task.desc.is_empty(),
+            Self::Note(note) => !note.desc.is_empty(),
+        }
+    }
+
     /// Last root date mentioned in any `DONE`.
     fn last_done_root(&self) -> Option<NaiveDate> {
         match self {
@@ -172,7 +186,14 @@ impl<'a> CommandState<'a> {
             None
         };
 
-        Ok(Entry::new(self.source, kind, dates, remind))
+        Ok(Entry::new(
+            self.source,
+            kind,
+            self.command.title(),
+            self.command.has_description(),
+            dates,
+            remind,
+        ))
     }
 
     /// Add an entry, respecting [`Self::from`] and [`Self::until`]. Does not

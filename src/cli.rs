@@ -7,20 +7,19 @@ use codespan_reporting::files::SimpleFile;
 use directories::ProjectDirs;
 use structopt::StructOpt;
 
-use crate::error;
-// use crate::eval::{DateRange, Entry, EntryMode, SourceInfo};
+use crate::eval::{DateRange, Entry, EntryMode};
 use crate::files::arguments::Range;
-use crate::files::{self, Files};
+use crate::files::{self, FileSource, Files};
 
-// use self::error::Result;
-// use self::layout::line::LineLayout;
+use self::error::Error;
+use self::layout::line::LineLayout;
 
-// mod cancel;
-// mod done;
-// mod error;
-// mod layout;
-// mod print;
-// mod show;
+mod cancel;
+mod done;
+mod error;
+mod layout;
+mod print;
+mod show;
 
 #[derive(Debug, StructOpt)]
 pub struct Opt {
@@ -83,9 +82,7 @@ fn find_now(opt: &Opt, files: &Files) -> NaiveDateTime {
     }
 }
 
-/*
-
-fn find_entries(files: &Files, range: DateRange) -> Result<Vec<Entry>> {
+fn find_entries(files: &Files, range: DateRange) -> Result<Vec<Entry>, Error<FileSource>> {
     Ok(files.eval(EntryMode::Relevant, range)?)
 }
 
@@ -98,7 +95,12 @@ fn find_layout(
     layout::layout(files, entries, range, now)
 }
 
-fn run_command(opt: &Opt, files: &mut Files, range: DateRange, now: NaiveDateTime) -> Result<()> {
+fn run_command(
+    opt: &Opt,
+    files: &mut Files,
+    range: DateRange,
+    now: NaiveDateTime,
+) -> Result<(), Error<FileSource>> {
     match &opt.command {
         None => {
             let entries = find_entries(files, range)?;
@@ -131,14 +133,12 @@ fn run_command(opt: &Opt, files: &mut Files, range: DateRange, now: NaiveDateTim
     Ok(())
 }
 
-*/
-
 pub fn run() {
     let opt = Opt::from_args();
 
     let mut files = Files::new();
     if let Err(e) = load_files(&opt, &mut files) {
-        error::eprint_error(&files, &e);
+        crate::error::eprint_error(&files, &e);
         process::exit(1);
     }
 
@@ -151,7 +151,7 @@ pub fn run() {
             Err(e) => {
                 eprintln!("Failed to evaluate --range:");
                 let file = SimpleFile::new("--range", &opt.range);
-                error::eprint_error(&file, &e);
+                crate::error::eprint_error(&file, &e);
                 process::exit(1)
             }
         },
@@ -161,17 +161,13 @@ pub fn run() {
         }
     };
 
-    /*
-
     if let Err(e) = run_command(&opt, &mut files, range, now) {
-        e.print(&files.sources());
+        crate::error::eprint_error(&files, &e);
         process::exit(1);
     }
 
-    */
-
     if let Err(e) = files.save() {
-        error::eprint_error(&files, &e);
+        crate::error::eprint_error(&files, &e);
         process::exit(1);
     }
 }

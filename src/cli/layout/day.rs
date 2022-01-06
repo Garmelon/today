@@ -8,7 +8,6 @@ use std::collections::HashMap;
 use chrono::{NaiveDate, NaiveDateTime};
 
 use crate::eval::{DateRange, Dates, Entry, EntryKind};
-use crate::files::commands::Command;
 use crate::files::primitives::Time;
 use crate::files::Files;
 
@@ -51,15 +50,10 @@ impl DayLayout {
     pub fn layout(&mut self, files: &Files, entries: &[Entry]) {
         self.insert(self.today, DayEntry::Now(self.time));
 
-        let mut commands = entries
-            .iter()
-            .enumerate()
-            .map(|(i, e)| (i, e, files.command(e.source)))
-            .collect::<Vec<_>>();
+        let mut entries = entries.iter().enumerate().collect::<Vec<_>>();
+        Self::sort_entries(&mut entries);
 
-        Self::sort_entries(&mut commands);
-
-        for (index, entry, _) in commands {
+        for (index, entry) in entries {
             self.layout_entry(index, entry);
         }
 
@@ -196,7 +190,7 @@ impl DayLayout {
         }
     }
 
-    fn sort_entries(entries: &mut Vec<(usize, &Entry, &Command)>) {
+    fn sort_entries(entries: &mut Vec<(usize, &Entry)>) {
         // Entries should be sorted by these factors, in descending order of
         // significance:
         // 1. Their start date, if any
@@ -205,10 +199,10 @@ impl DayLayout {
         // 4. Their title
 
         // 4.
-        entries.sort_by_key(|(_, _, c)| c.title());
+        entries.sort_by_key(|(_, e)| &e.title);
 
         // 3.
-        entries.sort_by_key(|(_, e, _)| match e.kind {
+        entries.sort_by_key(|(_, e)| match e.kind {
             EntryKind::Task => 0,
             EntryKind::TaskDone(_) | EntryKind::TaskCanceled(_) => 1,
             EntryKind::Birthday(_) => 2,
@@ -216,14 +210,14 @@ impl DayLayout {
         });
 
         // 2.
-        entries.sort_by(|(_, e1, _), (_, e2, _)| {
+        entries.sort_by(|(_, e1), (_, e2)| {
             let d1 = e1.dates.map(|d| d.sorted().other_with_time());
             let d2 = e2.dates.map(|d| d.sorted().other_with_time());
             d2.cmp(&d1) // Inverse comparison
         });
 
         // 1.
-        entries.sort_by_key(|(_, e, _)| e.dates.map(|d| d.sorted().root_with_time()));
+        entries.sort_by_key(|(_, e)| e.dates.map(|d| d.sorted().root_with_time()));
     }
 
     fn sort_day(day: &mut Vec<DayEntry>) {

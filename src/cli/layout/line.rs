@@ -11,7 +11,7 @@ use crate::eval::{Entry, EntryKind};
 use crate::files::primitives::Time;
 use crate::files::Files;
 
-use super::super::error::{Error, Result};
+use super::super::error::Error;
 use super::day::{DayEntry, DayLayout};
 
 #[derive(Debug, Clone, Copy)]
@@ -145,7 +145,7 @@ impl LineLayout {
         &self.lines
     }
 
-    pub fn look_up_number(&self, number: usize) -> Result<usize> {
+    pub fn look_up_number<S>(&self, number: usize) -> Result<usize, Error<S>> {
         self.numbers
             .iter()
             .filter(|(_, n)| **n == number)
@@ -253,10 +253,10 @@ impl LineLayout {
     }
 
     fn entry_title(files: &Files, entry: &Entry) -> String {
-        let command = files.command(entry.source);
+        let command = files.command(entry.source).command;
         match entry.kind {
-            EntryKind::Birthday(Some(age)) => format!("{} ({})", command.title(), age),
-            _ => command.title().to_string(),
+            EntryKind::Birthday(Some(age)) => format!("{} ({})", entry.title, age),
+            _ => entry.title.clone(),
         }
     }
 
