@@ -9,7 +9,6 @@ use chrono::NaiveDate;
 
 use crate::eval::{Entry, EntryKind};
 use crate::files::primitives::Time;
-use crate::files::Files;
 
 use super::super::error::Error;
 use super::day::{DayEntry, DayLayout};
@@ -108,7 +107,7 @@ impl LineLayout {
         }
     }
 
-    pub fn render(&mut self, files: &Files, entries: &[Entry], layout: &DayLayout) {
+    pub fn render(&mut self, entries: &[Entry], layout: &DayLayout) {
         // Make sure spans for visible `*End`s are drawn
         for entry in &layout.earlier {
             match entry {
@@ -128,7 +127,7 @@ impl LineLayout {
 
             let layout_entries = layout.days.get(&day).expect("got nonexisting day");
             for layout_entry in layout_entries {
-                self.render_layout_entry(files, entries, layout_entry);
+                self.render_layout_entry(entries, layout_entry);
             }
         }
     }
@@ -154,14 +153,11 @@ impl LineLayout {
             .ok_or(Error::NoSuchEntry(number))
     }
 
-    fn render_layout_entry(&mut self, files: &Files, entries: &[Entry], l_entry: &DayEntry) {
+    fn render_layout_entry(&mut self, entries: &[Entry], l_entry: &DayEntry) {
         match l_entry {
             DayEntry::End(i) => {
                 self.stop_span(*i);
-                let entry = &entries[*i];
-                let kind = Self::entry_kind(entry);
-                let text = Self::entry_title(files, entry);
-                self.line_entry(Some(*i), Times::Untimed, kind, text, None);
+                self.line_entry(entries, *i, Times::Untimed, None);
             }
             DayEntry::Now(t) => self.line(LineEntry::Now {
                 spans: self.spans_for_line(),
@@ -169,75 +165,48 @@ impl LineLayout {
             }),
             DayEntry::TimedEnd(i, t) => {
                 self.stop_span(*i);
-                let entry = &entries[*i];
-                let kind = Self::entry_kind(entry);
-                let text = Self::entry_title(files, entry);
-                self.line_entry(Some(*i), Times::At(*t), kind, text, None);
+                self.line_entry(entries, *i, Times::At(*t), None);
             }
             DayEntry::TimedAt(i, t, t2) => {
                 let time = t2
                     .map(|t2| Times::FromTo(*t, t2))
                     .unwrap_or_else(|| Times::At(*t));
-                let entry = &entries[*i];
-                let kind = Self::entry_kind(entry);
-                let text = Self::entry_title(files, entry);
-                self.line_entry(Some(*i), time, kind, text, None);
+                self.line_entry(entries, *i, time, None);
             }
             DayEntry::TimedStart(i, t) => {
                 self.start_span(*i);
-                let entry = &entries[*i];
-                let kind = Self::entry_kind(entry);
-                let text = Self::entry_title(files, entry);
-                self.line_entry(Some(*i), Times::At(*t), kind, text, None);
+                self.line_entry(entries, *i, Times::At(*t), None);
             }
             DayEntry::ReminderSince(i, d) => {
-                let entry = &entries[*i];
-                let kind = Self::entry_kind(entry);
-                let text = Self::entry_title(files, entry);
                 let extra = if *d == 1 {
                     "yesterday".to_string()
                 } else {
                     format!("{} days ago", d)
                 };
-                self.line_entry(Some(*i), Times::Untimed, kind, text, Some(extra));
+                self.line_entry(entries, *i, Times::Untimed, Some(extra));
             }
             DayEntry::At(i) => {
-                let entry = &entries[*i];
-                let kind = Self::entry_kind(entry);
-                let text = Self::entry_title(files, entry);
-                self.line_entry(Some(*i), Times::Untimed, kind, text, None);
+                self.line_entry(entries, *i, Times::Untimed, None);
             }
             DayEntry::ReminderWhile(i, d) => {
-                let entry = &entries[*i];
-                let kind = Self::entry_kind(entry);
-                let text = Self::entry_title(files, entry);
                 let plural = if *d == 1 { "" } else { "s" };
                 let extra = format!("{} day{} left", d, plural);
-                self.line_entry(Some(*i), Times::Untimed, kind, text, Some(extra));
+                self.line_entry(entries, *i, Times::Untimed, Some(extra));
             }
             DayEntry::Undated(i) => {
-                let entry = &entries[*i];
-                let kind = Self::entry_kind(entry);
-                let text = Self::entry_title(files, entry);
-                self.line_entry(Some(*i), Times::Untimed, kind, text, None);
+                self.line_entry(entries, *i, Times::Untimed, None);
             }
             DayEntry::Start(i) => {
                 self.start_span(*i);
-                let entry = &entries[*i];
-                let kind = Self::entry_kind(entry);
-                let text = Self::entry_title(files, entry);
-                self.line_entry(Some(*i), Times::Untimed, kind, text, None);
+                self.line_entry(entries, *i, Times::Untimed, None);
             }
             DayEntry::ReminderUntil(i, d) => {
-                let entry = &entries[*i];
-                let kind = Self::entry_kind(entry);
-                let text = Self::entry_title(files, entry);
                 let extra = if *d == 1 {
                     "tomorrow".to_string()
                 } else {
                     format!("in {} days", d)
                 };
-                self.line_entry(Some(*i), Times::Untimed, kind, text, Some(extra));
+                self.line_entry(entries, *i, Times::Untimed, Some(extra));
             }
         }
     }
@@ -252,8 +221,7 @@ impl LineLayout {
         }
     }
 
-    fn entry_title(files: &Files, entry: &Entry) -> String {
-        let command = files.command(entry.source).command;
+    fn entry_title(entry: &Entry) -> String {
         match entry.kind {
             EntryKind::Birthday(Some(age)) => format!("{} ({})", entry.title, age),
             _ => entry.title.clone(),
@@ -305,32 +273,24 @@ impl LineLayout {
         self.step_spans();
     }
 
-    fn line_entry(
-        &mut self,
-        index: Option<usize>,
-        time: Times,
-        kind: LineKind,
-        text: String,
-        extra: Option<String>,
-    ) {
-        let number = match index {
-            Some(index) => Some(match self.numbers.get(&index) {
-                Some(number) => *number,
-                None => {
-                    self.last_number += 1;
-                    self.numbers.insert(index, self.last_number);
-                    self.last_number
-                }
-            }),
-            None => None,
+    fn line_entry(&mut self, entries: &[Entry], index: usize, time: Times, extra: Option<String>) {
+        let entry = &entries[index];
+
+        let number = match self.numbers.get(&index) {
+            Some(number) => *number,
+            None => {
+                self.last_number += 1;
+                self.numbers.insert(index, self.last_number);
+                self.last_number
+            }
         };
 
         self.line(LineEntry::Entry {
-            number,
+            number: Some(number),
             spans: self.spans_for_line(),
             time,
-            kind,
-            text,
+            kind: Self::entry_kind(entry),
+            text: Self::entry_title(entry),
             extra,
         });
     }

@@ -1,5 +1,3 @@
-use std::result;
-
 use codespan_reporting::files::Files;
 use codespan_reporting::term::Config;
 

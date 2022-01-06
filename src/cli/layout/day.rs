@@ -9,7 +9,6 @@ use chrono::{NaiveDate, NaiveDateTime};
 
 use crate::eval::{DateRange, Dates, Entry, EntryKind};
 use crate::files::primitives::Time;
-use crate::files::Files;
 
 #[derive(Debug)]
 pub enum DayEntry {
@@ -47,7 +46,7 @@ impl DayLayout {
         }
     }
 
-    pub fn layout(&mut self, files: &Files, entries: &[Entry]) {
+    pub fn layout(&mut self, entries: &[Entry]) {
         self.insert(self.today, DayEntry::Now(self.time));
 
         let mut entries = entries.iter().enumerate().collect::<Vec<_>>();
