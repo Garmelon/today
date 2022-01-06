@@ -267,21 +267,21 @@ impl Files {
     pub fn save(&self) -> Result<()> {
         for file in &self.files {
             if file.dirty {
-                Self::save_file(&file.path, &file.file)?;
+                Self::save_file(file)?;
             }
         }
         Ok(())
     }
 
-    fn save_file(path: &Path, file: &File) -> Result<()> {
+    fn save_file(file: &LoadedFile) -> Result<()> {
         // TODO Sort commands within file
-        let formatted = format!("{}", file);
-        if file.contents == formatted {
-            println!("Unchanged file {:?}", path);
+        let formatted = format!("{}", file.file);
+        if file.file.contents == formatted {
+            println!("Unchanged file {:?}", file.name);
         } else {
-            println!("Saving file {:?}", path);
-            fs::write(path, &formatted).map_err(|e| Error::WriteFile {
-                file: path.to_path_buf(),
+            println!("Saving file {:?}", file.name);
+            fs::write(&file.name, &formatted).map_err(|e| Error::WriteFile {
+                file: file.name.to_path_buf(),
                 error: e,
             })?;
         }
