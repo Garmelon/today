@@ -21,8 +21,6 @@ pub mod primitives;
 // TODO Move file content from `File` to `LoadedFile`
 #[derive(Debug)]
 struct LoadedFile {
-    /// Canonical path for this file.
-    path: PathBuf,
     /// User-readable path for this file.
     name: PathBuf,
     /// Identifier for codespan-reporting.
@@ -33,9 +31,8 @@ struct LoadedFile {
 }
 
 impl LoadedFile {
-    pub fn new(path: PathBuf, name: PathBuf, cs_id: usize, file: File) -> Self {
+    pub fn new(name: PathBuf, cs_id: usize, file: File) -> Self {
         Self {
-            path,
             name,
             cs_id,
             file,
@@ -183,7 +180,7 @@ impl Files {
             .cs_files
             .add(path.to_string_lossy().to_string(), content);
         self.files
-            .push(LoadedFile::new(path, name.to_owned(), cs_id, file));
+            .push(LoadedFile::new(name.to_owned(), cs_id, file));
 
         for include in includes {
             // Since we've successfully opened the file, its name can't be the
@@ -289,13 +286,6 @@ impl Files {
     }
 
     /* Querying */
-
-    pub fn files(&self) -> Vec<(&Path, &File)> {
-        self.files
-            .iter()
-            .map(|f| (&f.name as &Path, &f.file))
-            .collect()
-    }
 
     fn commands_of_files(files: &[LoadedFile]) -> Vec<SourcedCommand<'_>> {
         let mut result = vec![];
