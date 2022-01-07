@@ -1,6 +1,6 @@
 use chrono::NaiveDate;
 
-use crate::files::arguments::{Range, RangeDate};
+use crate::files::arguments::{CliDate, CliDatum, CliRange};
 use crate::files::{FileSource, Files};
 
 use self::command::{CommandState, EvalCommand};
@@ -34,11 +34,27 @@ impl Files {
     }
 }
 
-impl Range {
+impl CliDate {
+    pub fn eval<S: Copy>(&self, index: S, today: NaiveDate) -> Result<NaiveDate, Error<S>> {
+        let mut date = match self.datum {
+            CliDatum::Date(d) => d,
+            CliDatum::Today => today,
+        };
+
+        if let Some(delta) = &self.delta {
+            let delta: Delta = delta.into();
+            date = delta.apply_date(index, date)?;
+        }
+
+        Ok(date)
+    }
+}
+
+impl CliRange {
     pub fn eval<S: Copy>(&self, index: S, today: NaiveDate) -> Result<DateRange, Error<S>> {
         let mut start = match self.start {
-            RangeDate::Date(d) => d,
-            RangeDate::Today => today,
+            CliDatum::Date(d) => d,
+            CliDatum::Today => today,
         };
 
         if let Some(delta) = &self.start_delta {
@@ -49,8 +65,8 @@ impl Range {
         let mut end = start;
 
         match self.end {
-            Some(RangeDate::Date(d)) => end = d,
-            Some(RangeDate::Today) => end = today,
+            Some(CliDatum::Date(d)) => end = d,
+            Some(CliDatum::Today) => end = today,
             None => {}
         }
 

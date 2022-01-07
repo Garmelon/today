@@ -148,7 +148,10 @@ command = { include | timezone | task | note | log }
 
 file = ${ SOI ~ (empty_line* ~ command)* ~ empty_line* ~ WHITESPACE* ~ EOI }
 
-today = { "today" }
-range_start = { (datum | today) ~ delta? }
-range_end = { (datum | today) ~ delta? | delta }
-range = { SOI ~ range_start ~ ("--" ~ range_end)? ~ EOI}
+today = { "today" | "t" }
+cli_datum = { datum | today }
+cli_date = { cli_datum ~ delta? }
+cli_ident = { SOI ~ (number | cli_date) ~ EOI }
+cli_range_start = { cli_datum ~ delta? }
+cli_range_end = { cli_datum ~ delta? | delta }
+cli_range = { SOI ~ cli_range_start ~ ("--" ~ cli_range_end)? ~ EOI }

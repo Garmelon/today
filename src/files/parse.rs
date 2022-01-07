@@ -49,7 +49,7 @@ fn parse_timezone(p: Pair<'_, Rule>) -> Spanned<String> {
     Spanned::new(span, name)
 }
 
-fn parse_number(p: Pair<'_, Rule>) -> i32 {
+pub fn parse_number(p: Pair<'_, Rule>) -> i32 {
     assert_eq!(p.as_rule(), Rule::number);
     p.as_str().parse().unwrap()
 }

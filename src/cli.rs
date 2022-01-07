@@ -8,7 +8,7 @@ use directories::ProjectDirs;
 use structopt::StructOpt;
 
 use crate::eval::{DateRange, Entry, EntryMode};
-use crate::files::arguments::Range;
+use crate::files::arguments::CliRange;
 use crate::files::{self, FileSource, Files};
 
 use self::error::Error;
@@ -29,8 +29,8 @@ pub struct Opt {
     /// Overwrite the current date
     #[structopt(short, long)]
     date: Option<NaiveDate>,
-    /// The range days to focus on
-    #[structopt(short, long, default_value = "today-2d--today+13d")]
+    /// Range of days to focus on
+    #[structopt(short, long, default_value = "t-2d--t+13d")]
     range: String,
     #[structopt(subcommand)]
     command: Option<Command>,
@@ -57,7 +57,7 @@ pub enum Command {
         #[structopt(required = true)]
         entries: Vec<usize>,
     },
-    /// Reformat all loaded files
+    /// Reformats all loaded files
     Fmt,
 }
 
@@ -145,7 +145,7 @@ pub fn run() {
     let now = find_now(&opt, &files);
 
     // Kinda ugly, but it can stay for now (until it grows at least).
-    let range = match Range::from_str(&opt.range) {
+    let range = match CliRange::from_str(&opt.range) {
         Ok(range) => match range.eval((), now.date()) {
             Ok(range) => range,
             Err(e) => {
