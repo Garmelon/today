@@ -31,6 +31,10 @@ impl Span {
             end: cmp::max(self.end, other.end),
         }
     }
+
+    fn dummy() -> Self {
+        Self { start: 0, end: 0 }
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -48,6 +52,10 @@ impl<T: fmt::Debug> fmt::Debug for Spanned<T> {
 impl<T> Spanned<T> {
     pub fn new(span: Span, value: T) -> Self {
         Self { span, value }
+    }
+
+    pub fn dummy(value: T) -> Self {
+        Self::new(Span::dummy(), value)
     }
 }
 

@@ -339,6 +339,21 @@ impl Files {
         }
     }
 
+    fn latest_log(&self) -> Option<(NaiveDate, Source)> {
+        self.logs
+            .iter()
+            .map(|(d, s)| (*d, *s))
+            .max_by_key(|(d, _)| *d)
+    }
+
+    fn latest_log_before(&self, date: NaiveDate) -> Option<(NaiveDate, Source)> {
+        self.logs
+            .iter()
+            .map(|(d, s)| (*d, *s))
+            .filter(|(d, _)| d <= &date)
+            .max_by_key(|(d, _)| *d)
+    }
+
     pub fn now(&self) -> DateTime<&Tz> {
         if let Some(tz) = &self.timezone {
             Utc::now().with_timezone(&tz)
@@ -355,6 +370,18 @@ impl Files {
         }
     }
 
+    fn modify(&mut self, source: Source, edit: impl FnOnce(&mut Command)) {
+        let file = &mut self.files[source.file];
+        edit(&mut file.file.commands[source.command]);
+        file.dirty = true;
+    }
+
+    fn insert(&mut self, file: FileSource, command: Command) {
+        let file = &mut self.files[file.0];
+        file.file.commands.push(command);
+        file.dirty = true;
+    }
+
     /// Add a [`Done`] statement to the task identified by `source`.
     ///
     /// Returns whether the addition was successful. It can fail if the entry
@@ -368,6 +395,26 @@ impl Files {
         }
         file.dirty = true;
         true
+    }
+
+    pub fn set_log(&mut self, date: NaiveDate, desc: Vec<String>) {
+        if let Some(source) = self.logs.get(&date).cloned() {
+            self.modify(source, |command| match command {
+                Command::Log(log) => log.desc = desc,
+                _ => unreachable!(),
+            });
+        } else {
+            let file = self
+                .latest_log_before(date)
+                .or_else(|| self.latest_log())
+                .map(|(_, source)| source.file())
+                .unwrap_or(FileSource(0));
+
+            let date = Spanned::dummy(date);
+            let command = Command::Log(Log { date, desc });
+
+            self.insert(file, command);
+        }
     }
 
     /* Errors */

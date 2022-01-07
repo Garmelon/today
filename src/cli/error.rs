@@ -1,3 +1,5 @@
+use std::io;
+
 use chrono::NaiveDate;
 use codespan_reporting::files::Files;
 use codespan_reporting::term::Config;
@@ -15,6 +17,8 @@ pub enum Error<S> {
     NoSuchLog(NaiveDate),
     #[error("Not a task")]
     NotATask(Vec<usize>),
+    #[error("Error editing log for {date}: {error}")]
+    EditingLog { date: NaiveDate, error: io::Error },
 }
 
 impl<'a, F: Files<'a>> Eprint<'a, F> for Error<F::FileId> {
@@ -32,6 +36,10 @@ impl<'a, F: Files<'a>> Eprint<'a, F> for Error<F::FileId> {
                     let ns = ns.iter().map(|n| n.to_string()).collect::<Vec<_>>();
                     eprintln!("{} are not tasks.", ns.join(", "));
                 }
+            }
+            Error::EditingLog { date, error } => {
+                eprintln!("Error editing log for {}", date);
+                eprintln!("  {}", error);
             }
         }
     }

@@ -46,6 +46,19 @@ fn parse_cli_date(p: Pair<'_, Rule>) -> Result<CliDate> {
     Ok(CliDate { datum, delta })
 }
 
+impl FromStr for CliDate {
+    type Err = ParseError<()>;
+
+    fn from_str(s: &str) -> result::Result<Self, ParseError<()>> {
+        let mut pairs =
+            TodayfileParser::parse(Rule::cli_date, s).map_err(|e| ParseError::new((), e))?;
+        let p = pairs.next().unwrap();
+        assert_eq!(pairs.next(), None);
+
+        parse_cli_date(p).map_err(|e| ParseError::new((), e))
+    }
+}
+
 #[derive(Debug)]
 pub enum CliIdent {
     Number(usize),

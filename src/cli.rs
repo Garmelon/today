@@ -8,7 +8,7 @@ use directories::ProjectDirs;
 use structopt::StructOpt;
 
 use crate::eval::{self, DateRange, Entry, EntryMode};
-use crate::files::arguments::{CliIdent, CliRange};
+use crate::files::arguments::{CliDate, CliIdent, CliRange};
 use crate::files::{self, FileSource, Files, ParseError};
 
 use self::error::Error;
@@ -18,6 +18,7 @@ mod cancel;
 mod done;
 mod error;
 mod layout;
+mod log;
 mod print;
 mod show;
 
@@ -56,6 +57,11 @@ pub enum Command {
         /// Entries to mark as done
         #[structopt(required = true)]
         entries: Vec<usize>,
+    },
+    /// Edits or creates a log entry
+    Log {
+        #[structopt(default_value = "today")]
+        date: String,
     },
     /// Reformats all loaded files
     Fmt,
@@ -161,6 +167,12 @@ fn run_command(
             let entries = find_entries(files, range)?;
             let layout = find_layout(files, &entries, range, now);
             print::print(&layout);
+        }
+        Some(Command::Log { date }) => {
+            match parse_eval_arg("date", date, |date: CliDate| date.eval((), now.date())) {
+                Some(date) => log::log(files, date)?,
+                None => process::exit(1),
+            };
         }
         Some(Command::Fmt) => files.mark_all_dirty(),
     }
