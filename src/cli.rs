@@ -7,9 +7,9 @@ use codespan_reporting::files::SimpleFile;
 use directories::ProjectDirs;
 use structopt::StructOpt;
 
-use crate::eval::{DateRange, Entry, EntryMode};
+use crate::eval::{self, DateRange, Entry, EntryMode};
 use crate::files::arguments::CliRange;
-use crate::files::{self, FileSource, Files};
+use crate::files::{self, FileSource, Files, ParseError};
 
 use self::error::Error;
 use self::layout::line::LineLayout;
@@ -95,6 +95,24 @@ fn find_layout(
     layout::layout(files, entries, range, now)
 }
 
+fn parse_eval_arg<T, R>(
+    name: &str,
+    text: &str,
+    eval: impl FnOnce(T) -> Result<R, eval::Error<()>>,
+) -> Option<R>
+where
+    T: FromStr<Err = ParseError<()>>,
+{
+    match T::from_str(text) {
+        Ok(value) => match eval(value) {
+            Ok(result) => return Some(result),
+            Err(e) => crate::error::eprint_error(&SimpleFile::new(name, text), &e),
+        },
+        Err(e) => crate::error::eprint_error(&SimpleFile::new(name, text), &e),
+    }
+    None
+}
+
 fn run_command(
     opt: &Opt,
     files: &mut Files,
@@ -144,21 +162,11 @@ pub fn run() {
 
     let now = find_now(&opt, &files);
 
-    // Kinda ugly, but it can stay for now (until it grows at least).
-    let range = match CliRange::from_str(&opt.range) {
-        Ok(range) => match range.eval((), now.date()) {
-            Ok(range) => range,
-            Err(e) => {
-                eprintln!("Failed to evaluate --range:");
-                let file = SimpleFile::new("--range", &opt.range);
-                crate::error::eprint_error(&file, &e);
-                process::exit(1)
-            }
-        },
-        Err(e) => {
-            eprintln!("Failed to parse --range:\n{}", e.with_path("--range"));
-            process::exit(1)
-        }
+    let range = match parse_eval_arg("--range", &opt.range, |range: CliRange| {
+        range.eval((), now.date())
+    }) {
+        Some(range) => range,
+        None => process::exit(1),
     };
 
     if let Err(e) = run_command(&opt, &mut files, range, now) {

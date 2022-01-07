@@ -8,7 +8,7 @@ use codespan_reporting::files::SimpleFiles;
 use tzfile::Tz;
 
 use self::commands::{Command, Done, File, Log};
-pub use self::error::{Error, Result};
+pub use self::error::{Error, ParseError, Result};
 use self::primitives::Spanned;
 
 pub mod arguments;
@@ -162,9 +162,26 @@ impl Files {
             file: path.clone(),
             error: e,
         })?;
+        let cs_id = self
+            .cs_files
+            .add(name.to_string_lossy().to_string(), content.clone());
 
         // Using `name` instead of `path` for the unwrap below.
-        let file = parse::parse(name, &content)?;
+        let file = match parse::parse(name, &content) {
+            Ok(file) => file,
+            Err(error) => {
+                // Using a dummy file. This should be fine since we return an
+                // error immediately after and the user must never call `load`
+                // twice. Otherwise, we run the danger of overwriting a file
+                // with empty content.
+                self.files
+                    .push(LoadedFile::new(name.to_owned(), cs_id, File::dummy()));
+                return Err(Error::Parse {
+                    file: FileSource(self.files.len() - 1),
+                    error,
+                });
+            }
+        };
 
         let includes = file
             .commands
@@ -175,10 +192,7 @@ impl Files {
             })
             .collect::<Vec<_>>();
 
-        loaded.insert(path.clone());
-        let cs_id = self
-            .cs_files
-            .add(path.to_string_lossy().to_string(), content);
+        loaded.insert(path);
         self.files
             .push(LoadedFile::new(name.to_owned(), cs_id, file));
 

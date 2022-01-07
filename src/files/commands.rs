@@ -357,3 +357,14 @@ pub struct File {
     pub contents: String,
     pub commands: Vec<Command>,
 }
+
+impl File {
+    /// Create an empty dummy file. This file should only be used as a
+    /// placeholder value.
+    pub fn dummy() -> Self {
+        Self {
+            contents: String::new(),
+            commands: vec![],
+        }
+    }
+}

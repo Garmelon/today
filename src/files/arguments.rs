@@ -1,3 +1,4 @@
+use std::result;
 use std::str::FromStr;
 
 use chrono::NaiveDate;
@@ -5,7 +6,8 @@ use pest::iterators::Pair;
 use pest::Parser;
 
 use super::commands::Delta;
-use super::parse::{self, Error, Result, Rule, TodayfileParser};
+use super::parse::{self, Result, Rule, TodayfileParser};
+use super::ParseError;
 
 #[derive(Debug)]
 pub enum CliDatum {
@@ -61,14 +63,15 @@ fn parse_cli_ident(p: Pair<'_, Rule>) -> Result<CliIdent> {
 }
 
 impl FromStr for CliIdent {
-    type Err = Error;
+    type Err = ParseError<()>;
 
-    fn from_str(s: &str) -> Result<Self> {
-        let mut pairs = TodayfileParser::parse(Rule::cli_ident, s)?;
+    fn from_str(s: &str) -> result::Result<Self, ParseError<()>> {
+        let mut pairs =
+            TodayfileParser::parse(Rule::cli_ident, s).map_err(|e| ParseError::new((), e))?;
         let p = pairs.next().unwrap();
         assert_eq!(pairs.next(), None);
 
-        parse_cli_ident(p)
+        parse_cli_ident(p).map_err(|e| ParseError::new((), e))
     }
 }
 
@@ -132,13 +135,14 @@ fn parse_cli_range(p: Pair<'_, Rule>) -> Result<CliRange> {
 }
 
 impl FromStr for CliRange {
-    type Err = Error;
+    type Err = ParseError<()>;
 
-    fn from_str(s: &str) -> Result<Self> {
-        let mut pairs = TodayfileParser::parse(Rule::cli_range, s)?;
+    fn from_str(s: &str) -> result::Result<Self, ParseError<()>> {
+        let mut pairs =
+            TodayfileParser::parse(Rule::cli_range, s).map_err(|e| ParseError::new((), e))?;
         let p = pairs.next().unwrap();
         assert_eq!(pairs.next(), None);
 
-        parse_cli_range(p)
+        parse_cli_range(p).map_err(|e| ParseError::new((), e))
     }
 }
