@@ -1,3 +1,4 @@
+use chrono::NaiveDate;
 use codespan_reporting::files::Files;
 use codespan_reporting::term::Config;
 
@@ -10,6 +11,8 @@ pub enum Error<S> {
     Eval(#[from] eval::Error<S>),
     #[error("No entry with number {0}")]
     NoSuchEntry(usize),
+    #[error("No log for {0}")]
+    NoSuchLog(NaiveDate),
     #[error("Not a task")]
     NotATask(Vec<usize>),
 }
@@ -19,6 +22,7 @@ impl<'a, F: Files<'a>> Eprint<'a, F> for Error<F::FileId> {
         match self {
             Error::Eval(e) => e.eprint(files, config),
             Error::NoSuchEntry(n) => eprintln!("No entry with number {}", n),
+            Error::NoSuchLog(date) => eprintln!("No log for {}", date),
             Error::NotATask(ns) => {
                 if ns.is_empty() {
                     eprintln!("Not a task.");

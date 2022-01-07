@@ -24,7 +24,7 @@ impl Files {
         let mut entries = Entries::new(mode, range);
         for command in self.commands() {
             let source = command.source;
-            if let Some(command) = EvalCommand::new(command.command) {
+            if let Some(command) = EvalCommand::new(command.value) {
                 for entry in CommandState::new(command, source, range).eval()?.entries() {
                     entries.add(entry);
                 }

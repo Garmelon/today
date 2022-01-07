@@ -8,7 +8,7 @@ use directories::ProjectDirs;
 use structopt::StructOpt;
 
 use crate::eval::{self, DateRange, Entry, EntryMode};
-use crate::files::arguments::CliRange;
+use crate::files::arguments::{CliIdent, CliRange};
 use crate::files::{self, FileSource, Files, ParseError};
 
 use self::error::Error;
@@ -41,9 +41,9 @@ pub enum Command {
     #[allow(rustdoc::broken_intra_doc_links)]
     /// Shows individual entries in detail
     Show {
-        /// Entries to show
+        /// Entries and days to show
         #[structopt(required = true)]
-        entries: Vec<usize>,
+        identifiers: Vec<String>,
     },
     /// Marks one or more entries as done
     Done {
@@ -113,6 +113,21 @@ where
     None
 }
 
+fn parse_show_idents(identifiers: &[String], today: NaiveDate) -> Vec<show::Ident> {
+    let mut idents = vec![];
+    for ident in identifiers {
+        let ident = match parse_eval_arg("identifier", ident, |ident: CliIdent| match ident {
+            CliIdent::Number(n) => Ok(show::Ident::Number(n)),
+            CliIdent::Date(d) => Ok(show::Ident::Date(d.eval((), today)?)),
+        }) {
+            Some(ident) => ident,
+            None => process::exit(1),
+        };
+        idents.push(ident);
+    }
+    idents
+}
+
 fn run_command(
     opt: &Opt,
     files: &mut Files,
@@ -125,10 +140,11 @@ fn run_command(
             let layout = find_layout(files, &entries, range, now);
             print::print(&layout);
         }
-        Some(Command::Show { entries: ns }) => {
+        Some(Command::Show { identifiers }) => {
             let entries = find_entries(files, range)?;
             let layout = find_layout(files, &entries, range, now);
-            show::show(files, &entries, &layout, ns)?;
+            let idents = parse_show_idents(identifiers, now.date());
+            show::show(files, &entries, &layout, &idents);
         }
         Some(Command::Done { entries: ns }) => {
             let entries = find_entries(files, range)?;
