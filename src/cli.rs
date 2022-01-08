@@ -39,28 +39,31 @@ pub struct Opt {
 
 #[derive(Debug, StructOpt)]
 pub enum Command {
-    #[allow(rustdoc::broken_intra_doc_links)]
     /// Shows individual entries in detail
+    #[structopt(alias = "s")]
     Show {
         /// Entries and days to show
         #[structopt(required = true)]
         identifiers: Vec<String>,
     },
     /// Marks one or more entries as done
+    #[structopt(alias = "d")]
     Done {
         /// Entries to mark as done
         #[structopt(required = true)]
         entries: Vec<usize>,
     },
     /// Marks one or more entries as canceled
+    #[structopt(alias = "c")]
     Cancel {
         /// Entries to mark as done
         #[structopt(required = true)]
         entries: Vec<usize>,
     },
     /// Edits or creates a log entry
+    #[structopt(alias = "l")]
     Log {
-        #[structopt(default_value = "today")]
+        #[structopt(default_value = "t")]
         date: String,
     },
     /// Reformats all loaded files
