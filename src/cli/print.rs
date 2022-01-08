@@ -96,6 +96,7 @@ impl ShowLines {
         ));
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn display_line_entry(
         &mut self,
         number: Option<usize>,
