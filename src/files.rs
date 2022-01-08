@@ -143,8 +143,8 @@ impl Files {
     /// - This function must be called before all other functions.
     /// - This function must only be called once.
     /// - If this function fails,
-    ///   - it is safe to print the error with [`Files::eprint_diagnostic`] and
-    ///   - no other function must be called.
+    ///   - it is safe to print the error using the [`codespan_reporting::files::Files`] instance and
+    ///   - no other functions may be called.
     pub fn load(&mut self, path: &Path) -> Result<()> {
         if !self.files.is_empty() {
             panic!("Files::load called multiple times");
