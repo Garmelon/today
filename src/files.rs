@@ -28,6 +28,11 @@ struct LoadedFile {
     file: File,
     /// Whether this file has been changed.
     dirty: bool,
+    /// Commands that have been removed and are to be skipped during formatting.
+    ///
+    /// They are not directly removed from the list of commands in order not to
+    /// change other commands' indices.
+    removed: HashSet<usize>,
 }
 
 impl LoadedFile {
@@ -37,6 +42,7 @@ impl LoadedFile {
             cs_id,
             file,
             dirty: false,
+            removed: HashSet::new(),
         }
     }
 }
@@ -292,7 +298,7 @@ impl Files {
 
     fn save_file(file: &LoadedFile) -> Result<()> {
         // TODO Sort commands within file
-        let formatted = format!("{}", file.file);
+        let formatted = file.file.format(&file.removed);
         if file.file.contents == formatted {
             println!("Unchanged file {:?}", file.name);
         } else {
@@ -382,6 +388,12 @@ impl Files {
         file.dirty = true;
     }
 
+    fn remove(&mut self, source: Source) {
+        let file = &mut self.files[source.file];
+        file.removed.insert(source.command);
+        file.dirty = true;
+    }
+
     /// Add a [`Done`] statement to the task identified by `source`.
     ///
     /// Returns whether the addition was successful. It can fail if the entry
@@ -399,11 +411,15 @@ impl Files {
 
     pub fn set_log(&mut self, date: NaiveDate, desc: Vec<String>) {
         if let Some(source) = self.logs.get(&date).cloned() {
-            self.modify(source, |command| match command {
-                Command::Log(log) => log.desc = desc,
-                _ => unreachable!(),
-            });
-        } else {
+            if desc.is_empty() {
+                self.remove(source);
+            } else {
+                self.modify(source, |command| match command {
+                    Command::Log(log) => log.desc = desc,
+                    _ => unreachable!(),
+                });
+            }
+        } else if !desc.is_empty() {
             let file = self
                 .latest_log_before(date)
                 .or_else(|| self.latest_log())

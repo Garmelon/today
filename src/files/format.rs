@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fmt;
 
 use chrono::Datelike;
@@ -317,21 +318,31 @@ impl fmt::Display for Log {
     }
 }
 
-impl fmt::Display for File {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for i in 0..self.commands.len() {
-            let curr = &self.commands[i];
-            let next = self.commands.get(i + 1);
+impl File {
+    pub fn format(&self, removed: &HashSet<usize>) -> String {
+        let mut result = String::new();
 
-            write!(f, "{}", curr)?;
+        let commands = self
+            .commands
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| !removed.contains(i))
+            .map(|(_, c)| c)
+            .collect::<Vec<_>>();
+
+        for i in 0..commands.len() {
+            let curr = commands[i];
+            let next = commands.get(i + 1).copied();
+
+            result.push_str(&format!("{}", curr));
 
             match (curr, next) {
                 (Command::Include(_), Some(Command::Include(_))) => {}
                 (_, None) => {}
-                _ => writeln!(f)?,
+                _ => result.push('\n'),
             }
         }
 
-        Ok(())
+        result
     }
 }
