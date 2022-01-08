@@ -28,8 +28,8 @@ pub struct Opt {
     #[structopt(short, long, parse(from_os_str))]
     file: Option<PathBuf>,
     /// Overwrite the current date
-    #[structopt(short, long)]
-    date: Option<NaiveDate>,
+    #[structopt(short, long, default_value = "t")]
+    date: String,
     /// Range of days to focus on
     #[structopt(short, long, default_value = "t-2d--t+13d")]
     range: String,
@@ -77,15 +77,6 @@ fn default_file() -> PathBuf {
 fn load_files(opt: &Opt, files: &mut Files) -> result::Result<(), files::Error> {
     let file = opt.file.clone().unwrap_or_else(default_file);
     files.load(&file)
-}
-
-fn find_now(opt: &Opt, files: &Files) -> NaiveDateTime {
-    let now = files.now().naive_local();
-    if let Some(date) = opt.date {
-        date.and_time(now.time())
-    } else {
-        now
-    }
 }
 
 fn find_entries(files: &Files, range: DateRange) -> Result<Vec<Entry>, Error<FileSource>> {
@@ -188,7 +179,14 @@ pub fn run() {
         process::exit(1);
     }
 
-    let now = find_now(&opt, &files);
+    let now = files.now().naive_local();
+    let today = match parse_eval_arg("--date", &opt.date, |date: CliDate| {
+        date.eval((), now.date())
+    }) {
+        Some(date) => date,
+        None => process::exit(1),
+    };
+    let now = today.and_time(now.time());
 
     let range = match parse_eval_arg("--range", &opt.range, |range: CliRange| {
         range.eval((), now.date())
