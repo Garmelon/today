@@ -6,6 +6,7 @@ use colored::{ColoredString, Colorize};
 use crate::files::primitives::{Time, Weekday};
 
 use super::layout::line::{LineEntry, LineKind, LineLayout, SpanSegment, SpanStyle, Times};
+use super::util;
 
 struct ShowLines {
     num_width: usize,
@@ -116,7 +117,7 @@ impl ShowLines {
             "{:>nw$} {} {}{} {}{}{}\n",
             num.bright_black(),
             self.display_spans(spans, " ".into()),
-            Self::display_kind(kind),
+            util::display_kind(kind),
             Self::display_time(time),
             text,
             Self::display_marker(has_desc, ""),
@@ -149,16 +150,6 @@ impl ShowLines {
             Times::Untimed => "".into(),
             Times::At(t) => format!(" {}", t).bright_black(),
             Times::FromTo(t1, t2) => format!(" {}--{}", t1, t2).bright_black(),
-        }
-    }
-
-    fn display_kind(kind: LineKind) -> ColoredString {
-        match kind {
-            LineKind::Task => "T".magenta().bold(),
-            LineKind::Done => "D".green().bold(),
-            LineKind::Canceled => "C".red().bold(),
-            LineKind::Note => "N".blue().bold(),
-            LineKind::Birthday => "B".yellow().bold(),
         }
     }
 

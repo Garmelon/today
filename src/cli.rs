@@ -21,6 +21,7 @@ mod layout;
 mod log;
 mod print;
 mod show;
+mod util;
 
 #[derive(Debug, StructOpt)]
 pub struct Opt {

@@ -215,7 +215,7 @@ impl LineLayout {
         }
     }
 
-    fn entry_kind(entry: &Entry) -> LineKind {
+    pub fn entry_kind(entry: &Entry) -> LineKind {
         match entry.kind {
             EntryKind::Task => LineKind::Task,
             EntryKind::TaskDone(_) => LineKind::Done,
