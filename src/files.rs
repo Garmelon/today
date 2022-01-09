@@ -198,7 +198,7 @@ impl Files {
         let includes = file
             .commands
             .iter()
-            .filter_map(|c| match c {
+            .filter_map(|c| match &c.value {
                 Command::Include(path) => Some(path.clone()),
                 _ => None,
             })
@@ -224,7 +224,7 @@ impl Files {
         let mut found: Option<(Source, Spanned<String>)> = None;
 
         for command in self.commands() {
-            if let Command::Timezone(tz) = command.value {
+            if let Command::Timezone(tz) = &command.value.value {
                 if let Some((found_source, found_tz)) = &found {
                     if tz.value != found_tz.value {
                         return Err(Error::TzConflict {
@@ -259,14 +259,14 @@ impl Files {
 
     fn collect_logs(&mut self) -> Result<()> {
         for command in Self::commands_of_files(&self.files) {
-            if let Command::Log(log) = command.value {
+            if let Command::Log(log) = &command.value.value {
                 match self.logs.entry(log.date.value) {
                     Entry::Vacant(e) => {
                         e.insert(command.source);
                     }
                     Entry::Occupied(e) => {
                         let other_cmd = Self::command_of_files(&self.files, *e.get());
-                        let other_span = match &other_cmd.value {
+                        let other_span = match &other_cmd.value.value {
                             Command::Log(log) => log.date.span,
                             _ => unreachable!(),
                         };
@@ -313,7 +313,7 @@ impl Files {
 
     /* Querying */
 
-    fn commands_of_files(files: &[LoadedFile]) -> Vec<Sourced<'_, Command>> {
+    fn commands_of_files(files: &[LoadedFile]) -> Vec<Sourced<'_, Spanned<Command>>> {
         let mut result = vec![];
         for (file_index, file) in files.iter().enumerate() {
             for (command_index, command) in file.file.commands.iter().enumerate() {
@@ -324,22 +324,22 @@ impl Files {
         result
     }
 
-    pub fn commands(&self) -> Vec<Sourced<'_, Command>> {
+    pub fn commands(&self) -> Vec<Sourced<'_, Spanned<Command>>> {
         Self::commands_of_files(&self.files)
     }
 
-    fn command_of_files(files: &[LoadedFile], source: Source) -> Sourced<'_, Command> {
+    fn command_of_files(files: &[LoadedFile], source: Source) -> Sourced<'_, Spanned<Command>> {
         let command = &files[source.file].file.commands[source.command];
         Sourced::new(source, command)
     }
 
-    pub fn command(&self, source: Source) -> Sourced<'_, Command> {
+    pub fn command(&self, source: Source) -> Sourced<'_, Spanned<Command>> {
         Self::command_of_files(&self.files, source)
     }
 
     pub fn log(&self, date: NaiveDate) -> Option<Sourced<'_, Log>> {
         let source = *self.logs.get(&date)?;
-        match self.command(source).value {
+        match &self.command(source).value.value {
             Command::Log(log) => Some(Sourced::new(source, log)),
             _ => unreachable!(),
         }
@@ -378,13 +378,13 @@ impl Files {
 
     fn modify(&mut self, source: Source, edit: impl FnOnce(&mut Command)) {
         let file = &mut self.files[source.file];
-        edit(&mut file.file.commands[source.command]);
+        edit(&mut file.file.commands[source.command].value);
         file.dirty = true;
     }
 
     fn insert(&mut self, file: FileSource, command: Command) {
         let file = &mut self.files[file.0];
-        file.file.commands.push(command);
+        file.file.commands.push(Spanned::dummy(command));
         file.dirty = true;
     }
 
@@ -401,7 +401,7 @@ impl Files {
     #[must_use]
     pub fn add_done(&mut self, source: Source, done: Done) -> bool {
         let file = &mut self.files[source.file];
-        match &mut file.file.commands[source.command] {
+        match &mut file.file.commands[source.command].value {
             Command::Task(t) => t.done.push(done),
             _ => return false,
         }

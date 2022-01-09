@@ -331,8 +331,8 @@ impl File {
             .collect::<Vec<_>>();
 
         for i in 0..commands.len() {
-            let curr = commands[i];
-            let next = commands.get(i + 1).copied();
+            let curr = &commands[i].value;
+            let next = commands.get(i + 1).map(|c| &c.value);
 
             result.push_str(&format!("{}", curr));
 

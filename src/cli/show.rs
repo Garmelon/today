@@ -37,7 +37,7 @@ fn show_entry(files: &Files, entry: &Entry) {
     }
 
     println!("FROM COMMAND");
-    show_command(command.value);
+    show_command(&command.value.value);
 }
 
 fn show_log(files: &Files, log: Sourced<'_, Log>) {
@@ -46,7 +46,7 @@ fn show_log(files: &Files, log: Sourced<'_, Log>) {
     println!("LOG {}", log.value.date);
 
     println!("FROM COMMAND");
-    show_command(command.value);
+    show_command(&command.value.value);
 }
 
 fn show_ident(files: &Files, entries: &[Entry], layout: &LineLayout, ident: Ident) {

@@ -818,18 +818,20 @@ fn parse_log(p: Pair<'_, Rule>) -> Result<Log> {
     Ok(Log { date, desc })
 }
 
-fn parse_command(p: Pair<'_, Rule>) -> Result<Command> {
+fn parse_command(p: Pair<'_, Rule>) -> Result<Spanned<Command>> {
     assert_eq!(p.as_rule(), Rule::command);
 
     let p = p.into_inner().next().unwrap();
-    Ok(match p.as_rule() {
+    let span = (&p.as_span()).into();
+    let command = match p.as_rule() {
         Rule::include => Command::Include(parse_include(p)),
         Rule::timezone => Command::Timezone(parse_timezone(p)),
         Rule::task => Command::Task(parse_task(p)?),
         Rule::note => Command::Note(parse_note(p)?),
         Rule::log => Command::Log(parse_log(p)?),
         _ => unreachable!(),
-    })
+    };
+    Ok(Spanned::new(span, command))
 }
 
 pub fn parse_file(p: Pair<'_, Rule>, contents: String) -> Result<File> {

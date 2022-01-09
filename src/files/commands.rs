@@ -355,7 +355,7 @@ pub enum Command {
 #[derive(Debug)]
 pub struct File {
     pub contents: String,
-    pub commands: Vec<Command>,
+    pub commands: Vec<Spanned<Command>>,
 }
 
 impl File {
