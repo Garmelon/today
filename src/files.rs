@@ -290,16 +290,24 @@ impl Files {
     pub fn save(&self) -> Result<()> {
         for file in &self.files {
             if file.dirty {
-                Self::save_file(file)?;
+                self.save_file(file)?;
             }
         }
         Ok(())
     }
 
-    fn save_file(file: &LoadedFile) -> Result<()> {
+    fn save_file(&self, file: &LoadedFile) -> Result<()> {
         // TODO Sort commands within file
+
+        let previous = self
+            .cs_files
+            .get(file.cs_id)
+            .expect("cs id is valid")
+            .source();
+
         let formatted = file.file.format(&file.removed);
-        if file.file.contents == formatted {
+
+        if previous == &formatted {
             println!("Unchanged file {:?}", file.name);
         } else {
             println!("Saving file {:?}", file.name);
@@ -308,6 +316,7 @@ impl Files {
                 error: e,
             })?;
         }
+
         Ok(())
     }
 

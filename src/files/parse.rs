@@ -834,7 +834,7 @@ fn parse_command(p: Pair<'_, Rule>) -> Result<Spanned<Command>> {
     Ok(Spanned::new(span, command))
 }
 
-pub fn parse_file(p: Pair<'_, Rule>, contents: String) -> Result<File> {
+pub fn parse_file(p: Pair<'_, Rule>) -> Result<File> {
     assert_eq!(p.as_rule(), Rule::file);
 
     let mut commands = vec![];
@@ -847,7 +847,7 @@ pub fn parse_file(p: Pair<'_, Rule>, contents: String) -> Result<File> {
         commands.push(parse_command(p)?);
     }
 
-    Ok(File { contents, commands })
+    Ok(File { commands })
 }
 
 pub fn parse(path: &Path, input: &str) -> Result<File> {
@@ -857,5 +857,5 @@ pub fn parse(path: &Path, input: &str) -> Result<File> {
     let file_pair = pairs.next().unwrap();
     assert_eq!(pairs.next(), None);
 
-    parse_file(file_pair, input.to_string()).map_err(|e| e.with_path(&pathstr))
+    parse_file(file_pair).map_err(|e| e.with_path(&pathstr))
 }
