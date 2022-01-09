@@ -14,9 +14,9 @@ use super::util;
 fn fmt_where(files: &Files, command: &Sourced<'_, Spanned<Command>>) -> String {
     let name = files.name(command.source.file()).expect("file exists");
     let line = files
-        .line_number(command.source.file(), command.value.span.start)
+        .line_index(command.source.file(), command.value.span.start)
         .expect("file exists and line is valid");
-    format!("Line {} in {}", line, name)
+    format!("Line {} in {}", line + 1, name)
 }
 
 fn print_desc(command: &Sourced<'_, Spanned<Command>>) {
