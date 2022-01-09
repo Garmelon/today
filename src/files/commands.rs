@@ -307,6 +307,33 @@ impl DoneDate {
             DoneDate::DateTimeToDateTime { root, .. } => root,
         }
     }
+
+    /// Remove redundancies like the same date or time specified twice.
+    pub fn simplified(self) -> Self {
+        let result = match self {
+            Self::DateToDate { root, other } if root == other => Self::Date { root },
+            Self::DateTimeToDateTime {
+                root,
+                root_time,
+                other,
+                other_time,
+            } if root == other => Self::DateTimeToTime {
+                root,
+                root_time,
+                other_time,
+            },
+            other => other,
+        };
+
+        match result {
+            Self::DateTimeToTime {
+                root,
+                root_time,
+                other_time,
+            } if root_time == other_time => Self::DateTime { root, root_time },
+            other => other,
+        }
+    }
 }
 
 #[derive(Debug)]

@@ -239,8 +239,7 @@ impl fmt::Display for Statement {
 
 impl fmt::Display for DoneDate {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // TODO Remove redundant dates
-        match self {
+        match self.simplified() {
             DoneDate::Date { root } => write!(f, "{}", root),
             DoneDate::DateTime { root, root_time } => write!(f, "{} {}", root, root_time),
             DoneDate::DateToDate { root, other } => write!(f, "{} -- {}", root, other),

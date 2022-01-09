@@ -149,32 +149,16 @@ impl From<DoneDate> for Dates {
 
 impl From<Dates> for DoneDate {
     fn from(dates: Dates) -> Self {
-        if dates.root == dates.other {
-            match dates.times {
-                Some(times) if times.root == times.other => Self::DateTime {
-                    root: dates.root,
-                    root_time: times.root,
-                },
-                Some(times) => Self::DateTimeToTime {
-                    root: dates.root,
-                    root_time: times.root,
-                    other_time: times.other,
-                },
-                None => Self::Date { root: dates.root },
-            }
-        } else {
-            match dates.times {
-                Some(times) => Self::DateTimeToDateTime {
-                    root: dates.root,
-                    root_time: times.root,
-                    other: dates.other,
-                    other_time: times.other,
-                },
-                None => Self::DateToDate {
-                    root: dates.root,
-                    other: dates.other,
-                },
-            }
+        let (root, other) = dates.dates();
+        match dates.times() {
+            Some((root_time, other_time)) => Self::DateTimeToDateTime {
+                root,
+                root_time,
+                other,
+                other_time,
+            },
+            None => Self::DateToDate { root, other },
         }
+        .simplified()
     }
 }

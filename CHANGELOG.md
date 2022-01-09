@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - When saving...
     - Unchanged files are no longer overwritten
     - Commands are no longer reordered
+    - Done and cancel dates are simplified
 - Always prints import-based path, not absolute path
 
 ### Fixed
