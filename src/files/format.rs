@@ -318,20 +318,56 @@ impl fmt::Display for Log {
 }
 
 impl File {
+    fn sort(commands: &mut Vec<&Command>) {
+        // Order of commands in a file:
+        // 1. Imports, sorted alphabetically
+        // 2. Time zone(s)
+        // 3. Log entries, sorted by date (ascending)
+        // 4. Tasks and notes, in original order
+
+        // There should always be at most one time zone, so we don't care about
+        // their order.
+
+        // In the individual steps we must use a stable sort so the order of 4.
+        // is not lost.
+
+        // Order imports alphabetically
+        commands.sort_by_key(|c| match c {
+            Command::Include(path) => Some(&path.value),
+            _ => None,
+        });
+
+        // Order log entries by date
+        commands.sort_by_key(|c| match c {
+            Command::Log(Log { date, .. }) => Some(date.value),
+            _ => None,
+        });
+
+        // Order by type
+        commands.sort_by_key(|c| match c {
+            Command::Include(_) => 0,
+            Command::Timezone(_) => 1,
+            Command::Log(_) => 2,
+            Command::Task(_) | Command::Note(_) => 3,
+        });
+    }
+
     pub fn format(&self, removed: &HashSet<usize>) -> String {
         let mut result = String::new();
 
-        let commands = self
+        let mut commands = self
             .commands
             .iter()
             .enumerate()
             .filter(|(i, _)| !removed.contains(i))
-            .map(|(_, c)| c)
+            .map(|(_, c)| &c.value)
             .collect::<Vec<_>>();
 
+        Self::sort(&mut commands);
+
         for i in 0..commands.len() {
-            let curr = &commands[i].value;
-            let next = commands.get(i + 1).map(|c| &c.value);
+            let curr = &commands[i];
+            let next = commands.get(i + 1);
 
             result.push_str(&format!("{}", curr));
 

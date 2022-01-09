@@ -26,8 +26,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - It now displays the source command (file and line) of the entry
 - When saving...
     - Unchanged files are no longer overwritten
-    - Commands are no longer reordered
-    - Done and cancel dates are simplified
+    - Imports are now sorted alphabetically
+    - Done and cancel dates are now simplified where possible
 - Always prints import-based path, not absolute path
 
 ### Fixed
