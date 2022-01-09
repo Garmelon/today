@@ -5,11 +5,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Unreleased
 
 ### Added
-- `REMIND` statement
+- `LOG` command
+- `REMIND` and `CANCEL` statements
 - `MOVE` entries to a different time
+- `today log` CLI command
+- One-letter aliases for
+    - `today show`: `today s`
+    - `today log`: `today l`
+    - `today done`: `today d`
+    - `today cancel`: `today c`
+- `--date` now accepts expressions like `today-3d`
+- In `--range` and `--date`, `t` can be used as abbreviation for `today`
+- `*` markers in output for days with logs and entries with descriptions
 
 ### Changed
 - Output is now colored
+- Better error messages
+- Overhauled `today show` format
+    - It can now show log entries for days
+    - It now displays the source command (file and line) of the entry
+- When saving...
+    - Unchanged files are no longer overwritten
+    - Commands are no longer reordered
+- Always prints import-based path, not absolute path
+
+### Fixed
+- Alignment in output
+- Respect `TZDIR` environment variable
 
 ## 0.1.0 - 2021-12-20
 
