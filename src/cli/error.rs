@@ -28,8 +28,8 @@ pub enum Error {
     NoSuchLog(NaiveDate),
     #[error("Not a task")]
     NotATask(Vec<usize>),
-    #[error("Error editing log for {date}: {error}")]
-    EditingLog { date: NaiveDate, error: io::Error },
+    #[error("Error editing: {0}")]
+    EditingIo(io::Error),
 }
 
 pub type Result<T> = result::Result<T, Error>;
@@ -55,9 +55,9 @@ where
                     eprintln!("{} are not tasks.", ns.join(", "));
                 }
             }
-            Error::EditingLog { date, error } => {
-                eprintln!("Error editing log for {}", date);
-                eprintln!("  {}", error);
+            Error::EditingIo(error) => {
+                eprintln!("Error while editing:");
+                eprintln!("  {error}");
             }
         }
     }
