@@ -11,7 +11,7 @@ use self::commands::{Command, Done, File, Log};
 pub use self::error::{Error, ParseError, Result};
 use self::primitives::Spanned;
 
-pub mod arguments;
+pub mod cli;
 pub mod commands;
 mod error;
 mod format;

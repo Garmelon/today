@@ -8,7 +8,7 @@ use directories::ProjectDirs;
 use structopt::StructOpt;
 
 use crate::eval::{self, DateRange, Entry, EntryMode};
-use crate::files::arguments::{CliDate, CliIdent, CliRange};
+use crate::files::cli::{CliDate, CliIdent, CliRange};
 use crate::files::{self, Files, ParseError};
 
 use self::error::{Error, Result};

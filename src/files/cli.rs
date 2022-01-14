@@ -5,9 +5,20 @@ use chrono::NaiveDate;
 use pest::iterators::Pair;
 use pest::Parser;
 
-use super::commands::Delta;
+use super::commands::{Command, Delta};
 use super::parse::{self, Result, Rule, TodayfileParser};
 use super::ParseError;
+
+fn from_str_via_parse<P, R>(s: &str, rule: Rule, parse: P) -> result::Result<R, ParseError<()>>
+where
+    P: FnOnce(Pair<'_, Rule>) -> Result<R>,
+{
+    let mut pairs = TodayfileParser::parse(rule, s).map_err(|e| ParseError::new((), e))?;
+    let p = pairs.next().unwrap();
+    assert_eq!(pairs.next(), None);
+
+    parse(p).map_err(|e| ParseError::new((), e))
+}
 
 #[derive(Debug)]
 pub enum CliDatum {
@@ -50,12 +61,7 @@ impl FromStr for CliDate {
     type Err = ParseError<()>;
 
     fn from_str(s: &str) -> result::Result<Self, ParseError<()>> {
-        let mut pairs =
-            TodayfileParser::parse(Rule::cli_date, s).map_err(|e| ParseError::new((), e))?;
-        let p = pairs.next().unwrap();
-        assert_eq!(pairs.next(), None);
-
-        parse_cli_date(p).map_err(|e| ParseError::new((), e))
+        from_str_via_parse(s, Rule::cli_date, parse_cli_date)
     }
 }
 
@@ -79,12 +85,7 @@ impl FromStr for CliIdent {
     type Err = ParseError<()>;
 
     fn from_str(s: &str) -> result::Result<Self, ParseError<()>> {
-        let mut pairs =
-            TodayfileParser::parse(Rule::cli_ident, s).map_err(|e| ParseError::new((), e))?;
-        let p = pairs.next().unwrap();
-        assert_eq!(pairs.next(), None);
-
-        parse_cli_ident(p).map_err(|e| ParseError::new((), e))
+        from_str_via_parse(s, Rule::cli_ident, parse_cli_ident)
     }
 }
 
@@ -151,11 +152,23 @@ impl FromStr for CliRange {
     type Err = ParseError<()>;
 
     fn from_str(s: &str) -> result::Result<Self, ParseError<()>> {
-        let mut pairs =
-            TodayfileParser::parse(Rule::cli_range, s).map_err(|e| ParseError::new((), e))?;
-        let p = pairs.next().unwrap();
-        assert_eq!(pairs.next(), None);
+        from_str_via_parse(s, Rule::cli_range, parse_cli_range)
+    }
+}
 
-        parse_cli_range(p).map_err(|e| ParseError::new((), e))
+#[derive(Debug)]
+pub struct CliCommand(pub Command);
+
+fn parse_cli_command(p: Pair<'_, Rule>) -> Result<CliCommand> {
+    assert_eq!(p.as_rule(), Rule::cli_command);
+    let p = p.into_inner().next().unwrap();
+    Ok(CliCommand(parse::parse_command(p)?.value))
+}
+
+impl FromStr for CliCommand {
+    type Err = ParseError<()>;
+
+    fn from_str(s: &str) -> result::Result<Self, ParseError<()>> {
+        from_str_via_parse(s, Rule::cli_command, parse_cli_command)
     }
 }

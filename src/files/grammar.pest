@@ -156,3 +156,4 @@ cli_ident = { SOI ~ (cli_date | number) ~ EOI }
 cli_range_start = { cli_datum ~ delta? }
 cli_range_end = { cli_datum ~ delta? | delta }
 cli_range = { SOI ~ cli_range_start ~ ("--" ~ cli_range_end)? ~ EOI }
+cli_command = { SOI ~ command ~ EOI }

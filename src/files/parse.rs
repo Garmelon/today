@@ -818,7 +818,7 @@ fn parse_log(p: Pair<'_, Rule>) -> Result<Log> {
     Ok(Log { date, desc })
 }
 
-fn parse_command(p: Pair<'_, Rule>) -> Result<Spanned<Command>> {
+pub fn parse_command(p: Pair<'_, Rule>) -> Result<Spanned<Command>> {
     assert_eq!(p.as_rule(), Rule::command);
 
     let p = p.into_inner().next().unwrap();
