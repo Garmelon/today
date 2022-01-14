@@ -5,15 +5,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Unreleased
 
 ### Added
-- `LOG` and `CAPTURE` commands
-- `REMIND` and `CANCEL` statements
-- `MOVE` entries to a different time
-- `today log` CLI command
+- `LOG` command and `today log` CLI command
+- `CAPTURE` command
+- `REMIND` statement
+- `CANCEL` statement for tasks
 - One-letter aliases for
     - `today show`: `today s`
     - `today log`: `today l`
     - `today done`: `today d`
     - `today cancel`: `today c`
+- `MOVE` can now move entries to a different time
 - `--date` now accepts expressions like `today-3d`
 - In `--range` and `--date`, `t` can be used as abbreviation for `today`
 - `*` markers in output for days with logs and entries with descriptions
