@@ -28,6 +28,8 @@ pub enum Error {
     NoSuchLog(NaiveDate),
     #[error("Not a task")]
     NotATask(Vec<usize>),
+    #[error("No capture file found")]
+    NoCaptureFile,
     #[error("Error editing: {0}")]
     EditingIo(io::Error),
 }
@@ -55,6 +57,7 @@ where
                     eprintln!("{} are not tasks.", ns.join(", "));
                 }
             }
+            Error::NoCaptureFile => eprintln!("No capture file found"),
             Error::EditingIo(error) => {
                 eprintln!("Error while editing:");
                 eprintln!("  {error}");

@@ -19,6 +19,7 @@ mod done;
 mod error;
 mod layout;
 mod log;
+mod new;
 mod print;
 mod show;
 mod util;
@@ -47,6 +48,12 @@ pub enum Command {
         #[structopt(required = true)]
         identifiers: Vec<String>,
     },
+    /// Create a new entry based on a template
+    #[structopt(alias = "n")]
+    New {
+        #[structopt(subcommand)]
+        template: Template,
+    },
     /// Marks one or more entries as done
     #[structopt(alias = "d")]
     Done {
@@ -69,6 +76,14 @@ pub enum Command {
     },
     /// Reformats all loaded files
     Fmt,
+}
+
+// TODO Add templates for tasks and notes
+#[derive(Debug, StructOpt)]
+pub enum Template {
+    /// An undated task marked as done today
+    #[structopt(alias = "d")]
+    Done,
 }
 
 fn default_file() -> PathBuf {
@@ -136,6 +151,9 @@ fn run_command(opt: &Opt, files: &mut Files, range: DateRange, now: NaiveDateTim
             let idents = parse_show_idents(identifiers, now.date())?;
             show::show(files, &entries, &layout, &idents);
         }
+        Some(Command::New { template }) => match template {
+            Template::Done => new::done(files, now)?,
+        },
         Some(Command::Done { entries: ns }) => {
             let entries = find_entries(files, range)?;
             let layout = find_layout(files, &entries, range, now);

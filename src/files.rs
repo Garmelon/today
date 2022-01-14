@@ -424,7 +424,7 @@ impl Files {
         file.dirty = true;
     }
 
-    fn insert(&mut self, file: FileSource, command: Command) {
+    pub fn insert(&mut self, file: FileSource, command: Command) {
         let file = &mut self.files[file.0];
         file.file.commands.push(Spanned::dummy(command));
         file.dirty = true;
