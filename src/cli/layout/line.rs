@@ -148,7 +148,7 @@ impl LineLayout {
         &self.lines
     }
 
-    pub fn look_up_number<S>(&self, number: usize) -> Result<usize, Error<S>> {
+    pub fn look_up_number(&self, number: usize) -> Result<usize, Error> {
         self.numbers
             .iter()
             .filter(|(_, n)| **n == number)

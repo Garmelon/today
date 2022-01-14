@@ -6,16 +6,16 @@ use crate::eval::Entry;
 use crate::files::commands::{Done, DoneKind};
 use crate::files::Files;
 
-use super::error::Error;
+use super::error::{Error, Result};
 use super::layout::line::LineLayout;
 
-pub fn cancel<S>(
+pub fn cancel(
     files: &mut Files,
     entries: &[Entry],
     layout: &LineLayout,
     numbers: &[usize],
     now: NaiveDateTime,
-) -> Result<(), Error<S>> {
+) -> Result<()> {
     let mut not_tasks = vec![];
     for &number in numbers {
         let entry = &entries[layout.look_up_number(number)?];

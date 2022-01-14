@@ -1,16 +1,27 @@
-use std::io;
+use std::{io, result};
 
 use chrono::NaiveDate;
-use codespan_reporting::files::Files;
+use codespan_reporting::files::{Files, SimpleFile};
 use codespan_reporting::term::Config;
 
 use crate::error::Eprint;
-use crate::eval;
+use crate::files::FileSource;
+use crate::{eval, files};
 
 #[derive(Debug, thiserror::Error)]
-pub enum Error<S> {
+pub enum Error {
     #[error("{0}")]
-    Eval(#[from] eval::Error<S>),
+    Eval(#[from] eval::Error<FileSource>),
+    #[error("{error}")]
+    ArgumentParse {
+        file: SimpleFile<String, String>,
+        error: files::ParseError<()>,
+    },
+    #[error("{error}")]
+    ArgumentEval {
+        file: SimpleFile<String, String>,
+        error: eval::Error<()>,
+    },
     #[error("No entry with number {0}")]
     NoSuchEntry(usize),
     #[error("No log for {0}")]
@@ -21,10 +32,17 @@ pub enum Error<S> {
     EditingLog { date: NaiveDate, error: io::Error },
 }
 
-impl<'a, F: Files<'a>> Eprint<'a, F> for Error<F::FileId> {
+pub type Result<T> = result::Result<T, Error>;
+
+impl<'a, F> Eprint<'a, F> for Error
+where
+    F: Files<'a, FileId = FileSource>,
+{
     fn eprint<'f: 'a>(&self, files: &'f F, config: &Config) {
         match self {
             Error::Eval(e) => e.eprint(files, config),
+            Error::ArgumentParse { file, error } => error.eprint(file, config),
+            Error::ArgumentEval { file, error } => error.eprint(file, config),
             Error::NoSuchEntry(n) => eprintln!("No entry with number {}", n),
             Error::NoSuchLog(date) => eprintln!("No log for {}", date),
             Error::NotATask(ns) => {

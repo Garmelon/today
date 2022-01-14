@@ -4,7 +4,7 @@ use crate::files::Files;
 
 use super::error::Error;
 
-pub fn log<S>(files: &mut Files, date: NaiveDate) -> Result<(), Error<S>> {
+pub fn log(files: &mut Files, date: NaiveDate) -> Result<(), Error> {
     let desc = files
         .log(date)
         .map(|log| log.value.desc.join("\n"))

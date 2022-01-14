@@ -9,9 +9,9 @@ use structopt::StructOpt;
 
 use crate::eval::{self, DateRange, Entry, EntryMode};
 use crate::files::arguments::{CliDate, CliIdent, CliRange};
-use crate::files::{self, FileSource, Files, ParseError};
+use crate::files::{self, Files, ParseError};
 
-use self::error::Error;
+use self::error::{Error, Result};
 use self::layout::line::LineLayout;
 
 mod cancel;
@@ -83,7 +83,7 @@ fn load_files(opt: &Opt, files: &mut Files) -> result::Result<(), files::Error> 
     files.load(&file)
 }
 
-fn find_entries(files: &Files, range: DateRange) -> Result<Vec<Entry>, Error<FileSource>> {
+fn find_entries(files: &Files, range: DateRange) -> Result<Vec<Entry>> {
     Ok(files.eval(EntryMode::Relevant, range)?)
 }
 
@@ -96,45 +96,34 @@ fn find_layout(
     layout::layout(files, entries, range, now)
 }
 
-fn parse_eval_arg<T, R>(
-    name: &str,
-    text: &str,
-    eval: impl FnOnce(T) -> Result<R, eval::Error<()>>,
-) -> Option<R>
+fn parse_eval_arg<T, E, R>(name: &str, text: &str, eval: E) -> Result<R>
 where
     T: FromStr<Err = ParseError<()>>,
+    E: FnOnce(T) -> result::Result<R, eval::Error<()>>,
 {
-    match T::from_str(text) {
-        Ok(value) => match eval(value) {
-            Ok(result) => return Some(result),
-            Err(e) => crate::error::eprint_error(&SimpleFile::new(name, text), &e),
-        },
-        Err(e) => crate::error::eprint_error(&SimpleFile::new(name, text), &e),
-    }
-    None
+    let value = T::from_str(text).map_err(|error| Error::ArgumentParse {
+        file: SimpleFile::new(name.to_string(), text.to_string()),
+        error,
+    })?;
+    eval(value).map_err(|error| Error::ArgumentEval {
+        file: SimpleFile::new(name.to_string(), text.to_string()),
+        error,
+    })
 }
 
-fn parse_show_idents(identifiers: &[String], today: NaiveDate) -> Vec<show::Ident> {
+fn parse_show_idents(identifiers: &[String], today: NaiveDate) -> Result<Vec<show::Ident>> {
     let mut idents = vec![];
     for ident in identifiers {
-        let ident = match parse_eval_arg("identifier", ident, |ident: CliIdent| match ident {
+        let ident = parse_eval_arg("identifier", ident, |ident: CliIdent| match ident {
             CliIdent::Number(n) => Ok(show::Ident::Number(n)),
             CliIdent::Date(d) => Ok(show::Ident::Date(d.eval((), today)?)),
-        }) {
-            Some(ident) => ident,
-            None => process::exit(1),
-        };
+        })?;
         idents.push(ident);
     }
-    idents
+    Ok(idents)
 }
 
-fn run_command(
-    opt: &Opt,
-    files: &mut Files,
-    range: DateRange,
-    now: NaiveDateTime,
-) -> Result<(), Error<FileSource>> {
+fn run_command(opt: &Opt, files: &mut Files, range: DateRange, now: NaiveDateTime) -> Result<()> {
     match &opt.command {
         None => {
             let entries = find_entries(files, range)?;
@@ -144,7 +133,7 @@ fn run_command(
         Some(Command::Show { identifiers }) => {
             let entries = find_entries(files, range)?;
             let layout = find_layout(files, &entries, range, now);
-            let idents = parse_show_idents(identifiers, now.date());
+            let idents = parse_show_idents(identifiers, now.date())?;
             show::show(files, &entries, &layout, &idents);
         }
         Some(Command::Done { entries: ns }) => {
@@ -164,13 +153,27 @@ fn run_command(
             print::print(&layout);
         }
         Some(Command::Log { date }) => {
-            match parse_eval_arg("date", date, |date: CliDate| date.eval((), now.date())) {
-                Some(date) => log::log(files, date)?,
-                None => process::exit(1),
-            };
+            let date = parse_eval_arg("date", date, |date: CliDate| date.eval((), now.date()))?;
+            log::log(files, date)?
         }
         Some(Command::Fmt) => files.mark_all_dirty(),
     }
+    Ok(())
+}
+
+fn run_with_files(opt: Opt, files: &mut Files) -> Result<()> {
+    let now = files.now().naive_local();
+    let today = parse_eval_arg("--date", &opt.date, |date: CliDate| {
+        date.eval((), now.date())
+    })?;
+    let now = today.and_time(now.time());
+
+    let range = parse_eval_arg("--range", &opt.range, |range: CliRange| {
+        range.eval((), now.date())
+    })?;
+
+    run_command(&opt, files, range, now)?;
+
     Ok(())
 }
 
@@ -183,23 +186,7 @@ pub fn run() {
         process::exit(1);
     }
 
-    let now = files.now().naive_local();
-    let today = match parse_eval_arg("--date", &opt.date, |date: CliDate| {
-        date.eval((), now.date())
-    }) {
-        Some(date) => date,
-        None => process::exit(1),
-    };
-    let now = today.and_time(now.time());
-
-    let range = match parse_eval_arg("--range", &opt.range, |range: CliRange| {
-        range.eval((), now.date())
-    }) {
-        Some(range) => range,
-        None => process::exit(1),
-    };
-
-    if let Err(e) = run_command(&opt, &mut files, range, now) {
+    if let Err(e) = run_with_files(opt, &mut files) {
         crate::error::eprint_error(&files, &e);
         process::exit(1);
     }

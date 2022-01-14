@@ -74,13 +74,13 @@ fn show_log(files: &Files, log: Sourced<'_, Log>) {
 
 fn show_ident(files: &Files, entries: &[Entry], layout: &LineLayout, ident: Ident) {
     match ident {
-        Ident::Number(n) => match layout.look_up_number::<()>(n) {
+        Ident::Number(n) => match layout.look_up_number(n) {
             Ok(index) => show_entry(files, &entries[index]),
             Err(e) => println!("{}", e),
         },
         Ident::Date(date) => match files.log(date) {
             Some(log) => show_log(files, log),
-            None => println!("{}", Error::NoSuchLog::<()>(date)),
+            None => println!("{}", Error::NoSuchLog(date)),
         },
     }
 }
