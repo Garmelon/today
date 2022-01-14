@@ -81,7 +81,19 @@ pub enum Command {
 // TODO Add templates for tasks and notes
 #[derive(Debug, StructOpt)]
 pub enum Template {
-    /// An undated task marked as done today
+    /// Adds a task
+    #[structopt(alias = "t")]
+    Task {
+        /// If specified, the task is dated to this date
+        date: Option<String>,
+    },
+    /// Adds a note
+    #[structopt(alias = "n")]
+    Note {
+        /// If specified, the note is dated to this date
+        date: Option<String>,
+    },
+    /// Adds an undated task marked as done today
     #[structopt(alias = "d")]
     Done,
 }
@@ -126,6 +138,10 @@ where
     })
 }
 
+fn parse_eval_date(name: &str, text: &str, today: NaiveDate) -> Result<NaiveDate> {
+    parse_eval_arg(name, text, |date: CliDate| date.eval((), today))
+}
+
 fn parse_show_idents(identifiers: &[String], today: NaiveDate) -> Result<Vec<show::Ident>> {
     let mut idents = vec![];
     for ident in identifiers {
@@ -152,7 +168,17 @@ fn run_command(opt: &Opt, files: &mut Files, range: DateRange, now: NaiveDateTim
             show::show(files, &entries, &layout, &idents);
         }
         Some(Command::New { template }) => match template {
-            Template::Done => new::done(files, now)?,
+            Template::Task { date: Some(date) } => {
+                let date = parse_eval_date("date", date, now.date())?;
+                new::task(files, Some(date))?
+            }
+            Template::Task { date: None } => new::task(files, None)?,
+            Template::Note { date: Some(date) } => {
+                let date = parse_eval_date("date", date, now.date())?;
+                new::note(files, Some(date))?
+            }
+            Template::Note { date: None } => new::note(files, None)?,
+            Template::Done => new::done(files, now.date())?,
         },
         Some(Command::Done { entries: ns }) => {
             let entries = find_entries(files, range)?;
