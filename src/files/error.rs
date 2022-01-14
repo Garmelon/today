@@ -114,6 +114,13 @@ pub enum Error {
         span2: Span,
         tz2: String,
     },
+    #[error("Multiple capture commands")]
+    MultipleCapture {
+        file1: FileSource,
+        span1: Span,
+        file2: FileSource,
+        span2: Span,
+    },
     #[error("Duplicate logs for {date}")]
     LogConflict {
         file1: FileSource,
@@ -176,6 +183,23 @@ impl<'a> Eprint<'a, Files> for Error {
                     ])
                     .with_notes(vec![
                         "All TIMEZONE commands must set the same time zone.".to_string()
+                    ]);
+                Self::eprint_diagnostic(files, config, &diagnostic);
+            }
+            Error::MultipleCapture {
+                file1,
+                span1,
+                file2,
+                span2,
+            } => {
+                let diagnostic = Diagnostic::error()
+                    .with_message("Multiple capture commands")
+                    .with_labels(vec![
+                        Label::primary(*file1, span1),
+                        Label::primary(*file2, span2),
+                    ])
+                    .with_notes(vec![
+                        "There must be at most one CAPTURE command.".to_string()
                     ]);
                 Self::eprint_diagnostic(files, config, &diagnostic);
             }

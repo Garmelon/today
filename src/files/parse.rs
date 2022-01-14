@@ -826,6 +826,7 @@ fn parse_command(p: Pair<'_, Rule>) -> Result<Spanned<Command>> {
     let command = match p.as_rule() {
         Rule::include => Command::Include(parse_include(p)),
         Rule::timezone => Command::Timezone(parse_timezone(p)),
+        Rule::capture => Command::Capture,
         Rule::task => Command::Task(parse_task(p)?),
         Rule::note => Command::Note(parse_note(p)?),
         Rule::log => Command::Log(parse_log(p)?),

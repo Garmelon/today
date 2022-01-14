@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Unreleased
 
 ### Added
-- `LOG` command
+- `LOG` and `CAPTURE` commands
 - `REMIND` and `CANCEL` statements
 - `MOVE` entries to a different time
 - `today log` CLI command

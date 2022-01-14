@@ -85,6 +85,7 @@ pub struct Files {
     /// Codespan-reporting file database.
     cs_files: SimpleFiles<String, String>,
     timezone: Option<Tz>,
+    capture: Option<usize>,
     logs: HashMap<NaiveDate, Source>,
 }
 
@@ -132,6 +133,7 @@ impl Files {
             files: vec![],
             cs_files: SimpleFiles::new(),
             timezone: None,
+            capture: None,
             logs: HashMap::new(),
         }
     }
@@ -155,6 +157,7 @@ impl Files {
 
         self.load_file(&mut loaded, path)?;
         self.determine_timezone()?;
+        self.determine_capture()?;
         self.collect_logs()?;
 
         Ok(())
@@ -253,6 +256,32 @@ impl Files {
             Tz::local().map_err(|error| Error::LocalTz { error })?
         };
         self.timezone = Some(timezone);
+
+        Ok(())
+    }
+
+    fn determine_capture(&mut self) -> Result<()> {
+        assert_eq!(self.capture, None);
+
+        let mut found: Option<Source> = None;
+
+        for command in self.commands() {
+            if let Command::Capture = &command.value.value {
+                if let Some(found) = &found {
+                    let found_cmd = self.command(*found);
+                    return Err(Error::MultipleCapture {
+                        file1: found.file(),
+                        span1: found_cmd.value.span,
+                        file2: command.source.file(),
+                        span2: command.value.span,
+                    });
+                } else {
+                    found = Some(command.source);
+                }
+            }
+        }
+
+        self.capture = found.map(|s| s.file);
 
         Ok(())
     }
@@ -367,6 +396,10 @@ impl Files {
             .map(|(d, s)| (*d, *s))
             .filter(|(d, _)| d <= &date)
             .max_by_key(|(d, _)| *d)
+    }
+
+    pub fn capture(&self) -> Option<FileSource> {
+        self.capture.map(FileSource)
     }
 
     pub fn now(&self) -> DateTime<&Tz> {

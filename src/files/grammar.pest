@@ -5,6 +5,7 @@ rest_any = { (!eol ~ ANY)* }
 
 include = { "INCLUDE" ~ WHITESPACE ~ rest_some ~ eol }
 timezone = { "TIMEZONE" ~ WHITESPACE ~ rest_some ~ eol }
+capture = { "CAPTURE" ~ eol }
 
 number = @{ ASCII_DIGIT{1,9} } // Fits into an i32
 
@@ -144,7 +145,7 @@ log_head = !{ "LOG" ~ datum ~ eol }
 log = { log_head ~ description }
 
 empty_line = _{ WHITESPACE* ~ NEWLINE }
-command = { include | timezone | task | note | log }
+command = { include | timezone | capture | task | note | log }
 
 file = ${ SOI ~ (empty_line* ~ command)* ~ empty_line* ~ WHITESPACE* ~ EOI }
 

@@ -302,6 +302,7 @@ impl fmt::Display for Command {
         match self {
             Command::Include(name) => writeln!(f, "INCLUDE {}", name),
             Command::Timezone(name) => writeln!(f, "TIMEZONE {}", name),
+            Command::Capture => writeln!(f, "CAPTURE"),
             Command::Task(task) => write!(f, "{}", task),
             Command::Note(note) => write!(f, "{}", note),
             Command::Log(log) => write!(f, "{}", log),
@@ -322,8 +323,9 @@ impl File {
         // Order of commands in a file:
         // 1. Imports, sorted alphabetically
         // 2. Time zone(s)
-        // 3. Log entries, sorted by date (ascending)
-        // 4. Tasks and notes, in original order
+        // 3. Captures
+        // 4. Log entries, sorted by date (ascending)
+        // 5. Tasks and notes, in original order
 
         // There should always be at most one time zone, so we don't care about
         // their order.
@@ -347,8 +349,9 @@ impl File {
         commands.sort_by_key(|c| match c {
             Command::Include(_) => 0,
             Command::Timezone(_) => 1,
-            Command::Log(_) => 2,
-            Command::Task(_) | Command::Note(_) => 3,
+            Command::Capture => 2,
+            Command::Log(_) => 3,
+            Command::Task(_) | Command::Note(_) => 4,
         });
     }
 

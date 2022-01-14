@@ -271,6 +271,7 @@ pub enum Statement {
     Remind(Option<Spanned<Delta>>),
 }
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Debug, Clone, Copy)]
 pub enum DoneDate {
     Date {
@@ -374,6 +375,7 @@ pub struct Log {
 pub enum Command {
     Include(Spanned<String>),
     Timezone(Spanned<String>),
+    Capture, // TODO Set capture file by template?
     Task(Task),
     Note(Note),
     Log(Log),
