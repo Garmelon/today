@@ -106,8 +106,8 @@ impl<'a, F: Files<'a>> Eprint<'a, F> for Error<F::FileId> {
                         Label::primary(*index, span).with_message("At this step")
                     ])
                     .with_notes(vec![
-                        format!("Date before applying delta: {}", start_str),
-                        format!("Date before applying this step: {}", prev_str),
+                        format!("Date before applying delta: {start_str}"),
+                        format!("Date before applying this step: {prev_str}"),
                     ])
             }
             Error::DeltaNoTime {
@@ -121,8 +121,8 @@ impl<'a, F: Files<'a>> Eprint<'a, F> for Error<F::FileId> {
                     Label::primary(*index, span).with_message("At this step")
                 ])
                 .with_notes(vec![
-                    format!("Date before applying delta: {}", start),
-                    format!("Date before applying this step: {}", prev),
+                    format!("Date before applying delta: {start}"),
+                    format!("Date before applying this step: {prev}"),
                 ]),
             Error::RepeatDidNotMoveForwards {
                 index,
@@ -132,7 +132,7 @@ impl<'a, F: Files<'a>> Eprint<'a, F> for Error<F::FileId> {
             } => Diagnostic::error()
                 .with_message("Repeat delta did not move forwards")
                 .with_labels(vec![Label::primary(*index, span).with_message("This delta")])
-                .with_notes(vec![format!("Moved from {} to {}", from, to)]),
+                .with_notes(vec![format!("Moved from {from} to {to}")]),
             Error::RemindDidNotMoveBackwards {
                 index,
                 span,
@@ -141,7 +141,7 @@ impl<'a, F: Files<'a>> Eprint<'a, F> for Error<F::FileId> {
             } => Diagnostic::error()
                 .with_message("Remind delta did not move backwards")
                 .with_labels(vec![Label::primary(*index, span).with_message("This delta")])
-                .with_notes(vec![format!("Moved from {} to {}", from, to)]),
+                .with_notes(vec![format!("Moved from {from} to {to}")]),
             Error::MoveWithoutSource { index, span } => Diagnostic::error()
                 .with_message("Tried to move nonexistent entry")
                 .with_labels(vec![Label::primary(*index, span).with_message("Here")]),
@@ -153,13 +153,13 @@ impl<'a, F: Files<'a>> Eprint<'a, F> for Error<F::FileId> {
                 .with_labels(vec![
                     Label::primary(*index, span).with_message("This expression")
                 ])
-                .with_notes(vec![format!("At date: {}", date)]),
+                .with_notes(vec![format!("At date: {date}")]),
             Error::ModByZero { index, span, date } => Diagnostic::error()
                 .with_message("Tried to modulo by zero")
                 .with_labels(vec![
                     Label::primary(*index, span).with_message("This expression")
                 ])
-                .with_notes(vec![format!("At date: {}", date)]),
+                .with_notes(vec![format!("At date: {date}")]),
             Error::Easter {
                 index,
                 span,
@@ -170,10 +170,7 @@ impl<'a, F: Files<'a>> Eprint<'a, F> for Error<F::FileId> {
                 .with_labels(vec![
                     Label::primary(*index, span).with_message("This expression")
                 ])
-                .with_notes(vec![
-                    format!("At date: {}", date),
-                    format!("Reason: {}", msg),
-                ]),
+                .with_notes(vec![format!("At date: {date}"), format!("Reason: {msg}")]),
         };
         Self::eprint_diagnostic(files, config, &diagnostic);
     }

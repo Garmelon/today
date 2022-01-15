@@ -391,7 +391,7 @@ mod tests {
         if let Ok(result) = expr.eval((), date) {
             assert_eq!(result, target);
         } else {
-            panic!("formula produced error for day {}", date);
+            panic!("formula produced error for day {date}");
         }
     }
 

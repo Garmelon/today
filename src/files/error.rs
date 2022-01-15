@@ -40,7 +40,7 @@ impl<S> ParseError<S> {
                     .collect::<Vec<_>>()
                     .join(", ");
                 let last = Self::rule_name(rules[n - 1]);
-                format!("{} or {}", except_last, last)
+                format!("{except_last} or {last}")
             }
         }
     }
@@ -76,7 +76,7 @@ where
         };
         let name = files.name(self.file).expect("file exists");
         let diagnostic = Diagnostic::error()
-            .with_message(format!("Could not parse {}", name))
+            .with_message(format!("Could not parse {name}"))
             .with_labels(vec![Label::primary(self.file, range)])
             .with_notes(self.notes());
         Self::eprint_diagnostic(files, config, &diagnostic);
@@ -135,16 +135,16 @@ impl<'a> Eprint<'a, Files> for Error {
     fn eprint<'f: 'a>(&self, files: &'f Files, config: &Config) {
         match self {
             Error::ResolvePath { path, error } => {
-                eprintln!("Could not resolve path {:?}:", path);
-                eprintln!("  {}", error);
+                eprintln!("Could not resolve path {path:?}:");
+                eprintln!("  {error}");
             }
             Error::ReadFile { file, error } => {
-                eprintln!("Could not read file {:?}:", file);
-                eprintln!("  {}", error);
+                eprintln!("Could not read file {file:?}:");
+                eprintln!("  {error}");
             }
             Error::WriteFile { file, error } => {
-                eprintln!("Could not write file {:?}:", file);
-                eprintln!("  {}", error);
+                eprintln!("Could not write file {file:?}:");
+                eprintln!("  {error}");
             }
             Error::ResolveTz {
                 file,
@@ -153,16 +153,16 @@ impl<'a> Eprint<'a, Files> for Error {
                 error,
             } => {
                 let diagnostic = Diagnostic::error()
-                    .with_message(format!("Could not resolve time zone {}", tz))
+                    .with_message(format!("Could not resolve time zone {tz}"))
                     .with_labels(vec![
                         Label::primary(*file, span).with_message("Time zone defined here")
                     ])
-                    .with_notes(vec![format!("{}", error)]);
+                    .with_notes(vec![format!("{error}")]);
                 Self::eprint_diagnostic(files, config, &diagnostic);
             }
             Error::LocalTz { error } => {
                 eprintln!("Could not determine local timezone:");
-                eprintln!("  {}", error);
+                eprintln!("  {error}");
             }
             Error::Parse { file, error } => {
                 ParseError::new(*file, error.clone()).eprint(files, config)
@@ -176,7 +176,7 @@ impl<'a> Eprint<'a, Files> for Error {
                 tz2,
             } => {
                 let diagnostic = Diagnostic::error()
-                    .with_message(format!("Time zone conflict between {} and {}", tz1, tz2))
+                    .with_message(format!("Time zone conflict between {tz1} and {tz2}"))
                     .with_labels(vec![
                         Label::primary(*file1, span1).with_message("Time zone defined here"),
                         Label::primary(*file2, span2).with_message("Time zone defined here"),
@@ -211,7 +211,7 @@ impl<'a> Eprint<'a, Files> for Error {
                 date,
             } => {
                 let diagnostic = Diagnostic::error()
-                    .with_message(format!("Duplicate log entries for {}", date))
+                    .with_message(format!("Duplicate log entries for {date}"))
                     .with_labels(vec![
                         Label::primary(*file1, span1).with_message("Log defined here"),
                         Label::primary(*file2, span2).with_message("Log defined here"),

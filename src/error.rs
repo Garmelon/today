@@ -11,7 +11,7 @@ pub trait Eprint<'a, F: Files<'a>> {
     ) {
         let mut out = StandardStream::stderr(termcolor::ColorChoice::Auto);
         if let Err(e) = term::emit(&mut out, config, files, diagnostic) {
-            panic!("Error while reporting error: {}", e);
+            panic!("Error while reporting error: {e}");
         }
     }
 

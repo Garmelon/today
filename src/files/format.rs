@@ -22,7 +22,7 @@ fn format_desc(f: &mut fmt::Formatter<'_>, desc: &[String]) -> fmt::Result {
         if line.is_empty() {
             writeln!(f, "#")?;
         } else {
-            writeln!(f, "# {}", line)?;
+            writeln!(f, "# {line}")?;
         }
     }
     Ok(())
@@ -76,29 +76,29 @@ impl fmt::Display for DateSpec {
         // Start
         write!(f, "{}", self.start)?;
         for delta in &self.start_delta {
-            write!(f, " {}", delta)?;
+            write!(f, " {delta}")?;
         }
         for time in &self.start_time {
-            write!(f, " {}", time)?;
+            write!(f, " {time}")?;
         }
 
         // End
         if self.end.is_some() || self.end_delta.is_some() || self.end_time.is_some() {
             write!(f, " --")?;
             if let Some(date) = self.end {
-                write!(f, " {}", date)?;
+                write!(f, " {date}")?;
             }
             if let Some(delta) = &self.end_delta {
-                write!(f, " {}", delta)?;
+                write!(f, " {delta}")?;
             }
             if let Some(time) = &self.end_time {
-                write!(f, " {}", time)?;
+                write!(f, " {time}")?;
             }
         }
 
         // Repeat
         if let Some(repeat) = &self.repeat {
-            write!(f, "; {}", repeat)?;
+            write!(f, "; {repeat}")?;
         }
 
         Ok(())
@@ -110,20 +110,20 @@ impl fmt::Display for WeekdaySpec {
         // Start
         write!(f, "{}", self.start)?;
         for time in &self.start_time {
-            write!(f, " {}", time)?;
+            write!(f, " {time}")?;
         }
 
         // End
         if self.end.is_some() || self.end_delta.is_some() || self.end_time.is_some() {
             write!(f, " --")?;
             if let Some(wd) = self.end {
-                write!(f, " {}", wd)?;
+                write!(f, " {wd}")?;
             }
             if let Some(delta) = &self.end_delta {
-                write!(f, " {}", delta)?;
+                write!(f, " {delta}")?;
             }
             if let Some(time) = &self.end_time {
-                write!(f, " {}", time)?;
+                write!(f, " {time}")?;
             }
         }
 
@@ -140,25 +140,25 @@ impl fmt::Display for Var {
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Expr::Lit(i) => write!(f, "{}", i),
-            Expr::Var(v) => write!(f, "{}", v),
-            Expr::Paren(e) => write!(f, "({})", e),
-            Expr::Neg(e) => write!(f, "-{}", e),
-            Expr::Add(a, b) => write!(f, "{} + {}", a, b),
-            Expr::Sub(a, b) => write!(f, "{} - {}", a, b),
-            Expr::Mul(a, b) => write!(f, "{} * {}", a, b),
-            Expr::Div(a, b) => write!(f, "{} / {}", a, b),
-            Expr::Mod(a, b) => write!(f, "{} % {}", a, b),
-            Expr::Eq(a, b) => write!(f, "{} = {}", a, b),
-            Expr::Neq(a, b) => write!(f, "{} != {}", a, b),
-            Expr::Lt(a, b) => write!(f, "{} < {}", a, b),
-            Expr::Lte(a, b) => write!(f, "{} <= {}", a, b),
-            Expr::Gt(a, b) => write!(f, "{} > {}", a, b),
-            Expr::Gte(a, b) => write!(f, "{} >= {}", a, b),
-            Expr::Not(e) => write!(f, "!{}", e),
-            Expr::And(a, b) => write!(f, "{} & {}", a, b),
-            Expr::Or(a, b) => write!(f, "{} | {}", a, b),
-            Expr::Xor(a, b) => write!(f, "{} ^ {}", a, b),
+            Expr::Lit(i) => write!(f, "{i}"),
+            Expr::Var(v) => write!(f, "{v}"),
+            Expr::Paren(e) => write!(f, "({e})"),
+            Expr::Neg(e) => write!(f, "-{e}"),
+            Expr::Add(a, b) => write!(f, "{a} + {b}"),
+            Expr::Sub(a, b) => write!(f, "{a} - {b}"),
+            Expr::Mul(a, b) => write!(f, "{a} * {b}"),
+            Expr::Div(a, b) => write!(f, "{a} / {b}"),
+            Expr::Mod(a, b) => write!(f, "{a} % {b}"),
+            Expr::Eq(a, b) => write!(f, "{a} = {b}"),
+            Expr::Neq(a, b) => write!(f, "{a} != {b}"),
+            Expr::Lt(a, b) => write!(f, "{a} < {b}"),
+            Expr::Lte(a, b) => write!(f, "{a} <= {b}"),
+            Expr::Gt(a, b) => write!(f, "{a} > {b}"),
+            Expr::Gte(a, b) => write!(f, "{a} >= {b}"),
+            Expr::Not(e) => write!(f, "!{e}"),
+            Expr::And(a, b) => write!(f, "{a} & {b}"),
+            Expr::Or(a, b) => write!(f, "{a} | {b}"),
+            Expr::Xor(a, b) => write!(f, "{a} ^ {b}"),
         }
     }
 }
@@ -167,25 +167,25 @@ impl fmt::Display for FormulaSpec {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Start
         if let Some(expr) = &self.start {
-            write!(f, "({})", expr)?;
+            write!(f, "({expr})")?;
         } else {
             write!(f, "*")?;
         }
         for delta in &self.start_delta {
-            write!(f, " {}", delta)?;
+            write!(f, " {delta}")?;
         }
         for time in &self.start_time {
-            write!(f, " {}", time)?;
+            write!(f, " {time}")?;
         }
 
         // End
         if self.end_delta.is_some() || self.end_time.is_some() {
             write!(f, " --")?;
             if let Some(delta) = &self.end_delta {
-                write!(f, " {}", delta)?;
+                write!(f, " {delta}")?;
             }
             if let Some(time) = &self.end_time {
-                write!(f, " {}", time)?;
+                write!(f, " {time}")?;
             }
         }
 
@@ -196,9 +196,9 @@ impl fmt::Display for FormulaSpec {
 impl fmt::Display for Spec {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Spec::Date(spec) => write!(f, "{}", spec),
-            Spec::Weekday(spec) => write!(f, "{}", spec),
-            Spec::Formula(spec) => write!(f, "{}", spec),
+            Spec::Date(spec) => write!(f, "{spec}"),
+            Spec::Weekday(spec) => write!(f, "{spec}"),
+            Spec::Formula(spec) => write!(f, "{spec}"),
         }
     }
 }
@@ -216,22 +216,22 @@ impl fmt::Display for BirthdaySpec {
 impl fmt::Display for Statement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Statement::Date(spec) => writeln!(f, "DATE {}", spec),
-            Statement::BDate(spec) => writeln!(f, "BDATE {}", spec),
-            Statement::From(Some(date)) => writeln!(f, "FROM {}", date),
+            Statement::Date(spec) => writeln!(f, "DATE {spec}"),
+            Statement::BDate(spec) => writeln!(f, "BDATE {spec}"),
+            Statement::From(Some(date)) => writeln!(f, "FROM {date}"),
             Statement::From(None) => writeln!(f, "FROM *"),
-            Statement::Until(Some(date)) => writeln!(f, "UNTIL {}", date),
+            Statement::Until(Some(date)) => writeln!(f, "UNTIL {date}"),
             Statement::Until(None) => writeln!(f, "UNTIL *"),
-            Statement::Except(date) => writeln!(f, "EXCEPT {}", date),
+            Statement::Except(date) => writeln!(f, "EXCEPT {date}"),
             Statement::Move {
                 from, to, to_time, ..
             } => match (to, to_time) {
                 (None, None) => unreachable!(),
-                (Some(to), None) => writeln!(f, "MOVE {} TO {}", from, to),
-                (None, Some(to_time)) => writeln!(f, "MOVE {} TO {}", from, to_time),
-                (Some(to), Some(to_time)) => writeln!(f, "MOVE {} TO {} {}", from, to, to_time),
+                (Some(to), None) => writeln!(f, "MOVE {from} TO {to}"),
+                (None, Some(to_time)) => writeln!(f, "MOVE {from} TO {to_time}"),
+                (Some(to), Some(to_time)) => writeln!(f, "MOVE {from} TO {to} {to_time}"),
             },
-            Statement::Remind(Some(delta)) => writeln!(f, "REMIND {}", delta),
+            Statement::Remind(Some(delta)) => writeln!(f, "REMIND {delta}"),
             Statement::Remind(None) => writeln!(f, "REMIND *"),
         }
     }
@@ -240,20 +240,20 @@ impl fmt::Display for Statement {
 impl fmt::Display for DoneDate {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.simplified() {
-            DoneDate::Date { root } => write!(f, "{}", root),
-            DoneDate::DateTime { root, root_time } => write!(f, "{} {}", root, root_time),
-            DoneDate::DateToDate { root, other } => write!(f, "{} -- {}", root, other),
+            DoneDate::Date { root } => write!(f, "{root}"),
+            DoneDate::DateTime { root, root_time } => write!(f, "{root} {root_time}"),
+            DoneDate::DateToDate { root, other } => write!(f, "{root} -- {other}"),
             DoneDate::DateTimeToTime {
                 root,
                 root_time,
                 other_time,
-            } => write!(f, "{} {} -- {}", root, root_time, other_time),
+            } => write!(f, "{root} {root_time} -- {other_time}"),
             DoneDate::DateTimeToDateTime {
                 root,
                 root_time,
                 other,
                 other_time,
-            } => write!(f, "{} {} -- {} {}", root, root_time, other, other_time),
+            } => write!(f, "{root} {root_time} -- {other} {other_time}"),
         }
     }
 }
@@ -264,9 +264,9 @@ impl fmt::Display for Done {
             DoneKind::Done => "DONE",
             DoneKind::Canceled => "CANCELED",
         };
-        write!(f, "{} [{}]", kind, self.done_at)?;
+        write!(f, "{kind} [{}]", self.done_at)?;
         if let Some(date) = &self.date {
-            write!(f, " {}", date)?;
+            write!(f, " {date}")?;
         }
         writeln!(f)
     }
@@ -276,10 +276,10 @@ impl fmt::Display for Task {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "TASK {}", self.title)?;
         for statement in &self.statements {
-            write!(f, "{}", statement)?;
+            write!(f, "{statement}")?;
         }
         for done in &self.done {
-            write!(f, "{}", done)?;
+            write!(f, "{done}")?;
         }
         format_desc(f, &self.desc)?;
         Ok(())
@@ -290,23 +290,10 @@ impl fmt::Display for Note {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "NOTE {}", self.title)?;
         for statement in &self.statements {
-            write!(f, "{}", statement)?;
+            write!(f, "{statement}")?;
         }
         format_desc(f, &self.desc)?;
         Ok(())
-    }
-}
-
-impl fmt::Display for Command {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Command::Include(name) => writeln!(f, "INCLUDE {}", name),
-            Command::Timezone(name) => writeln!(f, "TIMEZONE {}", name),
-            Command::Capture => writeln!(f, "CAPTURE"),
-            Command::Task(task) => write!(f, "{}", task),
-            Command::Note(note) => write!(f, "{}", note),
-            Command::Log(log) => write!(f, "{}", log),
-        }
     }
 }
 
@@ -315,6 +302,19 @@ impl fmt::Display for Log {
         writeln!(f, "LOG {}", self.date)?;
         format_desc(f, &self.desc)?;
         Ok(())
+    }
+}
+
+impl fmt::Display for Command {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Command::Include(name) => writeln!(f, "INCLUDE {name}"),
+            Command::Timezone(name) => writeln!(f, "TIMEZONE {name}"),
+            Command::Capture => writeln!(f, "CAPTURE"),
+            Command::Task(task) => write!(f, "{task}"),
+            Command::Note(note) => write!(f, "{note}"),
+            Command::Log(log) => write!(f, "{log}"),
+        }
     }
 }
 
@@ -372,7 +372,7 @@ impl File {
             let curr = &commands[i];
             let next = commands.get(i + 1);
 
-            result.push_str(&format!("{}", curr));
+            result.push_str(&format!("{curr}"));
 
             match (curr, next) {
                 (Command::Include(_), Some(Command::Include(_))) => {}

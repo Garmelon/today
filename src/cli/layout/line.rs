@@ -185,7 +185,7 @@ impl LineLayout {
                 let extra = if *d == 1 {
                     "yesterday".to_string()
                 } else {
-                    format!("{} days ago", d)
+                    format!("{d} days ago")
                 };
                 self.line_entry(entries, *i, Times::Untimed, Some(extra));
             }
@@ -194,7 +194,7 @@ impl LineLayout {
             }
             DayEntry::ReminderWhile(i, d) => {
                 let plural = if *d == 1 { "" } else { "s" };
-                let extra = format!("{} day{} left", d, plural);
+                let extra = format!("{d} day{plural} left");
                 self.line_entry(entries, *i, Times::Untimed, Some(extra));
             }
             DayEntry::Undated(i) => {
@@ -208,7 +208,7 @@ impl LineLayout {
                 let extra = if *d == 1 {
                     "tomorrow".to_string()
                 } else {
-                    format!("in {} days", d)
+                    format!("in {d} days")
                 };
                 self.line_entry(entries, *i, Times::Untimed, Some(extra));
             }

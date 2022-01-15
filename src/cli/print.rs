@@ -63,28 +63,25 @@ impl ShowLines {
         };
 
         // '=' symbols before the spans start
-        let p1 = format!("{:=<w$}=", "", w = self.num_width);
+        let p1 = styled(&format!("{:=<w$}=", "", w = self.num_width));
 
         // Spans and filler '=' symbols
         let p2 = self.display_spans(spans, styled("="));
 
         // The rest of the line until after the date
-        let p3 = format!("===  {:9}  {}", weekday, date,);
+        let p3 = styled(&format!("===  {weekday:9}  {date}"));
 
         // The "has log" marker (if any)
         let p4 = Self::display_marker(has_log, " ");
 
         // The rest of the line
-        let p5 = format!(" ===={:=<w$}", "", w = self.num_width + self.span_width);
-
-        self.push(&format!(
-            "{}{}{}{}{}\n",
-            styled(&p1),
-            p2,
-            styled(&p3),
-            p4,
-            styled(&p5)
+        let p5 = styled(&format!(
+            " ===={:=<w$}",
+            "",
+            w = self.num_width + self.span_width
         ));
+
+        self.push(&format!("{p1}{p2}{p3}{p4}{p5}\n"));
     }
 
     fn display_line_now(&mut self, spans: &[Option<SpanSegment>], time: Time) {
@@ -109,7 +106,7 @@ impl ShowLines {
         extra: &Option<String>,
     ) {
         let num = match number {
-            Some(n) => format!("{}", n),
+            Some(n) => format!("{n}"),
             None => "".to_string(),
         };
 
@@ -137,9 +134,9 @@ impl ShowLines {
                     SpanSegment::Middle(SpanStyle::Dotted) => "┊".bright_black(),
                     SpanSegment::End(_) => "└".bright_black(),
                 };
-                result.push_str(&format!("{}", colored_str));
+                result.push_str(&format!("{colored_str}"));
             } else {
-                result.push_str(&format!("{}", empty));
+                result.push_str(&format!("{empty}"));
             }
         }
         result
@@ -148,8 +145,8 @@ impl ShowLines {
     fn display_time(time: Times) -> ColoredString {
         match time {
             Times::Untimed => "".into(),
-            Times::At(t) => format!(" {}", t).bright_black(),
-            Times::FromTo(t1, t2) => format!(" {}--{}", t1, t2).bright_black(),
+            Times::At(t) => format!(" {t}").bright_black(),
+            Times::FromTo(t1, t2) => format!(" {t1}--{t2}").bright_black(),
         }
     }
 
@@ -164,7 +161,7 @@ impl ShowLines {
     fn display_extra(extra: &Option<String>) -> ColoredString {
         match extra {
             None => "".into(),
-            Some(extra) => format!(" ({})", extra).bright_black(),
+            Some(extra) => format!(" ({extra})").bright_black(),
         }
     }
 

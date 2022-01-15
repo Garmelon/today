@@ -16,7 +16,8 @@ fn fmt_where(files: &Files, command: &Sourced<'_, Spanned<Command>>) -> String {
     let line = files
         .line_index(command.source.file(), command.value.span.start)
         .expect("file exists and line is valid");
-    format!("Line {} in {}", line + 1, name)
+    let line = line + 1; // 1-indexed for human consumption
+    format!("Line {line} in {name}")
 }
 
 fn print_desc(command: &Sourced<'_, Spanned<Command>>) {
@@ -42,11 +43,11 @@ fn show_entry(files: &Files, entry: &Entry) {
 
     let what = match entry.kind {
         EntryKind::Task => "Task".to_string(),
-        EntryKind::TaskDone(date) => format!("Task, done {}", date),
-        EntryKind::TaskCanceled(date) => format!("Task, canceled {}", date),
+        EntryKind::TaskDone(date) => format!("Task, done {date}"),
+        EntryKind::TaskCanceled(date) => format!("Task, canceled {date}"),
         EntryKind::Note => "Note".to_string(),
         EntryKind::Birthday(None) => "Birthday, age unknown".to_string(),
-        EntryKind::Birthday(Some(age)) => format!("Birthday, age {}", age),
+        EntryKind::Birthday(Some(age)) => format!("Birthday, age {age}"),
     };
     println!("{}  {}", "What:".bright_black(), what);
 
@@ -76,7 +77,7 @@ fn show_ident(files: &Files, entries: &[Entry], layout: &LineLayout, ident: Iden
     match ident {
         Ident::Number(n) => match layout.look_up_number(n) {
             Ok(index) => show_entry(files, &entries[index]),
-            Err(e) => println!("{}", e),
+            Err(e) => println!("{e}"),
         },
         Ident::Date(date) => match files.log(date) {
             Some(log) => show_log(files, log),

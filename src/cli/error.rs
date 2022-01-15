@@ -45,8 +45,8 @@ where
             Error::Eval(e) => e.eprint(files, config),
             Error::ArgumentParse { file, error } => error.eprint(file, config),
             Error::ArgumentEval { file, error } => error.eprint(file, config),
-            Error::NoSuchEntry(n) => eprintln!("No entry with number {}", n),
-            Error::NoSuchLog(date) => eprintln!("No log for {}", date),
+            Error::NoSuchEntry(n) => eprintln!("No entry with number {n}"),
+            Error::NoSuchLog(date) => eprintln!("No log for {date}"),
             Error::NotATask(ns) => {
                 if ns.is_empty() {
                     eprintln!("Not a task.");

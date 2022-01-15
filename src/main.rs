@@ -3,8 +3,6 @@
 #![warn(clippy::all)]
 #![warn(clippy::use_self)]
 
-// TODO Switch to new format syntax project-wide
-
 mod cli;
 mod error;
 mod eval;
