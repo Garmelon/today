@@ -154,9 +154,7 @@ impl<'a> Eprint<'a, Files> for Error {
             } => {
                 let diagnostic = Diagnostic::error()
                     .with_message(format!("Could not resolve time zone {tz}"))
-                    .with_labels(vec![
-                        Label::primary(*file, span).with_message("Time zone defined here")
-                    ])
+                    .with_labels(vec![Label::primary(*file, span)])
                     .with_notes(vec![format!("{error}")]);
                 Self::eprint_diagnostic(files, config, &diagnostic);
             }
@@ -178,8 +176,8 @@ impl<'a> Eprint<'a, Files> for Error {
                 let diagnostic = Diagnostic::error()
                     .with_message(format!("Time zone conflict between {tz1} and {tz2}"))
                     .with_labels(vec![
-                        Label::primary(*file1, span1).with_message("Time zone defined here"),
-                        Label::primary(*file2, span2).with_message("Time zone defined here"),
+                        Label::primary(*file1, span1),
+                        Label::primary(*file2, span2),
                     ])
                     .with_notes(vec![
                         "All TIMEZONE commands must set the same time zone.".to_string()
@@ -213,8 +211,8 @@ impl<'a> Eprint<'a, Files> for Error {
                 let diagnostic = Diagnostic::error()
                     .with_message(format!("Duplicate log entries for {date}"))
                     .with_labels(vec![
-                        Label::primary(*file1, span1).with_message("Log defined here"),
-                        Label::primary(*file2, span2).with_message("Log defined here"),
+                        Label::primary(*file1, span1),
+                        Label::primary(*file2, span2),
                     ])
                     .with_notes(vec!["A day can have at most one LOG entry.".to_string()]);
                 Self::eprint_diagnostic(files, config, &diagnostic);

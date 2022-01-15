@@ -102,9 +102,7 @@ impl<'a, F: Files<'a>> Eprint<'a, F> for Error<F::FileId> {
                 let prev_str = Self::fmt_date_time(*prev, *prev_time);
                 Diagnostic::error()
                     .with_message("Delta step resulted in invalid date")
-                    .with_labels(vec![
-                        Label::primary(*index, span).with_message("At this step")
-                    ])
+                    .with_labels(vec![Label::primary(*index, span)])
                     .with_notes(vec![
                         format!("Date before applying delta: {start_str}"),
                         format!("Date before applying this step: {prev_str}"),
@@ -117,9 +115,7 @@ impl<'a, F: Files<'a>> Eprint<'a, F> for Error<F::FileId> {
                 prev,
             } => Diagnostic::error()
                 .with_message("Time-based delta step applied to date without time")
-                .with_labels(vec![
-                    Label::primary(*index, span).with_message("At this step")
-                ])
+                .with_labels(vec![Label::primary(*index, span)])
                 .with_notes(vec![
                     format!("Date before applying delta: {start}"),
                     format!("Date before applying this step: {prev}"),
@@ -131,7 +127,7 @@ impl<'a, F: Files<'a>> Eprint<'a, F> for Error<F::FileId> {
                 to,
             } => Diagnostic::error()
                 .with_message("Repeat delta did not move forwards")
-                .with_labels(vec![Label::primary(*index, span).with_message("This delta")])
+                .with_labels(vec![Label::primary(*index, span)])
                 .with_notes(vec![format!("Moved from {from} to {to}")]),
             Error::RemindDidNotMoveBackwards {
                 index,
@@ -140,25 +136,21 @@ impl<'a, F: Files<'a>> Eprint<'a, F> for Error<F::FileId> {
                 to,
             } => Diagnostic::error()
                 .with_message("Remind delta did not move backwards")
-                .with_labels(vec![Label::primary(*index, span).with_message("This delta")])
+                .with_labels(vec![Label::primary(*index, span)])
                 .with_notes(vec![format!("Moved from {from} to {to}")]),
             Error::MoveWithoutSource { index, span } => Diagnostic::error()
                 .with_message("Tried to move nonexistent entry")
-                .with_labels(vec![Label::primary(*index, span).with_message("Here")]),
+                .with_labels(vec![Label::primary(*index, span)]),
             Error::TimedMoveWithoutTime { index, span } => Diagnostic::error()
                 .with_message("Tried to move un-timed entry to new time")
-                .with_labels(vec![Label::primary(*index, span).with_message("Here")]),
+                .with_labels(vec![Label::primary(*index, span)]),
             Error::DivByZero { index, span, date } => Diagnostic::error()
                 .with_message("Tried to divide by zero")
-                .with_labels(vec![
-                    Label::primary(*index, span).with_message("This expression")
-                ])
+                .with_labels(vec![Label::primary(*index, span)])
                 .with_notes(vec![format!("At date: {date}")]),
             Error::ModByZero { index, span, date } => Diagnostic::error()
                 .with_message("Tried to modulo by zero")
-                .with_labels(vec![
-                    Label::primary(*index, span).with_message("This expression")
-                ])
+                .with_labels(vec![Label::primary(*index, span)])
                 .with_notes(vec![format!("At date: {date}")]),
             Error::Easter {
                 index,
@@ -167,9 +159,7 @@ impl<'a, F: Files<'a>> Eprint<'a, F> for Error<F::FileId> {
                 msg,
             } => Diagnostic::error()
                 .with_message("Failed to calculate easter")
-                .with_labels(vec![
-                    Label::primary(*index, span).with_message("This expression")
-                ])
+                .with_labels(vec![Label::primary(*index, span)])
                 .with_notes(vec![format!("At date: {date}"), format!("Reason: {msg}")]),
         };
         Self::eprint_diagnostic(files, config, &diagnostic);
