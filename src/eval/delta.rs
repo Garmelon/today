@@ -284,6 +284,7 @@ impl<S: Copy> DeltaEval<S> {
             let days = rest + (amount - 1) * 7;
             self.curr += Duration::days(days.into());
         } else if amount < 0 {
+            let amount = -amount;
             let rest: i32 = weekday.until(curr_wd).into();
             let days = rest + (amount - 1) * 7;
             self.curr -= Duration::days(days.into());
@@ -564,6 +565,43 @@ mod tests {
 
         // Requires time
         assert!(apply_d(Step::Minute(0), (2021, 7, 3)).is_err());
+    }
+
+    #[test]
+    fn delta_weekday() {
+        use crate::files::primitives::Weekday::*;
+
+        test_d(Step::Weekday(-1, Friday), (2022, 3, 17), (2022, 3, 11));
+        test_d(Step::Weekday(-1, Saturday), (2022, 3, 17), (2022, 3, 12));
+        test_d(Step::Weekday(-1, Sunday), (2022, 3, 17), (2022, 3, 13));
+        test_d(Step::Weekday(-1, Monday), (2022, 3, 17), (2022, 3, 14));
+        test_d(Step::Weekday(-1, Tuesday), (2022, 3, 17), (2022, 3, 15));
+        test_d(Step::Weekday(-1, Wednesday), (2022, 3, 17), (2022, 3, 16));
+        test_d(Step::Weekday(-1, Thursday), (2022, 3, 17), (2022, 3, 17));
+
+        test_d(Step::Weekday(1, Thursday), (2022, 3, 17), (2022, 3, 17));
+        test_d(Step::Weekday(1, Friday), (2022, 3, 17), (2022, 3, 18));
+        test_d(Step::Weekday(1, Saturday), (2022, 3, 17), (2022, 3, 19));
+        test_d(Step::Weekday(1, Sunday), (2022, 3, 17), (2022, 3, 20));
+        test_d(Step::Weekday(1, Monday), (2022, 3, 17), (2022, 3, 21));
+        test_d(Step::Weekday(1, Tuesday), (2022, 3, 17), (2022, 3, 22));
+        test_d(Step::Weekday(1, Wednesday), (2022, 3, 17), (2022, 3, 23));
+
+        test_d(Step::Weekday(2, Thursday), (2022, 3, 17), (2022, 3, 24));
+        test_d(Step::Weekday(2, Friday), (2022, 3, 17), (2022, 3, 25));
+        test_d(Step::Weekday(2, Saturday), (2022, 3, 17), (2022, 3, 26));
+        test_d(Step::Weekday(2, Sunday), (2022, 3, 17), (2022, 3, 27));
+        test_d(Step::Weekday(2, Monday), (2022, 3, 17), (2022, 3, 28));
+        test_d(Step::Weekday(2, Tuesday), (2022, 3, 17), (2022, 3, 29));
+        test_d(Step::Weekday(2, Wednesday), (2022, 3, 17), (2022, 3, 30));
+
+        test_d(Step::Weekday(3, Thursday), (2022, 3, 17), (2022, 3, 31));
+        test_d(Step::Weekday(3, Friday), (2022, 3, 17), (2022, 4, 1));
+        test_d(Step::Weekday(3, Saturday), (2022, 3, 17), (2022, 4, 2));
+        test_d(Step::Weekday(3, Sunday), (2022, 3, 17), (2022, 4, 3));
+        test_d(Step::Weekday(3, Monday), (2022, 3, 17), (2022, 4, 4));
+        test_d(Step::Weekday(3, Tuesday), (2022, 3, 17), (2022, 4, 5));
+        test_d(Step::Weekday(3, Wednesday), (2022, 3, 17), (2022, 4, 6));
     }
 
     #[test]
