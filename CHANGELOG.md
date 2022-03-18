@@ -9,11 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `CAPTURE` command and `today new` CLI command
 - `REMIND` statement
 - `CANCEL` statement for tasks
-- One-letter aliases for
-    - `today show`: `today s`
-    - `today log`: `today l`
-    - `today done`: `today d`
-    - `today cancel`: `today c`
+- One-letter aliases for `show`, `log`, `done` and `cancel` CLI commands
 - `MOVE` can now move entries to a different time
 - `--date` now accepts expressions like `today-3d`
 - In `--range` and `--date`, `t` can be used as abbreviation for `today`
@@ -34,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 - Alignment in output
 - Respect `TZDIR` environment variable
+- Negative weekday deltas
 
 ## 0.1.0 - 2021-12-20
 
