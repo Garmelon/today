@@ -13,6 +13,10 @@ pub fn display_kind(kind: LineKind) -> ColoredString {
     }
 }
 
+pub fn display_current_birthday_text(text: &str) -> ColoredString {
+    text.yellow()
+}
+
 pub fn edit(input: &str) -> Result<String> {
     edit::edit(input).map_err(Error::EditingIo)
 }

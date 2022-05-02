@@ -35,12 +35,14 @@ impl ShowLines {
             LineEntry::Entry {
                 number,
                 spans,
+                today,
                 time,
                 kind,
                 text,
                 has_desc,
                 extra,
-            } => self.display_line_entry(*number, spans, *time, *kind, text, *has_desc, extra),
+            } => self
+                .display_line_entry(*number, spans, *today, *time, *kind, text, *has_desc, extra),
         }
     }
 
@@ -99,6 +101,7 @@ impl ShowLines {
         &mut self,
         number: Option<usize>,
         spans: &[Option<SpanSegment>],
+        today: bool,
         time: Times,
         kind: LineKind,
         text: &str,
@@ -108,6 +111,12 @@ impl ShowLines {
         let num = match number {
             Some(n) => format!("{n}"),
             None => "".to_string(),
+        };
+
+        let text = if kind == LineKind::Birthday && today {
+            util::display_current_birthday_text(text)
+        } else {
+            text.into()
         };
 
         self.push(&format!(
