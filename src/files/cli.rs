@@ -57,11 +57,17 @@ fn parse_cli_date(p: Pair<'_, Rule>) -> Result<CliDate> {
     Ok(CliDate { datum, delta })
 }
 
+fn parse_cli_date_arg(p: Pair<'_, Rule>) -> Result<CliDate> {
+    assert_eq!(p.as_rule(), Rule::cli_date_arg);
+    let p = p.into_inner().next().unwrap();
+    parse_cli_date(p)
+}
+
 impl FromStr for CliDate {
     type Err = ParseError<()>;
 
     fn from_str(s: &str) -> result::Result<Self, ParseError<()>> {
-        from_str_via_parse(s, Rule::cli_date, parse_cli_date)
+        from_str_via_parse(s, Rule::cli_date_arg, parse_cli_date_arg)
     }
 }
 
@@ -81,11 +87,17 @@ fn parse_cli_ident(p: Pair<'_, Rule>) -> Result<CliIdent> {
     })
 }
 
+fn parse_cli_ident_arg(p: Pair<'_, Rule>) -> Result<CliIdent> {
+    assert_eq!(p.as_rule(), Rule::cli_ident_arg);
+    let p = p.into_inner().next().unwrap();
+    parse_cli_ident(p)
+}
+
 impl FromStr for CliIdent {
     type Err = ParseError<()>;
 
     fn from_str(s: &str) -> result::Result<Self, ParseError<()>> {
-        from_str_via_parse(s, Rule::cli_ident, parse_cli_ident)
+        from_str_via_parse(s, Rule::cli_ident_arg, parse_cli_ident_arg)
     }
 }
 
@@ -135,10 +147,11 @@ fn parse_cli_range(p: Pair<'_, Rule>) -> Result<CliRange> {
 
     let (start, start_delta) = parse_cli_range_start(p.next().unwrap())?;
     let (end, end_delta) = match p.next() {
-        // For some reason, the EOI gets captured but the SOI doesn't.
-        Some(p) if p.as_rule() != Rule::EOI => parse_cli_range_end(p)?,
-        _ => (None, None),
+        Some(p) => parse_cli_range_end(p)?,
+        None => (None, None),
     };
+
+    assert_eq!(p.next(), None);
 
     Ok(CliRange {
         start,
@@ -148,11 +161,17 @@ fn parse_cli_range(p: Pair<'_, Rule>) -> Result<CliRange> {
     })
 }
 
+fn parse_cli_range_arg(p: Pair<'_, Rule>) -> Result<CliRange> {
+    assert_eq!(p.as_rule(), Rule::cli_range_arg);
+    let p = p.into_inner().next().unwrap();
+    parse_cli_range(p)
+}
+
 impl FromStr for CliRange {
     type Err = ParseError<()>;
 
     fn from_str(s: &str) -> result::Result<Self, ParseError<()>> {
-        from_str_via_parse(s, Rule::cli_range, parse_cli_range)
+        from_str_via_parse(s, Rule::cli_range_arg, parse_cli_range_arg)
     }
 }
 

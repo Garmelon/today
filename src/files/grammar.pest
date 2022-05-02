@@ -152,8 +152,13 @@ file = ${ SOI ~ (empty_line* ~ command)* ~ empty_line* ~ WHITESPACE* ~ EOI }
 today = { "today" | "t" }
 cli_datum = { datum | today }
 cli_date = { cli_datum ~ delta? }
-cli_ident = { SOI ~ (cli_date | number) ~ EOI }
+cli_ident = { cli_date | number }
 cli_range_start = { cli_datum ~ delta? }
 cli_range_end = { cli_datum ~ delta? | delta }
-cli_range = { SOI ~ cli_range_start ~ ("--" ~ cli_range_end)? ~ EOI }
+cli_range = { cli_range_start ~ ("--" ~ cli_range_end)? }
+
+cli_date_arg = { SOI ~ cli_date ~ EOI }
+cli_ident_arg = { SOI ~ cli_ident ~ EOI }
+cli_range_arg = { SOI ~ cli_range ~ EOI }
+
 cli_command = ${ SOI ~ empty_line* ~ command ~ empty_line* ~ WHITESPACE* ~ EOI }
