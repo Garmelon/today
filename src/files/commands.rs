@@ -346,7 +346,9 @@ pub enum DoneKind {
 #[derive(Debug)]
 pub struct Done {
     pub kind: DoneKind,
+    /// The date of the task the DONE refers to.
     pub date: Option<DoneDate>,
+    /// When the task was actually completed.
     pub done_at: NaiveDate,
 }
 
