@@ -174,9 +174,7 @@ impl LineLayout {
                 self.line_entry(entries, *i, today, Times::At(*t), None);
             }
             DayEntry::TimedAt(i, t, t2) => {
-                let time = t2
-                    .map(|t2| Times::FromTo(*t, t2))
-                    .unwrap_or_else(|| Times::At(*t));
+                let time = t2.map(|t2| Times::FromTo(*t, t2)).unwrap_or(Times::At(*t));
                 self.line_entry(entries, *i, today, time, None);
             }
             DayEntry::TimedStart(i, t) => {

@@ -319,7 +319,7 @@ impl fmt::Display for Command {
 }
 
 impl File {
-    fn sort(commands: &mut Vec<&Command>) {
+    fn sort(commands: &mut [&Command]) {
         // Order of commands in a file:
         // 1. Imports, sorted alphabetically
         // 2. Time zone(s)

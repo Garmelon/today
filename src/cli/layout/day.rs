@@ -189,7 +189,7 @@ impl DayLayout {
         }
     }
 
-    fn sort_entries(entries: &mut Vec<(usize, &Entry)>) {
+    fn sort_entries(entries: &mut [(usize, &Entry)]) {
         // Entries should be sorted by these factors, in descending order of
         // significance:
         // 1. Their start date, if any
@@ -219,7 +219,7 @@ impl DayLayout {
         entries.sort_by_key(|(_, e)| e.dates.map(|d| d.sorted().root_with_time()));
     }
 
-    fn sort_day(day: &mut Vec<DayEntry>) {
+    fn sort_day(day: &mut [DayEntry]) {
         // In a day, entries should be sorted into these categories:
         // 1. Untimed entries that end at the current day
         // 2. Timed entries, based on
