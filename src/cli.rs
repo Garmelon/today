@@ -33,7 +33,7 @@ pub struct Opt {
     #[structopt(short, long, default_value = "t")]
     date: String,
     /// Range of days to focus on
-    #[structopt(short, long, default_value = "t-2d--t+13d")]
+    #[structopt(short, long, default_value = "t-2d--t+2w")]
     range: String,
     #[structopt(subcommand)]
     command: Option<Command>,
