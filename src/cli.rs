@@ -3,9 +3,9 @@ use std::str::FromStr;
 use std::{process, result};
 
 use chrono::{NaiveDate, NaiveDateTime};
+use clap::Parser;
 use codespan_reporting::files::SimpleFile;
 use directories::ProjectDirs;
-use structopt::StructOpt;
 
 use crate::eval::{self, DateRange, Entry, EntryMode};
 use crate::files::cli::{CliDate, CliIdent, CliRange};
@@ -24,77 +24,76 @@ mod print;
 mod show;
 mod util;
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, clap::Parser)]
 pub struct Opt {
     /// File to load
-    #[structopt(short, long, parse(from_os_str))]
+    #[clap(short, long)]
     file: Option<PathBuf>,
     /// Overwrite the current date
-    #[structopt(short, long, default_value = "t")]
+    #[clap(short, long, default_value = "t")]
     date: String,
     /// Range of days to focus on
-    #[structopt(short, long, default_value = "t-2d--t+2w")]
+    #[clap(short, long, default_value = "t-2d--t+2w")]
     range: String,
-    #[structopt(subcommand)]
+    #[clap(subcommand)]
     command: Option<Command>,
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, clap::Subcommand)]
 pub enum Command {
     /// Shows individual entries in detail
-    #[structopt(alias = "s")]
+    #[clap(alias = "s")]
     Show {
         /// Entries and days to show
-        #[structopt(required = true)]
+        #[clap(required = true)]
         identifiers: Vec<String>,
     },
     /// Create a new entry based on a template
-    #[structopt(alias = "n")]
+    #[clap(alias = "n")]
     New {
-        #[structopt(subcommand)]
+        #[clap(subcommand)]
         template: Template,
     },
     /// Marks one or more entries as done
-    #[structopt(alias = "d")]
+    #[clap(alias = "d")]
     Done {
         /// Entries to mark as done
-        #[structopt(required = true)]
+        #[clap(required = true)]
         entries: Vec<usize>,
     },
     /// Marks one or more entries as canceled
-    #[structopt(alias = "c")]
+    #[clap(alias = "c")]
     Cancel {
         /// Entries to mark as done
-        #[structopt(required = true)]
+        #[clap(required = true)]
         entries: Vec<usize>,
     },
     /// Edits or creates a log entry
-    #[structopt(alias = "l")]
+    #[clap(alias = "l")]
     Log {
-        #[structopt(default_value = "t")]
+        #[clap(default_value = "t")]
         date: String,
     },
     /// Reformats all loaded files
     Fmt,
 }
 
-// TODO Add templates for tasks and notes
-#[derive(Debug, StructOpt)]
+#[derive(Debug, clap::Subcommand)]
 pub enum Template {
     /// Adds a task
-    #[structopt(alias = "t")]
+    #[clap(alias = "t")]
     Task {
         /// If specified, the task is dated to this date
         date: Option<String>,
     },
     /// Adds a note
-    #[structopt(alias = "n")]
+    #[clap(alias = "n")]
     Note {
         /// If specified, the note is dated to this date
         date: Option<String>,
     },
     /// Adds an undated task marked as done today
-    #[structopt(alias = "d")]
+    #[clap(alias = "d")]
     Done,
 }
 
@@ -222,7 +221,7 @@ fn run_with_files(opt: Opt, files: &mut Files) -> Result<()> {
 }
 
 pub fn run() {
-    let opt = Opt::from_args();
+    let opt = Opt::parse();
 
     let mut files = Files::new();
     if let Err(e) = load_files(&opt, &mut files) {
