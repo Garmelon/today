@@ -42,12 +42,12 @@ where
 {
     fn eprint<'f: 'a>(&self, files: &'f F, config: &Config) {
         match self {
-            Error::Eval(e) => e.eprint(files, config),
-            Error::ArgumentParse { file, error } => error.eprint(file, config),
-            Error::ArgumentEval { file, error } => error.eprint(file, config),
-            Error::NoSuchEntry(n) => eprintln!("No entry with number {n}"),
-            Error::NoSuchLog(date) => eprintln!("No log for {date}"),
-            Error::NotATask(ns) => {
+            Self::Eval(e) => e.eprint(files, config),
+            Self::ArgumentParse { file, error } => error.eprint(file, config),
+            Self::ArgumentEval { file, error } => error.eprint(file, config),
+            Self::NoSuchEntry(n) => eprintln!("No entry with number {n}"),
+            Self::NoSuchLog(date) => eprintln!("No log for {date}"),
+            Self::NotATask(ns) => {
                 if ns.is_empty() {
                     eprintln!("Not a task.");
                 } else if ns.len() == 1 {
@@ -57,8 +57,8 @@ where
                     eprintln!("{} are not tasks.", ns.join(", "));
                 }
             }
-            Error::NoCaptureFile => eprintln!("No capture file found"),
-            Error::EditingIo(error) => {
+            Self::NoCaptureFile => eprintln!("No capture file found"),
+            Self::EditingIo(error) => {
                 eprintln!("Error while editing:");
                 eprintln!("  {error}");
             }

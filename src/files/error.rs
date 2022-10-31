@@ -134,19 +134,19 @@ pub enum Error {
 impl<'a> Eprint<'a, Files> for Error {
     fn eprint<'f: 'a>(&self, files: &'f Files, config: &Config) {
         match self {
-            Error::ResolvePath { path, error } => {
+            Self::ResolvePath { path, error } => {
                 eprintln!("Could not resolve path {path:?}:");
                 eprintln!("  {error}");
             }
-            Error::ReadFile { file, error } => {
+            Self::ReadFile { file, error } => {
                 eprintln!("Could not read file {file:?}:");
                 eprintln!("  {error}");
             }
-            Error::WriteFile { file, error } => {
+            Self::WriteFile { file, error } => {
                 eprintln!("Could not write file {file:?}:");
                 eprintln!("  {error}");
             }
-            Error::ResolveTz {
+            Self::ResolveTz {
                 file,
                 span,
                 tz,
@@ -158,14 +158,14 @@ impl<'a> Eprint<'a, Files> for Error {
                     .with_notes(vec![format!("{error}")]);
                 Self::eprint_diagnostic(files, config, &diagnostic);
             }
-            Error::LocalTz { error } => {
+            Self::LocalTz { error } => {
                 eprintln!("Could not determine local timezone:");
                 eprintln!("  {error}");
             }
-            Error::Parse { file, error } => {
+            Self::Parse { file, error } => {
                 ParseError::new(*file, error.clone()).eprint(files, config)
             }
-            Error::TzConflict {
+            Self::TzConflict {
                 file1,
                 span1,
                 tz1,
@@ -184,7 +184,7 @@ impl<'a> Eprint<'a, Files> for Error {
                     ]);
                 Self::eprint_diagnostic(files, config, &diagnostic);
             }
-            Error::MultipleCapture {
+            Self::MultipleCapture {
                 file1,
                 span1,
                 file2,
@@ -201,7 +201,7 @@ impl<'a> Eprint<'a, Files> for Error {
                     ]);
                 Self::eprint_diagnostic(files, config, &diagnostic);
             }
-            Error::LogConflict {
+            Self::LogConflict {
                 file1,
                 span1,
                 file2,

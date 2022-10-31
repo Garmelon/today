@@ -137,7 +137,7 @@ impl DateSpec {
     }
 }
 
-impl<'a> CommandState<'a> {
+impl CommandState<'_> {
     pub fn eval_date_spec(&mut self, spec: DateSpec) -> Result<(), Error<FileSource>> {
         let index = self.source.file();
         if let Some(repeat) = &spec.repeat {

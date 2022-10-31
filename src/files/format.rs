@@ -140,25 +140,25 @@ impl fmt::Display for Var {
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Expr::Lit(i) => write!(f, "{i}"),
-            Expr::Var(v) => write!(f, "{v}"),
-            Expr::Paren(e) => write!(f, "({e})"),
-            Expr::Neg(e) => write!(f, "-{e}"),
-            Expr::Add(a, b) => write!(f, "{a} + {b}"),
-            Expr::Sub(a, b) => write!(f, "{a} - {b}"),
-            Expr::Mul(a, b) => write!(f, "{a} * {b}"),
-            Expr::Div(a, b) => write!(f, "{a} / {b}"),
-            Expr::Mod(a, b) => write!(f, "{a} % {b}"),
-            Expr::Eq(a, b) => write!(f, "{a} = {b}"),
-            Expr::Neq(a, b) => write!(f, "{a} != {b}"),
-            Expr::Lt(a, b) => write!(f, "{a} < {b}"),
-            Expr::Lte(a, b) => write!(f, "{a} <= {b}"),
-            Expr::Gt(a, b) => write!(f, "{a} > {b}"),
-            Expr::Gte(a, b) => write!(f, "{a} >= {b}"),
-            Expr::Not(e) => write!(f, "!{e}"),
-            Expr::And(a, b) => write!(f, "{a} & {b}"),
-            Expr::Or(a, b) => write!(f, "{a} | {b}"),
-            Expr::Xor(a, b) => write!(f, "{a} ^ {b}"),
+            Self::Lit(i) => write!(f, "{i}"),
+            Self::Var(v) => write!(f, "{v}"),
+            Self::Paren(e) => write!(f, "({e})"),
+            Self::Neg(e) => write!(f, "-{e}"),
+            Self::Add(a, b) => write!(f, "{a} + {b}"),
+            Self::Sub(a, b) => write!(f, "{a} - {b}"),
+            Self::Mul(a, b) => write!(f, "{a} * {b}"),
+            Self::Div(a, b) => write!(f, "{a} / {b}"),
+            Self::Mod(a, b) => write!(f, "{a} % {b}"),
+            Self::Eq(a, b) => write!(f, "{a} = {b}"),
+            Self::Neq(a, b) => write!(f, "{a} != {b}"),
+            Self::Lt(a, b) => write!(f, "{a} < {b}"),
+            Self::Lte(a, b) => write!(f, "{a} <= {b}"),
+            Self::Gt(a, b) => write!(f, "{a} > {b}"),
+            Self::Gte(a, b) => write!(f, "{a} >= {b}"),
+            Self::Not(e) => write!(f, "!{e}"),
+            Self::And(a, b) => write!(f, "{a} & {b}"),
+            Self::Or(a, b) => write!(f, "{a} | {b}"),
+            Self::Xor(a, b) => write!(f, "{a} ^ {b}"),
         }
     }
 }
@@ -196,9 +196,9 @@ impl fmt::Display for FormulaSpec {
 impl fmt::Display for Spec {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Spec::Date(spec) => write!(f, "{spec}"),
-            Spec::Weekday(spec) => write!(f, "{spec}"),
-            Spec::Formula(spec) => write!(f, "{spec}"),
+            Self::Date(spec) => write!(f, "{spec}"),
+            Self::Weekday(spec) => write!(f, "{spec}"),
+            Self::Formula(spec) => write!(f, "{spec}"),
         }
     }
 }
@@ -216,14 +216,14 @@ impl fmt::Display for BirthdaySpec {
 impl fmt::Display for Statement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Statement::Date(spec) => writeln!(f, "DATE {spec}"),
-            Statement::BDate(spec) => writeln!(f, "BDATE {spec}"),
-            Statement::From(Some(date)) => writeln!(f, "FROM {date}"),
-            Statement::From(None) => writeln!(f, "FROM *"),
-            Statement::Until(Some(date)) => writeln!(f, "UNTIL {date}"),
-            Statement::Until(None) => writeln!(f, "UNTIL *"),
-            Statement::Except(date) => writeln!(f, "EXCEPT {date}"),
-            Statement::Move {
+            Self::Date(spec) => writeln!(f, "DATE {spec}"),
+            Self::BDate(spec) => writeln!(f, "BDATE {spec}"),
+            Self::From(Some(date)) => writeln!(f, "FROM {date}"),
+            Self::From(None) => writeln!(f, "FROM *"),
+            Self::Until(Some(date)) => writeln!(f, "UNTIL {date}"),
+            Self::Until(None) => writeln!(f, "UNTIL *"),
+            Self::Except(date) => writeln!(f, "EXCEPT {date}"),
+            Self::Move {
                 from, to, to_time, ..
             } => match (to, to_time) {
                 (None, None) => unreachable!(),
@@ -231,8 +231,8 @@ impl fmt::Display for Statement {
                 (None, Some(to_time)) => writeln!(f, "MOVE {from} TO {to_time}"),
                 (Some(to), Some(to_time)) => writeln!(f, "MOVE {from} TO {to} {to_time}"),
             },
-            Statement::Remind(Some(delta)) => writeln!(f, "REMIND {delta}"),
-            Statement::Remind(None) => writeln!(f, "REMIND *"),
+            Self::Remind(Some(delta)) => writeln!(f, "REMIND {delta}"),
+            Self::Remind(None) => writeln!(f, "REMIND *"),
         }
     }
 }
@@ -240,15 +240,15 @@ impl fmt::Display for Statement {
 impl fmt::Display for DoneDate {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.simplified() {
-            DoneDate::Date { root } => write!(f, "{root}"),
-            DoneDate::DateTime { root, root_time } => write!(f, "{root} {root_time}"),
-            DoneDate::DateToDate { root, other } => write!(f, "{root} -- {other}"),
-            DoneDate::DateTimeToTime {
+            Self::Date { root } => write!(f, "{root}"),
+            Self::DateTime { root, root_time } => write!(f, "{root} {root_time}"),
+            Self::DateToDate { root, other } => write!(f, "{root} -- {other}"),
+            Self::DateTimeToTime {
                 root,
                 root_time,
                 other_time,
             } => write!(f, "{root} {root_time} -- {other_time}"),
-            DoneDate::DateTimeToDateTime {
+            Self::DateTimeToDateTime {
                 root,
                 root_time,
                 other,
@@ -308,12 +308,12 @@ impl fmt::Display for Log {
 impl fmt::Display for Command {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Command::Include(name) => writeln!(f, "INCLUDE {name}"),
-            Command::Timezone(name) => writeln!(f, "TIMEZONE {name}"),
-            Command::Capture => writeln!(f, "CAPTURE"),
-            Command::Task(task) => write!(f, "{task}"),
-            Command::Note(note) => write!(f, "{note}"),
-            Command::Log(log) => write!(f, "{log}"),
+            Self::Include(name) => writeln!(f, "INCLUDE {name}"),
+            Self::Timezone(name) => writeln!(f, "TIMEZONE {name}"),
+            Self::Capture => writeln!(f, "CAPTURE"),
+            Self::Task(task) => write!(f, "{task}"),
+            Self::Note(note) => write!(f, "{note}"),
+            Self::Log(log) => write!(f, "{log}"),
         }
     }
 }

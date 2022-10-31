@@ -51,38 +51,38 @@ pub enum Var {
 impl Var {
     fn eval<S>(self, index: S, date: NaiveDate) -> Result<i64, Error<S>> {
         Ok(match self {
-            Var::JulianDay => date.num_days_from_ce().into(),
-            Var::Year => date.year().into(),
-            Var::YearLength => util::year_length(date.year()).into(),
-            Var::YearDay => date.ordinal().into(),
-            Var::YearDayReverse => (util::year_length(date.year()) - date.ordinal0()).into(),
-            Var::YearWeek => (date.ordinal0().div_euclid(7) + 1).into(),
-            Var::YearWeekReverse => {
+            Self::JulianDay => date.num_days_from_ce().into(),
+            Self::Year => date.year().into(),
+            Self::YearLength => util::year_length(date.year()).into(),
+            Self::YearDay => date.ordinal().into(),
+            Self::YearDayReverse => (util::year_length(date.year()) - date.ordinal0()).into(),
+            Self::YearWeek => (date.ordinal0().div_euclid(7) + 1).into(),
+            Self::YearWeekReverse => {
                 #[allow(non_snake_case)]
                 let yD = util::year_length(date.year()) - date.ordinal();
                 (yD.div_euclid(7) + 1).into()
             }
-            Var::Month => date.month().into(),
-            Var::MonthLength => util::month_length(date.year(), date.month()).into(),
-            Var::MonthWeek => (date.day0().div_euclid(7) + 1).into(),
-            Var::MonthWeekReverse => {
+            Self::Month => date.month().into(),
+            Self::MonthLength => util::month_length(date.year(), date.month()).into(),
+            Self::MonthWeek => (date.day0().div_euclid(7) + 1).into(),
+            Self::MonthWeekReverse => {
                 #[allow(non_snake_case)]
                 let mD = util::month_length(date.year(), date.month()) - date.day();
                 (mD.div_euclid(7) + 1).into()
             }
-            Var::Day => date.day().into(),
-            Var::DayReverse => {
+            Self::Day => date.day().into(),
+            Self::DayReverse => {
                 let ml = util::month_length(date.year(), date.month());
                 (ml - date.day0()).into()
             }
-            Var::IsoYear => date.iso_week().year().into(),
-            Var::IsoYearLength => util::iso_year_length(date.iso_week().year()).into(),
-            Var::IsoWeek => date.iso_week().week().into(),
-            Var::Weekday => {
+            Self::IsoYear => date.iso_week().year().into(),
+            Self::IsoYearLength => util::iso_year_length(date.iso_week().year()).into(),
+            Self::IsoWeek => date.iso_week().week().into(),
+            Self::Weekday => {
                 let wd: Weekday = date.weekday().into();
                 wd.num().into()
             }
-            Var::Easter(span) => {
+            Self::Easter(span) => {
                 let e = computus::gregorian(date.year()).map_err(|e| Error::Easter {
                     index,
                     span,
@@ -91,16 +91,16 @@ impl Var {
                 })?;
                 NaiveDate::from_ymd(e.year, e.month, e.day).ordinal().into()
             }
-            Var::IsWeekday => {
+            Self::IsWeekday => {
                 let wd: Weekday = date.weekday().into();
                 b2i(!wd.is_weekend())
             }
-            Var::IsWeekend => {
+            Self::IsWeekend => {
                 let wd: Weekday = date.weekday().into();
                 b2i(wd.is_weekend())
             }
-            Var::IsLeapYear => b2i(util::is_leap_year(date.year())),
-            Var::IsIsoLeapYear => b2i(util::is_iso_leap_year(date.year())),
+            Self::IsLeapYear => b2i(util::is_leap_year(date.year())),
+            Self::IsIsoLeapYear => b2i(util::is_iso_leap_year(date.year())),
         })
     }
 }
@@ -206,13 +206,13 @@ impl From<Weekday> for Expr {
 impl Expr {
     fn eval<S: Copy>(&self, index: S, date: NaiveDate) -> Result<i64, Error<S>> {
         Ok(match self {
-            Expr::Lit(l) => *l,
-            Expr::Var(v) => v.eval(index, date)?,
-            Expr::Neg(e) => -e.eval(index, date)?,
-            Expr::Add(a, b) => a.eval(index, date)? + b.eval(index, date)?,
-            Expr::Sub(a, b) => a.eval(index, date)? - b.eval(index, date)?,
-            Expr::Mul(a, b) => a.eval(index, date)? * b.eval(index, date)?,
-            Expr::Div(a, b, span) => {
+            Self::Lit(l) => *l,
+            Self::Var(v) => v.eval(index, date)?,
+            Self::Neg(e) => -e.eval(index, date)?,
+            Self::Add(a, b) => a.eval(index, date)? + b.eval(index, date)?,
+            Self::Sub(a, b) => a.eval(index, date)? - b.eval(index, date)?,
+            Self::Mul(a, b) => a.eval(index, date)? * b.eval(index, date)?,
+            Self::Div(a, b, span) => {
                 let b = b.eval(index, date)?;
                 if b == 0 {
                     return Err(Error::DivByZero {
@@ -223,7 +223,7 @@ impl Expr {
                 }
                 a.eval(index, date)?.div_euclid(b)
             }
-            Expr::Mod(a, b, span) => {
+            Self::Mod(a, b, span) => {
                 let b = b.eval(index, date)?;
                 if b == 0 {
                     return Err(Error::ModByZero {
@@ -234,16 +234,16 @@ impl Expr {
                 }
                 a.eval(index, date)?.rem_euclid(b)
             }
-            Expr::Eq(a, b) => b2i(a.eval(index, date)? == b.eval(index, date)?),
-            Expr::Neq(a, b) => b2i(a.eval(index, date)? != b.eval(index, date)?),
-            Expr::Lt(a, b) => b2i(a.eval(index, date)? < b.eval(index, date)?),
-            Expr::Lte(a, b) => b2i(a.eval(index, date)? <= b.eval(index, date)?),
-            Expr::Gt(a, b) => b2i(a.eval(index, date)? > b.eval(index, date)?),
-            Expr::Gte(a, b) => b2i(a.eval(index, date)? >= b.eval(index, date)?),
-            Expr::Not(e) => b2i(!i2b(e.eval(index, date)?)),
-            Expr::And(a, b) => b2i(i2b(a.eval(index, date)?) && i2b(b.eval(index, date)?)),
-            Expr::Or(a, b) => b2i(i2b(a.eval(index, date)?) || i2b(b.eval(index, date)?)),
-            Expr::Xor(a, b) => b2i(i2b(a.eval(index, date)?) ^ i2b(b.eval(index, date)?)),
+            Self::Eq(a, b) => b2i(a.eval(index, date)? == b.eval(index, date)?),
+            Self::Neq(a, b) => b2i(a.eval(index, date)? != b.eval(index, date)?),
+            Self::Lt(a, b) => b2i(a.eval(index, date)? < b.eval(index, date)?),
+            Self::Lte(a, b) => b2i(a.eval(index, date)? <= b.eval(index, date)?),
+            Self::Gt(a, b) => b2i(a.eval(index, date)? > b.eval(index, date)?),
+            Self::Gte(a, b) => b2i(a.eval(index, date)? >= b.eval(index, date)?),
+            Self::Not(e) => b2i(!i2b(e.eval(index, date)?)),
+            Self::And(a, b) => b2i(i2b(a.eval(index, date)?) && i2b(b.eval(index, date)?)),
+            Self::Or(a, b) => b2i(i2b(a.eval(index, date)?) || i2b(b.eval(index, date)?)),
+            Self::Xor(a, b) => b2i(i2b(a.eval(index, date)?) ^ i2b(b.eval(index, date)?)),
         })
     }
 }
@@ -362,7 +362,7 @@ impl FormulaSpec {
     }
 }
 
-impl<'a> CommandState<'a> {
+impl CommandState<'_> {
     pub fn eval_formula_spec(&mut self, spec: FormulaSpec) -> Result<(), Error<FileSource>> {
         if let Some(range) = spec.range(self) {
             let index = self.source.file();

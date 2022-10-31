@@ -42,9 +42,9 @@ pub enum SpanSegment {
 impl SpanSegment {
     fn style(&self) -> SpanStyle {
         match self {
-            SpanSegment::Start(s) => *s,
-            SpanSegment::Middle(s) => *s,
-            SpanSegment::End(s) => *s,
+            Self::Start(s) => *s,
+            Self::Middle(s) => *s,
+            Self::End(s) => *s,
         }
     }
 }

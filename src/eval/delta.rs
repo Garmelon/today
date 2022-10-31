@@ -43,84 +43,84 @@ impl DeltaStep {
     /// A lower bound on days
     fn lower_bound(&self) -> i32 {
         match self {
-            DeltaStep::Year(n) => {
+            Self::Year(n) => {
                 if *n < 0 {
                     *n * 366
                 } else {
                     *n * 365
                 }
             }
-            DeltaStep::Month(n) | DeltaStep::MonthReverse(n) => {
+            Self::Month(n) | Self::MonthReverse(n) => {
                 if *n < 0 {
                     *n * 31
                 } else {
                     *n * 28
                 }
             }
-            DeltaStep::Day(n) => *n,
-            DeltaStep::Week(n) => *n * 7,
-            DeltaStep::Hour(n) => {
+            Self::Day(n) => *n,
+            Self::Week(n) => *n * 7,
+            Self::Hour(n) => {
                 if *n < 0 {
                     *n / 24 + (*n % 24).signum()
                 } else {
                     *n / 24
                 }
             }
-            DeltaStep::Minute(n) => {
+            Self::Minute(n) => {
                 if *n < 0 {
                     *n / (24 * 60) + (*n % (24 * 60)).signum()
                 } else {
                     *n / (24 * 60)
                 }
             }
-            DeltaStep::Weekday(n, _) => match n.cmp(&0) {
+            Self::Weekday(n, _) => match n.cmp(&0) {
                 Ordering::Less => *n * 7 - 1,
                 Ordering::Equal => 0,
                 Ordering::Greater => *n * 7 - 7,
             },
-            DeltaStep::Time(_) => 0,
+            Self::Time(_) => 0,
         }
     }
 
     /// An upper bound on days
     fn upper_bound(&self) -> i32 {
         match self {
-            DeltaStep::Year(n) => {
+            Self::Year(n) => {
                 if *n > 0 {
                     *n * 366
                 } else {
                     *n * 365
                 }
             }
-            DeltaStep::Month(n) | DeltaStep::MonthReverse(n) => {
+            Self::Month(n) | Self::MonthReverse(n) => {
                 if *n > 0 {
                     *n * 31
                 } else {
                     *n * 28
                 }
             }
-            DeltaStep::Day(n) => *n,
-            DeltaStep::Week(n) => *n * 7,
-            DeltaStep::Hour(n) => {
+            Self::Day(n) => *n,
+            Self::Week(n) => *n * 7,
+            Self::Hour(n) => {
                 if *n > 0 {
                     *n / 24 + (*n % 24).signum()
                 } else {
                     *n / 24
                 }
             }
-            DeltaStep::Minute(n) => {
+            Self::Minute(n) => {
                 if *n > 0 {
                     *n / (24 * 60) + (*n % (24 * 60)).signum()
                 } else {
                     *n / (24 * 60)
                 }
             }
-            DeltaStep::Weekday(n, _) => match n.cmp(&0) {
+            Self::Weekday(n, _) => match n.cmp(&0) {
                 Ordering::Less => *n * 7 - 7,
                 Ordering::Equal => 0,
                 Ordering::Greater => *n * 7 - 1,
             },
-            DeltaStep::Time(_) => 1,
+            Self::Time(_) => 1,
         }
     }
 }

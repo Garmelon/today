@@ -27,27 +27,27 @@ pub enum DeltaStep {
 impl DeltaStep {
     pub fn amount(&self) -> i32 {
         match self {
-            DeltaStep::Year(i) => *i,
-            DeltaStep::Month(i) => *i,
-            DeltaStep::MonthReverse(i) => *i,
-            DeltaStep::Day(i) => *i,
-            DeltaStep::Week(i) => *i,
-            DeltaStep::Hour(i) => *i,
-            DeltaStep::Minute(i) => *i,
-            DeltaStep::Weekday(i, _) => *i,
+            Self::Year(i) => *i,
+            Self::Month(i) => *i,
+            Self::MonthReverse(i) => *i,
+            Self::Day(i) => *i,
+            Self::Week(i) => *i,
+            Self::Hour(i) => *i,
+            Self::Minute(i) => *i,
+            Self::Weekday(i, _) => *i,
         }
     }
 
     pub fn name(&self) -> &'static str {
         match self {
-            DeltaStep::Year(_) => "y",
-            DeltaStep::Month(_) => "m",
-            DeltaStep::MonthReverse(_) => "M",
-            DeltaStep::Day(_) => "d",
-            DeltaStep::Week(_) => "w",
-            DeltaStep::Hour(_) => "h",
-            DeltaStep::Minute(_) => "min",
-            DeltaStep::Weekday(_, wd) => wd.name(),
+            Self::Year(_) => "y",
+            Self::Month(_) => "m",
+            Self::MonthReverse(_) => "M",
+            Self::Day(_) => "d",
+            Self::Week(_) => "w",
+            Self::Hour(_) => "h",
+            Self::Minute(_) => "min",
+            Self::Weekday(_, wd) => wd.name(),
         }
     }
 }
@@ -168,39 +168,39 @@ impl Var {
     pub fn name(&self) -> &'static str {
         match self {
             // Constants
-            Var::True => "true",
-            Var::False => "false",
-            Var::Monday => "mon",
-            Var::Tuesday => "tue",
-            Var::Wednesday => "wed",
-            Var::Thursday => "thu",
-            Var::Friday => "fri",
-            Var::Saturday => "sat",
-            Var::Sunday => "sun",
+            Self::True => "true",
+            Self::False => "false",
+            Self::Monday => "mon",
+            Self::Tuesday => "tue",
+            Self::Wednesday => "wed",
+            Self::Thursday => "thu",
+            Self::Friday => "fri",
+            Self::Saturday => "sat",
+            Self::Sunday => "sun",
             // Variables
-            Var::JulianDay => "j",
-            Var::Year => "y",
-            Var::YearLength => "yl",
-            Var::YearDay => "yd",
-            Var::YearDayReverse => "yD",
-            Var::YearWeek => "yw",
-            Var::YearWeekReverse => "yW",
-            Var::Month => "m",
-            Var::MonthLength => "ml",
-            Var::MonthWeek => "mw",
-            Var::MonthWeekReverse => "mW",
-            Var::Day => "d",
-            Var::DayReverse => "D",
-            Var::IsoYear => "iy",
-            Var::IsoYearLength => "iyl",
-            Var::IsoWeek => "iw",
-            Var::Weekday => "wd",
-            Var::Easter => "e",
+            Self::JulianDay => "j",
+            Self::Year => "y",
+            Self::YearLength => "yl",
+            Self::YearDay => "yd",
+            Self::YearDayReverse => "yD",
+            Self::YearWeek => "yw",
+            Self::YearWeekReverse => "yW",
+            Self::Month => "m",
+            Self::MonthLength => "ml",
+            Self::MonthWeek => "mw",
+            Self::MonthWeekReverse => "mW",
+            Self::Day => "d",
+            Self::DayReverse => "D",
+            Self::IsoYear => "iy",
+            Self::IsoYearLength => "iyl",
+            Self::IsoWeek => "iw",
+            Self::Weekday => "wd",
+            Self::Easter => "e",
             // Variables with "boolean" values
-            Var::IsWeekday => "isWeekday",
-            Var::IsWeekend => "isWeekend",
-            Var::IsLeapYear => "isLeapYear",
-            Var::IsIsoLeapYear => "isIsoLeapYear",
+            Self::IsWeekday => "isWeekday",
+            Self::IsWeekend => "isWeekend",
+            Self::IsLeapYear => "isLeapYear",
+            Self::IsIsoLeapYear => "isIsoLeapYear",
         }
     }
 }
@@ -301,11 +301,11 @@ pub enum DoneDate {
 impl DoneDate {
     pub fn root(self) -> NaiveDate {
         match self {
-            DoneDate::Date { root } => root,
-            DoneDate::DateTime { root, .. } => root,
-            DoneDate::DateToDate { root, .. } => root,
-            DoneDate::DateTimeToTime { root, .. } => root,
-            DoneDate::DateTimeToDateTime { root, .. } => root,
+            Self::Date { root } => root,
+            Self::DateTime { root, .. } => root,
+            Self::DateToDate { root, .. } => root,
+            Self::DateTimeToTime { root, .. } => root,
+            Self::DateTimeToDateTime { root, .. } => root,
         }
     }
 

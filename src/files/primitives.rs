@@ -206,13 +206,13 @@ impl Weekday {
     /// `Saturday`, `Sunday`).
     pub fn full_name(self) -> &'static str {
         match self {
-            Weekday::Monday => "Monday",
-            Weekday::Tuesday => "Tuesday",
-            Weekday::Wednesday => "Wednesday",
-            Weekday::Thursday => "Thursday",
-            Weekday::Friday => "Friday",
-            Weekday::Saturday => "Saturday",
-            Weekday::Sunday => "Sunday",
+            Self::Monday => "Monday",
+            Self::Tuesday => "Tuesday",
+            Self::Wednesday => "Wednesday",
+            Self::Thursday => "Thursday",
+            Self::Friday => "Friday",
+            Self::Saturday => "Saturday",
+            Self::Sunday => "Sunday",
         }
     }
 
