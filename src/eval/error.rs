@@ -88,6 +88,7 @@ impl<S> Error<S> {
 }
 
 impl<'a, F: Files<'a>> Eprint<'a, F> for Error<F::FileId> {
+    #[allow(single_use_lifetimes)]
     fn eprint<'f: 'a>(&self, files: &'f F, config: &Config) {
         let diagnostic = match self {
             Error::DeltaInvalidStep {

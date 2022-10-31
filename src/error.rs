@@ -4,6 +4,7 @@ use codespan_reporting::term::{self, Config};
 use termcolor::StandardStream;
 
 pub trait Eprint<'a, F: Files<'a>> {
+    #[allow(single_use_lifetimes)]
     fn eprint_diagnostic<'f: 'a>(
         files: &'f F,
         config: &Config,
@@ -15,9 +16,11 @@ pub trait Eprint<'a, F: Files<'a>> {
         }
     }
 
+    #[allow(single_use_lifetimes)]
     fn eprint<'f: 'a>(&self, files: &'f F, config: &Config);
 }
 
+#[allow(single_use_lifetimes)]
 pub fn eprint_error<'a, 'f: 'a, F, E>(files: &'f F, e: &E)
 where
     F: Files<'a>,

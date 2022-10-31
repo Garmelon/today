@@ -69,6 +69,7 @@ impl<'a, F> Eprint<'a, F> for ParseError<F::FileId>
 where
     F: codespan_reporting::files::Files<'a>,
 {
+    #[allow(single_use_lifetimes)]
     fn eprint<'f: 'a>(&self, files: &'f F, config: &Config) {
         let range = match self.error.location {
             InputLocation::Pos(at) => at..at,
@@ -132,6 +133,7 @@ pub enum Error {
 }
 
 impl<'a> Eprint<'a, Files> for Error {
+    #[allow(single_use_lifetimes)]
     fn eprint<'f: 'a>(&self, files: &'f Files, config: &Config) {
         match self {
             Self::ResolvePath { path, error } => {

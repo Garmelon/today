@@ -40,6 +40,7 @@ impl<'a, F> Eprint<'a, F> for Error
 where
     F: Files<'a, FileId = FileSource>,
 {
+    #[allow(single_use_lifetimes)]
     fn eprint<'f: 'a>(&self, files: &'f F, config: &Config) {
         match self {
             Self::Eval(e) => e.eprint(files, config),
