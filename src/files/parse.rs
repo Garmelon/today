@@ -4,7 +4,7 @@ use std::result;
 use chrono::NaiveDate;
 use pest::error::ErrorVariant;
 use pest::iterators::Pair;
-use pest::prec_climber::{Assoc, Operator, PrecClimber};
+use pest::pratt_parser::{Assoc, Op, PrattParser};
 use pest::{Parser, Span};
 
 use super::commands::{
@@ -429,21 +429,20 @@ fn parse_op(l: Spanned<Expr>, p: Pair<'_, Rule>, r: Spanned<Expr>) -> Spanned<Ex
 fn parse_expr(p: Pair<'_, Rule>) -> Spanned<Expr> {
     assert_eq!(p.as_rule(), Rule::expr);
 
-    fn op(rule: Rule) -> Operator<Rule> {
-        Operator::new(rule, Assoc::Left)
+    fn infl(rule: Rule) -> Op<Rule> {
+        Op::infix(rule, Assoc::Left)
     }
 
-    let climber = PrecClimber::new(vec![
-        // Precedence from low to high
-        op(Rule::op_or) | op(Rule::op_xor),
-        op(Rule::op_and),
-        op(Rule::op_eq) | op(Rule::op_neq),
-        op(Rule::op_lt) | op(Rule::op_lte) | op(Rule::op_gt) | op(Rule::op_gte),
-        op(Rule::op_mul) | op(Rule::op_div) | op(Rule::op_mod),
-        op(Rule::op_add) | op(Rule::op_sub),
-    ]);
-
-    climber.climb(p.into_inner(), parse_term, parse_op)
+    PrattParser::new()
+        .op(infl(Rule::op_or) | infl(Rule::op_xor))
+        .op(infl(Rule::op_and))
+        .op(infl(Rule::op_eq) | infl(Rule::op_neq))
+        .op(infl(Rule::op_lt) | infl(Rule::op_lte) | infl(Rule::op_gt) | infl(Rule::op_gte))
+        .op(infl(Rule::op_mul) | infl(Rule::op_div) | infl(Rule::op_mod))
+        .op(infl(Rule::op_add) | infl(Rule::op_sub))
+        .map_primary(parse_term)
+        .map_infix(parse_op)
+        .parse(p.into_inner())
 }
 
 fn parse_date_expr_start(p: Pair<'_, Rule>, spec: &mut FormulaSpec) -> Result<()> {
