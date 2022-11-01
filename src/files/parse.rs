@@ -359,24 +359,6 @@ fn parse_variable(p: Pair<'_, Rule>) -> Var {
     }
 }
 
-fn parse_unop_expr(p: Pair<'_, Rule>) -> Spanned<Expr> {
-    assert_eq!(p.as_rule(), Rule::unop_expr);
-    let span = (&p.as_span()).into();
-
-    let mut p = p.into_inner();
-    let p_op = p.next().unwrap();
-    let p_expr = p.next().unwrap();
-    assert_eq!(p.next(), None);
-
-    let inner = parse_expr(p_expr);
-    let expr = match p_op.as_rule() {
-        Rule::unop_neg => Expr::Neg(Box::new(inner)),
-        Rule::unop_not => Expr::Not(Box::new(inner)),
-        _ => unreachable!(),
-    };
-    Spanned::new(span, expr)
-}
-
 fn parse_paren_expr(p: Pair<'_, Rule>) -> Spanned<Expr> {
     assert_eq!(p.as_rule(), Rule::paren_expr);
     let span = (&p.as_span()).into();
@@ -392,34 +374,43 @@ fn parse_term(p: Pair<'_, Rule>) -> Spanned<Expr> {
         Rule::number => Spanned::new(span, Expr::Lit(parse_number(p).into())),
         Rule::boolean => Spanned::new(span, Expr::Var(parse_boolean(p))),
         Rule::variable => Spanned::new(span, Expr::Var(parse_variable(p))),
-        Rule::unop_expr => parse_unop_expr(p),
         Rule::paren_expr => parse_paren_expr(p),
         _ => unreachable!(),
     }
 }
 
-fn parse_op(l: Spanned<Expr>, p: Pair<'_, Rule>, r: Spanned<Expr>) -> Spanned<Expr> {
+fn parse_prefix(p: Pair<'_, Rule>, s: Spanned<Expr>) -> Spanned<Expr> {
+    let span = s.span.join((&p.as_span()).into());
+    let expr = match p.as_rule() {
+        Rule::prefix_neg => Expr::Neg(Box::new(s)),
+        Rule::prefix_not => Expr::Not(Box::new(s)),
+        _ => unreachable!(),
+    };
+    Spanned::new(span, expr)
+}
+
+fn parse_infix(l: Spanned<Expr>, p: Pair<'_, Rule>, r: Spanned<Expr>) -> Spanned<Expr> {
     let span = l.span.join(r.span);
     let expr = match p.as_rule() {
         // Integer-y operations
-        Rule::op_add => Expr::Add(Box::new(l), Box::new(r)),
-        Rule::op_sub => Expr::Sub(Box::new(l), Box::new(r)),
-        Rule::op_mul => Expr::Mul(Box::new(l), Box::new(r)),
-        Rule::op_div => Expr::Div(Box::new(l), Box::new(r)),
-        Rule::op_mod => Expr::Mod(Box::new(l), Box::new(r)),
+        Rule::infix_add => Expr::Add(Box::new(l), Box::new(r)),
+        Rule::infix_sub => Expr::Sub(Box::new(l), Box::new(r)),
+        Rule::infix_mul => Expr::Mul(Box::new(l), Box::new(r)),
+        Rule::infix_div => Expr::Div(Box::new(l), Box::new(r)),
+        Rule::infix_mod => Expr::Mod(Box::new(l), Box::new(r)),
 
         // Comparisons
-        Rule::op_eq => Expr::Eq(Box::new(l), Box::new(r)),
-        Rule::op_neq => Expr::Neq(Box::new(l), Box::new(r)),
-        Rule::op_lt => Expr::Lt(Box::new(l), Box::new(r)),
-        Rule::op_lte => Expr::Lte(Box::new(l), Box::new(r)),
-        Rule::op_gt => Expr::Gt(Box::new(l), Box::new(r)),
-        Rule::op_gte => Expr::Gte(Box::new(l), Box::new(r)),
+        Rule::infix_eq => Expr::Eq(Box::new(l), Box::new(r)),
+        Rule::infix_neq => Expr::Neq(Box::new(l), Box::new(r)),
+        Rule::infix_lt => Expr::Lt(Box::new(l), Box::new(r)),
+        Rule::infix_lte => Expr::Lte(Box::new(l), Box::new(r)),
+        Rule::infix_gt => Expr::Gt(Box::new(l), Box::new(r)),
+        Rule::infix_gte => Expr::Gte(Box::new(l), Box::new(r)),
 
         // Boolean-y operations
-        Rule::op_and => Expr::And(Box::new(l), Box::new(r)),
-        Rule::op_or => Expr::Or(Box::new(l), Box::new(r)),
-        Rule::op_xor => Expr::Xor(Box::new(l), Box::new(r)),
+        Rule::infix_and => Expr::And(Box::new(l), Box::new(r)),
+        Rule::infix_or => Expr::Or(Box::new(l), Box::new(r)),
+        Rule::infix_xor => Expr::Xor(Box::new(l), Box::new(r)),
 
         _ => unreachable!(),
     };
@@ -429,19 +420,22 @@ fn parse_op(l: Spanned<Expr>, p: Pair<'_, Rule>, r: Spanned<Expr>) -> Spanned<Ex
 fn parse_expr(p: Pair<'_, Rule>) -> Spanned<Expr> {
     assert_eq!(p.as_rule(), Rule::expr);
 
-    fn infl(rule: Rule) -> Op<Rule> {
-        Op::infix(rule, Assoc::Left)
-    }
-
     PrattParser::new()
-        .op(infl(Rule::op_or) | infl(Rule::op_xor))
-        .op(infl(Rule::op_and))
-        .op(infl(Rule::op_eq) | infl(Rule::op_neq))
-        .op(infl(Rule::op_lt) | infl(Rule::op_lte) | infl(Rule::op_gt) | infl(Rule::op_gte))
-        .op(infl(Rule::op_mul) | infl(Rule::op_div) | infl(Rule::op_mod))
-        .op(infl(Rule::op_add) | infl(Rule::op_sub))
+        .op(Op::infix(Rule::infix_or, Assoc::Left) | Op::infix(Rule::infix_xor, Assoc::Left))
+        .op(Op::infix(Rule::infix_and, Assoc::Left))
+        .op(Op::infix(Rule::infix_eq, Assoc::Left) | Op::infix(Rule::infix_neq, Assoc::Left))
+        .op(Op::infix(Rule::infix_lt, Assoc::Left)
+            | Op::infix(Rule::infix_lte, Assoc::Left)
+            | Op::infix(Rule::infix_gt, Assoc::Left)
+            | Op::infix(Rule::infix_gte, Assoc::Left))
+        .op(Op::infix(Rule::infix_mul, Assoc::Left)
+            | Op::infix(Rule::infix_div, Assoc::Left)
+            | Op::infix(Rule::infix_mod, Assoc::Left))
+        .op(Op::infix(Rule::infix_add, Assoc::Left) | Op::infix(Rule::infix_sub, Assoc::Left))
+        .op(Op::prefix(Rule::prefix_neg) | Op::prefix(Rule::prefix_not))
         .map_primary(parse_term)
-        .map_infix(parse_op)
+        .map_prefix(parse_prefix)
+        .map_infix(parse_infix)
         .parse(p.into_inner())
 }
 
