@@ -36,6 +36,7 @@ impl SpanStyle {
 pub enum SpanSegment {
     Start(SpanStyle),
     Middle(SpanStyle),
+    Mark(SpanStyle),
     End(SpanStyle),
 }
 
@@ -44,6 +45,7 @@ impl SpanSegment {
         match self {
             Self::Start(s) => *s,
             Self::Middle(s) => *s,
+            Self::Mark(s) => *s,
             Self::End(s) => *s,
         }
     }
@@ -195,6 +197,7 @@ impl LineLayout {
             DayEntry::ReminderWhile(i, d) => {
                 let plural = if *d == 1 { "" } else { "s" };
                 let extra = format!("{d} day{plural} left");
+                self.mark_span(*i);
                 self.line_entry(entries, *i, today, Times::Untimed, Some(extra));
             }
             DayEntry::Undated(i) => {
@@ -246,6 +249,15 @@ impl LineLayout {
         self.spans.push(Some((index, SpanSegment::Start(style))));
     }
 
+    fn mark_span(&mut self, index: usize) {
+        for span in self.spans.iter_mut() {
+            match span {
+                Some((i, s)) if *i == index => *s = SpanSegment::Mark(s.style()),
+                _ => {}
+            }
+        }
+    }
+
     fn stop_span(&mut self, index: usize) {
         for span in self.spans.iter_mut() {
             match span {
@@ -258,7 +270,9 @@ impl LineLayout {
     fn step_spans(&mut self) {
         for span in self.spans.iter_mut() {
             match span {
-                Some((_, s @ SpanSegment::Start(_))) => *s = SpanSegment::Middle(s.style()),
+                Some((_, s @ (SpanSegment::Start(_) | SpanSegment::Mark(_)))) => {
+                    *s = SpanSegment::Middle(s.style())
+                }
                 Some((_, SpanSegment::End(_))) => *span = None,
                 _ => {}
             }

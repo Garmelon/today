@@ -4,6 +4,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+### Added
+- Marks to show which span a reminder belongs to
+
 ### Changed
 - Birthdays for current day are now highlighted
 - Default value for `--range` argument

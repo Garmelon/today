@@ -141,6 +141,7 @@ impl ShowLines {
                     SpanSegment::Middle(SpanStyle::Solid) => "│".bright_black(),
                     SpanSegment::Middle(SpanStyle::Dashed) => "╎".bright_black(),
                     SpanSegment::Middle(SpanStyle::Dotted) => "┊".bright_black(),
+                    SpanSegment::Mark(_) => "┝".bright_black(),
                     SpanSegment::End(_) => "└".bright_black(),
                 };
                 result.push_str(&format!("{colored_str}"));
