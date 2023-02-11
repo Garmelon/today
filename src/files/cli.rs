@@ -13,7 +13,8 @@ fn from_str_via_parse<P, R>(s: &str, rule: Rule, parse: P) -> result::Result<R, 
 where
     P: FnOnce(Pair<'_, Rule>) -> Result<R>,
 {
-    let mut pairs = TodayfileParser::parse(rule, s).map_err(|e| ParseError::new((), e))?;
+    let mut pairs =
+        TodayfileParser::parse(rule, s).map_err(|e| ParseError::new((), Box::new(e)))?;
     let p = pairs.next().unwrap();
     assert_eq!(pairs.next(), None);
 

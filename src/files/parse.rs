@@ -18,7 +18,7 @@ use super::primitives::{Spanned, Time, Weekday};
 pub struct TodayfileParser;
 
 pub type Error = pest::error::Error<Rule>;
-pub type Result<T> = result::Result<T, Error>;
+pub type Result<T> = result::Result<T, Box<Error>>;
 
 fn error<S: Into<String>>(span: Span<'_>, message: S) -> Error {
     Error::new_from_span(
@@ -30,7 +30,7 @@ fn error<S: Into<String>>(span: Span<'_>, message: S) -> Error {
 }
 
 fn fail<S: Into<String>, T>(span: Span<'_>, message: S) -> Result<T> {
-    Err(error(span, message))
+    Err(Box::new(error(span, message)))
 }
 
 fn parse_include(p: Pair<'_, Rule>) -> Spanned<String> {
@@ -851,5 +851,5 @@ pub fn parse(path: &Path, input: &str) -> Result<File> {
     let file_pair = pairs.next().unwrap();
     assert_eq!(pairs.next(), None);
 
-    parse_file(file_pair).map_err(|e| e.with_path(&pathstr))
+    parse_file(file_pair).map_err(|e| Box::new(e.with_path(&pathstr)))
 }

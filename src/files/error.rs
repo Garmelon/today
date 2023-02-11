@@ -15,11 +15,11 @@ use super::{parse, FileSource, Files};
 #[error("{error}")]
 pub struct ParseError<S> {
     file: S,
-    error: parse::Error,
+    error: Box<parse::Error>,
 }
 
 impl<S> ParseError<S> {
-    pub fn new(file: S, error: parse::Error) -> Self {
+    pub fn new(file: S, error: Box<parse::Error>) -> Self {
         Self { file, error }
     }
 
@@ -104,7 +104,7 @@ pub enum Error {
     #[error("{error}")]
     Parse {
         file: FileSource,
-        error: parse::Error,
+        error: Box<parse::Error>,
     },
     #[error("Conflicting time zones {tz1} and {tz2}")]
     TzConflict {
