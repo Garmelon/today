@@ -35,8 +35,8 @@ impl CommandState<'_> {
                 assert_eq!(spec.date.month(), 2);
                 assert_eq!(spec.date.day(), 29);
 
-                let first = NaiveDate::from_ymd(year, 2, 28);
-                let second = NaiveDate::from_ymd(year, 3, 1);
+                let first = NaiveDate::from_ymd_opt(year, 2, 28).unwrap();
+                let second = NaiveDate::from_ymd_opt(year, 3, 1).unwrap();
                 self.add(self.entry_with_remind(kind, Some(Dates::new(first, second)))?);
             }
         }

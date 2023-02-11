@@ -85,7 +85,7 @@ impl DateSpec {
                 let range_from = s
                     .command
                     .last_done_root()
-                    .map(|date| date.succ())
+                    .map(|date| date.succ_opt().unwrap())
                     .unwrap_or(self.start);
                 let range = s
                     .range_with_remind()

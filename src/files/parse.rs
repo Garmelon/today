@@ -293,7 +293,7 @@ fn parse_date_fixed(p: Pair<'_, Rule>) -> Result<DateSpec> {
     assert_eq!(p.as_rule(), Rule::date_fixed);
 
     let mut spec = DateSpec {
-        start: NaiveDate::from_ymd(0, 1, 1),
+        start: NaiveDate::from_ymd_opt(0, 1, 1).unwrap(),
         start_delta: None,
         start_time: None,
         end: None,

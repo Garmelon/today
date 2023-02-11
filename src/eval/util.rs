@@ -9,13 +9,14 @@ pub fn is_iso_leap_year(year: i32) -> bool {
 }
 
 pub fn year_length(year: i32) -> u32 {
-    NaiveDate::from_ymd(year, 12, 31).ordinal()
+    NaiveDate::from_ymd_opt(year, 12, 31).unwrap().ordinal()
 }
 
 pub fn month_length(year: i32, month: u32) -> u32 {
     NaiveDate::from_ymd_opt(year, month + 1, 1)
-        .unwrap_or_else(|| NaiveDate::from_ymd(year + 1, 1, 1))
-        .pred()
+        .unwrap_or_else(|| NaiveDate::from_ymd_opt(year + 1, 1, 1).unwrap())
+        .pred_opt()
+        .unwrap()
         .day()
 }
 

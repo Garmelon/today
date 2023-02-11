@@ -298,7 +298,7 @@ impl<S: Copy> DeltaEval<S> {
         };
 
         if time < curr_time {
-            self.curr = self.curr.succ();
+            self.curr = self.curr.succ_opt().unwrap();
         }
         self.curr_time = Some(time);
         Ok(())
@@ -359,13 +359,13 @@ mod tests {
     }
 
     fn apply_d(step: Step, from: (i32, u32, u32)) -> Result<NaiveDate, Error<()>> {
-        delta(step).apply_date((), NaiveDate::from_ymd(from.0, from.1, from.2))
+        delta(step).apply_date((), NaiveDate::from_ymd_opt(from.0, from.1, from.2).unwrap())
     }
 
     fn test_d(step: Step, from: (i32, u32, u32), expected: (i32, u32, u32)) {
         assert_eq!(
             apply_d(step, from).unwrap(),
-            NaiveDate::from_ymd(expected.0, expected.1, expected.2)
+            NaiveDate::from_ymd_opt(expected.0, expected.1, expected.2).unwrap()
         );
     }
 
@@ -375,7 +375,7 @@ mod tests {
     ) -> Result<(NaiveDate, Time), Error<()>> {
         delta(step).apply_date_time(
             (),
-            NaiveDate::from_ymd(from.0, from.1, from.2),
+            NaiveDate::from_ymd_opt(from.0, from.1, from.2).unwrap(),
             Time::new(from.3, from.4),
         )
     }
@@ -385,7 +385,7 @@ mod tests {
         assert_eq!(
             apply_dt(step, from).unwrap(),
             (
-                NaiveDate::from_ymd(expected.0, expected.1, expected.2),
+                NaiveDate::from_ymd_opt(expected.0, expected.1, expected.2).unwrap(),
                 Time::new(expected.3, expected.4)
             )
         );
