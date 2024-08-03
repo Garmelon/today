@@ -75,10 +75,10 @@ impl fmt::Display for DateSpec {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Start
         write!(f, "{}", self.start)?;
-        for delta in &self.start_delta {
+        if let Some(delta) = &self.start_delta {
             write!(f, " {delta}")?;
         }
-        for time in &self.start_time {
+        if let Some(time) = &self.start_time {
             write!(f, " {time}")?;
         }
 
@@ -109,7 +109,7 @@ impl fmt::Display for WeekdaySpec {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Start
         write!(f, "{}", self.start)?;
-        for time in &self.start_time {
+        if let Some(time) = &self.start_time {
             write!(f, " {time}")?;
         }
 
@@ -171,10 +171,10 @@ impl fmt::Display for FormulaSpec {
         } else {
             write!(f, "*")?;
         }
-        for delta in &self.start_delta {
+        if let Some(delta) = &self.start_delta {
             write!(f, " {delta}")?;
         }
-        for time in &self.start_time {
+        if let Some(time) = &self.start_time {
             write!(f, " {time}")?;
         }
 
