@@ -61,6 +61,7 @@ impl Entry {
 
 /// Mode that determines how entries are filtered when they are added to
 /// an [`Entries`].
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EntryMode {
     /// The entry's root date must be contained in the range.

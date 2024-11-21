@@ -37,6 +37,7 @@ impl DateRange {
     /// Return a new range with its [`Self::until`] set to a new value.
     ///
     /// Returns [`None`] if the new value is earlier than [`Self::from`].
+    #[allow(dead_code)]
     pub fn with_until(&self, until: NaiveDate) -> Option<Self> {
         if self.from <= until {
             Some(Self::new(self.from, until))
