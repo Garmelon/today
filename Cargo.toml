@@ -17,3 +17,19 @@ promptly = "0.3.1"
 termcolor = "1.2.0"
 thiserror = "1.0.38"
 tzfile = { git = "https://github.com/Garmelon/tzfile.git", branch = "tzdir" }
+
+[lints]
+rust.unsafe_code = { level = "forbid", priority = 1 }
+rust.future_incompatible = "warn"
+rust.rust_2018_idioms = "warn"
+rust.noop_method_call = "warn"
+rust.single_use_lifetimes = "warn"
+rust.trivial_numeric_casts = "warn"
+rust.unused = "warn"
+rust.unused_crate_dependencies = "warn"
+rust.unused_extern_crates = "warn"
+rust.unused_import_braces = "warn"
+rust.unused_lifetimes = "warn"
+rust.unused_qualifications = "warn"
+clippy.all = "warn"
+clippy.use_self = "warn"
